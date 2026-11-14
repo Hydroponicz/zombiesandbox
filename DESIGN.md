@@ -151,7 +151,7 @@ prone moves to D-pad down.
   style: slowdown over targets + rotational tracking of moving targets. Strength setting (incl. off).
   Never through walls; only hostile targets.
 
-#### Piece 2: firing & ballistics (implemented on `preview` — in testing)
+#### Piece 2: firing & ballistics (done)
 - **Fire modes:** semi and full-auto (≈750 rpm). Switch: B (keyboard) / D-pad left (gamepad).
   Fire: left mouse / right trigger. Pressing fire stops a sprint. Unlimited ammo until piece 4.
 - **Projectiles:** every bullet is simulated (no hitscan): ≈900 m/s muzzle velocity, real gravity
