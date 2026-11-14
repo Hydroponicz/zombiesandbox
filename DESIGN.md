@@ -51,7 +51,9 @@ Every feature must serve at least one pillar.
   - Walk ≈ 2.0 m/s · Run (default) ≈ 3.5 m/s · Sprint ≈ 5.5 m/s
   - Crouch ≈ 1.5 m/s · Prone ≈ 0.6 m/s
   - Sprint is forward-only; sprinting turn rate is limited.
-- **Jump:** small jump (≈0.55 m), costs stamina. Jump from crouch/prone stands you up instead. (Vaulting is in the Parking Lot.)
+- **Jump:** small jump (≈0.55 m), costs stamina, 0.6 s cooldown after landing (no spamming).
+  Characters use 1.6× real gravity so jumps and falls feel heavy (≈0.5 s in the air).
+  Jump from crouch/prone stands you up instead. (Vaulting is in the Parking Lot.)
 - **Steps:** walks up curbs and stairs automatically (max ≈0.3 m) and sticks to the ground going down.
   Anything taller must be jumped.
 - **Overhead clearance:** you can't stand or crouch up into a ceiling. If you asked to stand

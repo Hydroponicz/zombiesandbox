@@ -47,6 +47,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     private CylinderShape3D _bodyShape = null!;
     private Node3D _body = null!;
     private float _gravity;
+    private bool _wasOnFloor = true;
+    private float _jumpCooldownLeft;
 
     // Input intent.
     private bool _sprintHeld;
@@ -85,7 +87,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         Stats.Initialize(Skills);
         Stamina.Initialize(Stats, Skills);
 
-        _gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
+        _gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle() * Config.GravityMultiplier;
 
         _clearanceShape = new CylinderShape3D { Radius = Config.Radius - 0.05f };
         _clearanceQuery = new PhysicsShapeQueryParameters3D
@@ -180,11 +182,19 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         if (!onFloor)
             velocity.Y -= _gravity * dt;
 
+        // Jump cooldown starts when you land and only counts down on the ground.
+        if (onFloor && !_wasOnFloor)
+            _jumpCooldownLeft = Config.JumpCooldown;
+        else if (onFloor && _jumpCooldownLeft > 0f)
+            _jumpCooldownLeft -= dt;
+        _wasOnFloor = onFloor;
+
         if (_jumpRequested)
         {
+            // No buffering: a press during the cooldown is simply ignored.
             _jumpRequested = false;
-            if (onFloor && Stance == Stance.Stand && Stamina.TrySpend(Stamina.Config.JumpCost))
-                velocity.Y = Config.JumpVelocity;
+            if (onFloor && _jumpCooldownLeft <= 0f && Stance == Stance.Stand && Stamina.TrySpend(Stamina.Config.JumpCost))
+                velocity.Y = Mathf.Sqrt(2f * _gravity * Config.JumpHeight);
         }
 
         // Momentum: horizontal velocity moves toward the wanted velocity at a limited rate.

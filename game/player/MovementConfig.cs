@@ -25,8 +25,13 @@ public partial class MovementConfig : Resource
     /// <summary>Tallest ledge (curb, stair) the character walks up without jumping. Also used to stick to the ground going down stairs.</summary>
     [Export] public float MaxStepHeight { get; set; } = 0.3f;
 
-    [ExportGroup("Jump")]
-    [Export] public float JumpVelocity { get; set; } = 4.0f;
+    [ExportGroup("Jump & gravity")]
+    /// <summary>How high a jump lifts your feet (m). Jump speed is calculated from this and gravity.</summary>
+    [Export] public float JumpHeight { get; set; } = 0.55f;
+    /// <summary>Seconds after landing before you can jump again (stops jump spamming).</summary>
+    [Export] public float JumpCooldown { get; set; } = 0.6f;
+    /// <summary>Gravity for characters, relative to real gravity. Above 1 so jumps and falls feel heavy, not floaty.</summary>
+    [Export(PropertyHint.Range, "1,3,0.1")] public float GravityMultiplier { get; set; } = 1.6f;
 
     [ExportGroup("Sprint rules")]
     /// <summary>Forward stick/keys needed to start a sprint (0..1).</summary>

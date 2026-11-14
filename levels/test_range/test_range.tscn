@@ -53,10 +53,10 @@ use_collision = true
 size = Vector3(3, 1, 0.5)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="JumpBox_0_6m" type="CSGBox3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.3, -2)
+[node name="JumpBox_0_5m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.25, -2)
 use_collision = true
-size = Vector3(1.5, 0.6, 1.5)
+size = Vector3(1.5, 0.5, 1.5)
 material = SubResource("ShaderMaterial_grid")
 
 [node name="Ramp_20deg" type="CSGBox3D" parent="Geometry"]
@@ -201,7 +201,7 @@ outline_size = 12
 [node name="JumpSign" type="Label3D" parent="Signs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.4, -2)
 billboard = 1
-text = "JUMP (0.6 m)"
+text = "JUMP (0.5 m)"
 font_size = 64
 outline_size = 12
 
