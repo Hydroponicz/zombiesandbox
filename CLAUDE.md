@@ -16,8 +16,13 @@ that isn't in DESIGN.md.** Suggest new ideas for the Parking Lot instead.
 - The user merges `preview` → `main` once they've tested it.
 
 ## Code conventions
-- GDScript with **static typing everywhere** (`var speed: float = 3.5`, typed function signatures).
-- Files and folders: `snake_case`. Classes: `PascalCase` with `class_name` where useful.
+- **C#** (Godot .NET build). Namespace root: `ZombieSandbox` (e.g. `ZombieSandbox.Player`).
+- C# script files are `PascalCase.cs` and **must match the class name** (Godot requirement).
+  Classes extending Godot types must be `partial`.
+- Scenes, resources and folders: `snake_case`.
+- Use `[Export]` for inspector-tunable fields; `[GlobalClass]` on custom `Resource` types.
+- Enable nullable reference types; avoid allocations in per-frame code.
+- After pulling C# changes the user must build (hammer icon or F5) before running.
 - Organize by feature: `game/<feature>/` holds that feature's scenes **and** scripts together.
   - `game/core/`: shared systems (IDs, save, events)
   - `game/player/`, `game/combat/`, `game/ai/`, `game/world/`, ...

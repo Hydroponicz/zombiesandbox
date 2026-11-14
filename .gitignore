@@ -17,3 +17,10 @@ mono_crash.*.json
 .DS_Store
 Thumbs.db
 *.tmp
+
+# C# / IDE
+bin/
+obj/
+.vs/
+.idea/
+*.user

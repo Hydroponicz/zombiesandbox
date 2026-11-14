@@ -23,7 +23,7 @@ Every feature must serve at least one pillar.
 | Topic | Decision |
 |---|---|
 | Engine | Godot 4.7.x, Forward+ renderer, Jolt physics |
-| Language | GDScript with static typing (hot paths may move to C++ GDExtension later if profiling demands it) |
+| Language | **C#** (Godot .NET build). Chosen for performance at scale and maintainability of a large codebase. |
 | Players | Single-player only (no multiplayer architecture) |
 | Structure | Persistent open world. Death = new character. |
 | Setting | United States, 2032 (near future) |
@@ -48,11 +48,10 @@ Every feature must serve at least one pillar.
 - **Stamina:** a single **leg stamina** pool.
   - Drained by sprinting and jumping, regenerates after a short delay.
   - Hitting zero = exhausted: no sprinting until it recovers to a threshold.
-- **Progression:** movement improves with character skills/fitness (Zomboid/Tarkov style).
-  - Skills level up by doing (sprinting raises fitness, etc.).
-  - Fitness improves stamina max, regen rate, and slightly improves sprint speed and acceleration.
-  - The controller reads all values from a **stats component**, never hard-coded
-    constants, so skills, injuries and (later) carry weight can modify movement.
+- **Progression:** movement improves with skills (see *Skills* below). The controller
+  reads all values from a **stats component**, never hard-coded constants, so skills,
+  injuries and (later) carry weight can modify movement.
+- **Default pace:** keyboard defaults to *run*, hold a key to walk. Gamepad uses stick tilt.
 - **Camera:**
   - Third person: over-the-shoulder, with a shoulder-swap key.
   - First person: camera attached to the head bone of the full-body model.
@@ -60,6 +59,36 @@ Every feature must serve at least one pillar.
   - Bullets always originate from the weapon, never the camera, in both modes.
 - **Gamepad:** analog stick tilt scales speed (light tilt = walk, full tilt = run).
   Look sensitivity, deadzones and response curve are adjustable settings.
+- **Hold/Toggle settings:** sprint, crouch and prone each have a Hold/Toggle setting,
+  stored separately for keyboard and gamepad.
+  - Defaults: keyboard sprint = Hold; gamepad sprint = Toggle (CoD-style: click L3 once,
+    sprint ends when you stop pushing forward or run out of stamina); crouch/prone = Toggle.
+
+#### Default controls (all rebindable)
+| Action | Keyboard / mouse | Gamepad (Xbox / PlayStation) |
+|---|---|---|
+| Move | WASD | Left stick |
+| Look | Mouse | Right stick |
+| Sprint | Left Shift | **L3 (left stick click)** |
+| Walk | Left Alt (hold) | Light stick tilt |
+| Jump | Space | A / Cross |
+| Crouch | C | B / Circle (tap) |
+| Prone | X | B / Circle (hold) |
+| Switch first/third person | V | D-pad up (placeholder until D-pad is planned) |
+| Swap shoulder (3rd person) | Q | R3 (right stick click) |
+
+If the gamepad crouch is set to *Hold*, tap/hold on one button no longer works, so
+prone moves to D-pad down.
+
+### Skills
+- Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level
+  needs more XP than the last. Exact curves live in a tunable resource.
+- **Fitness** (implemented in step 1): raises max leg stamina (≈100 → 150), stamina regen
+  (≈ +60% at 10), and slightly raises sprint speed (≈ +8%) and acceleration (≈ +10%).
+  Earns XP from sprinting and jumping, with more XP when stamina is low.
+- **Strength** (defined now, implemented with inventory in step 6): carry capacity.
+- Weapon and other skills are added in the step that introduces them.
+- A developer-only debug key sets skill levels for testing (removed from release builds).
 
 ## Architecture principles
 - **Shared building blocks.** Player, zombies and human NPCs use the same health/damage,
@@ -115,6 +144,7 @@ Each step is refined until solid before moving on. All work happens in graybox t
 - Leaning, fine stance height
 - Arm stamina
 - Free-look
+- Skill decay over time
 - Aim assist for gamepad (decide during gunplay step)
 - AI chat-model NPCs (dropped)
 - Multiplayer / co-op
