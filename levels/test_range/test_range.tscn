@@ -1,4 +1,11 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Shader" path="res://assets/materials/dev/dev_grid.gdshader" id="1_grid"]
+[ext_resource type="PackedScene" path="res://game/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://game/debug/debug_hud.tscn" id="3_hud"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
+shader = ExtResource("1_grid")
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 
@@ -26,21 +33,214 @@ shadow_enabled = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 use_collision = true
 size = Vector3(100, 1, 100)
+material = SubResource("ShaderMaterial_grid")
 
 [node name="Crate_1m" type="CSGBox3D" parent="Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.5, -4)
 use_collision = true
+size = Vector3(1, 1, 1)
+material = SubResource("ShaderMaterial_grid")
 
 [node name="Wall_2m" type="CSGBox3D" parent="Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1, -6)
 use_collision = true
 size = Vector3(4, 2, 0.3)
+material = SubResource("ShaderMaterial_grid")
 
 [node name="LowCover_1m" type="CSGBox3D" parent="Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -10)
 use_collision = true
 size = Vector3(3, 1, 0.5)
+material = SubResource("ShaderMaterial_grid")
 
-[node name="PreviewCamera" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.894427, 0.447214, 0, -0.447214, 0.894427, 0, 5, 10)
-current = true
+[node name="JumpBox_0_6m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.3, -2)
+use_collision = true
+size = Vector3(1.5, 0.6, 1.5)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="Ramp_20deg" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.939693, -0.34202, 0, 0.34202, 0.939693, 12, 1.3, -4)
+use_collision = true
+size = Vector3(3, 0.2, 8)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="CrouchTunnel_WallL" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0.7, -6)
+use_collision = true
+size = Vector3(0.3, 1.4, 6)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="CrouchTunnel_WallR" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0.7, -6)
+use_collision = true
+size = Vector3(0.3, 1.4, 6)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="CrouchTunnel_Roof" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 1.55, -6)
+use_collision = true
+size = Vector3(2.3, 0.3, 6)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="CrawlTunnel_WallL" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.4, -6)
+use_collision = true
+size = Vector3(0.3, 0.8, 6)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="CrawlTunnel_WallR" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.4, -6)
+use_collision = true
+size = Vector3(0.3, 0.8, 6)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="CrawlTunnel_Roof" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0.95, -6)
+use_collision = true
+size = Vector3(2.3, 0.3, 6)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="LaneMarker_0m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.05, 0)
+use_collision = true
+size = Vector3(2, 0.1, 0.2)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="LaneMarker_10m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.05, -10)
+use_collision = true
+size = Vector3(2, 0.1, 0.2)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="LaneMarker_20m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.05, -20)
+use_collision = true
+size = Vector3(2, 0.1, 0.2)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="LaneMarker_30m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.05, -30)
+use_collision = true
+size = Vector3(2, 0.1, 0.2)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="LaneMarker_40m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.05, -40)
+use_collision = true
+size = Vector3(2, 0.1, 0.2)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="Curb_0_15m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0.075, 12)
+use_collision = true
+size = Vector3(6, 0.15, 3)
+material = SubResource("ShaderMaterial_grid")
+[node name="Stair_1" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.090, 13.850)
+use_collision = true
+size = Vector3(2, 0.18, 0.3)
+material = SubResource("ShaderMaterial_grid")
+[node name="Stair_2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.180, 13.550)
+use_collision = true
+size = Vector3(2, 0.36, 0.3)
+material = SubResource("ShaderMaterial_grid")
+[node name="Stair_3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.270, 13.250)
+use_collision = true
+size = Vector3(2, 0.54, 0.3)
+material = SubResource("ShaderMaterial_grid")
+[node name="Stair_4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.360, 12.950)
+use_collision = true
+size = Vector3(2, 0.72, 0.3)
+material = SubResource("ShaderMaterial_grid")
+[node name="Stair_5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.450, 12.650)
+use_collision = true
+size = Vector3(2, 0.90, 0.3)
+material = SubResource("ShaderMaterial_grid")
+[node name="Stair_6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.540, 12.350)
+use_collision = true
+size = Vector3(2, 1.08, 0.3)
+material = SubResource("ShaderMaterial_grid")
+[node name="Stair_7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.630, 12.050)
+use_collision = true
+size = Vector3(2, 1.26, 0.3)
+material = SubResource("ShaderMaterial_grid")
+[node name="Stair_8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.720, 11.750)
+use_collision = true
+size = Vector3(2, 1.44, 0.3)
+material = SubResource("ShaderMaterial_grid")
+[node name="StairLanding" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.72, 10.10)
+use_collision = true
+size = Vector3(2, 1.44, 3)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="Signs" type="Node3D" parent="."]
+
+[node name="CrouchSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 2.4, -2.8)
+billboard = 1
+text = "CROUCH (1.4 m)"
+font_size = 64
+outline_size = 12
+
+[node name="CrawlSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 1.8, -2.8)
+billboard = 1
+text = "PRONE (0.8 m)"
+font_size = 64
+outline_size = 12
+
+[node name="JumpSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.4, -2)
+billboard = 1
+text = "JUMP (0.6 m)"
+font_size = 64
+outline_size = 12
+
+[node name="RampSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 3.4, -4)
+billboard = 1
+text = "RAMP 20°"
+font_size = 64
+outline_size = 12
+
+[node name="LaneSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 1.5, 2)
+billboard = 1
+text = "SPRINT LANE (10 m marks)"
+font_size = 64
+outline_size = 12
+
+[node name="CoverSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, -10)
+billboard = 1
+text = "COVER / CAMERA TEST"
+font_size = 64
+outline_size = 12
+
+[node name="CurbSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 1.2, 12)
+billboard = 1
+text = "CURB (0.15 m)"
+font_size = 64
+outline_size = 12
+
+[node name="StairsSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 2.6, 13)
+billboard = 1
+text = "STAIRS (0.18 m steps)"
+font_size = 64
+outline_size = 12
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)
+
+[node name="DebugHud" parent="." instance=ExtResource("3_hud")]

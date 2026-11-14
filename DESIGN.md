@@ -36,7 +36,7 @@ Every feature must serve at least one pillar.
 
 ## System specs
 
-### 1. Player controller (spec — under review, not implemented)
+### 1. Player controller (implemented on `preview` — in testing)
 - **Feel:** snappier than Tarkov, but with momentum and weight. Acceleration and
   deceleration are not instant; changing direction at a sprint is slower than when walking.
 - **Stances:** stand, crouch, prone. No lean, no fine stance height.
@@ -44,7 +44,12 @@ Every feature must serve at least one pillar.
   - Walk ≈ 2.0 m/s · Run (default) ≈ 3.5 m/s · Sprint ≈ 5.5 m/s
   - Crouch ≈ 1.5 m/s · Prone ≈ 0.6 m/s
   - Sprint is forward-only; sprinting turn rate is limited.
-- **Jump:** small jump, costs stamina. (Vaulting is in the Parking Lot.)
+- **Jump:** small jump (≈0.55 m), costs stamina. Jump from crouch/prone stands you up instead. (Vaulting is in the Parking Lot.)
+- **Steps:** walks up curbs and stairs automatically (max ≈0.3 m) and sticks to the ground going down.
+  Anything taller must be jumped.
+- **Overhead clearance:** you can't stand or crouch up into a ceiling. If you asked to stand
+  while under something low, you stand up automatically once there's room.
+- **Collider:** flat-bottomed cylinder (reads stair edges as floor; works well with Jolt).
 - **Stamina:** a single **leg stamina** pool.
   - Drained by sprinting and jumping, regenerates after a short delay.
   - Hitting zero = exhausted: no sprinting until it recovers to a threshold.
@@ -110,7 +115,7 @@ prone moves to D-pad down.
 Each step is refined until solid before moving on. All work happens in graybox test levels until step 8.
 
 0. ✅ Project skeleton, conventions, this document
-1. Player controller + first/third person camera + stats component + leg stamina
+1. 🧪 Player controller + first/third person camera + stats component + leg stamina
 2. Gunplay core (weapons usable by any character)
 3. Health & damage — body parts, bleeding, fractures (shared by everyone)
 4. AI foundation — perception (sight/hearing) + navigation, zombie as first user
