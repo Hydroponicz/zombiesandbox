@@ -88,7 +88,7 @@ prone moves to D-pad down.
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level
   needs more XP than the last. Exact curves live in a tunable resource.
-- **Fitness** (implemented in step 1): raises max leg stamina (≈100 → 150), stamina regen
+- **Fitness** (implemented in step 1): raises max leg stamina (≈42 at level 0 → 150 at level 10: about 4.4 s of sprinting at level 1, 6 s at the starting level 3, 12.5 s at level 10), stamina regen
   (≈ +60% at 10), and slightly raises sprint speed (≈ +8%) and acceleration (≈ +10%).
   Earns XP from sprinting and jumping, with more XP when stamina is low.
 - **Strength** (defined now, implemented with inventory in step 6): carry capacity.
