@@ -28,8 +28,26 @@ public partial class MovementConfig : Resource
     [ExportGroup("Jump & gravity")]
     /// <summary>How high a jump lifts your feet (m). Jump speed is calculated from this and gravity.</summary>
     [Export] public float JumpHeight { get; set; } = 0.55f;
-    /// <summary>Seconds after landing before you can jump again (stops jump spamming).</summary>
-    [Export] public float JumpCooldown { get; set; } = 0.6f;
+    /// <summary>A jump pressed this long before landing still happens on landing (s).</summary>
+    [Export] public float JumpBufferTime { get; set; } = 0.15f;
+    /// <summary>With no stamina left, a jump reaches this fraction of full height.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float JumpHeightWithoutStamina { get; set; } = 0.4f;
+
+    [ExportGroup("Jump spam penalty")]
+    /// <summary>Jump fatigue (0..1) added by each jump. Fatigue makes jumps lower and landings harsher.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float JumpFatiguePerJump { get; set; } = 0.4f;
+    /// <summary>Jump fatigue lost per second while on the ground.</summary>
+    [Export] public float JumpFatigueRecoveryPerSecond { get; set; } = 0.4f;
+    /// <summary>Jump height at full fatigue, as a fraction of normal.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float JumpHeightAtFullFatigue { get; set; } = 0.6f;
+    /// <summary>Horizontal speed kept on landing: rested → fully fatigued.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float LandingSpeedKeptRested { get; set; } = 0.85f;
+    [Export(PropertyHint.Range, "0,1,0.05")] public float LandingSpeedKeptFatigued { get; set; } = 0.3f;
+    /// <summary>After landing, acceleration is reduced for this long: rested → fully fatigued (s).</summary>
+    [Export] public float LandingRecoveryRested { get; set; } = 0.2f;
+    [Export] public float LandingRecoveryFatigued { get; set; } = 0.8f;
+    /// <summary>Acceleration multiplier while recovering from a landing.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float LandingRecoveryAcceleration { get; set; } = 0.35f;
     /// <summary>Gravity for characters, relative to real gravity. Above 1 so jumps and falls feel heavy, not floaty.</summary>
     [Export(PropertyHint.Range, "1,3,0.1")] public float GravityMultiplier { get; set; } = 1.6f;
 

@@ -40,7 +40,7 @@ public partial class DebugHud : CanvasLayer
         _text.Clear();
         _text.AppendLine($"Device: {GameInput.Instance.LastDevice}    View: {view}");
         _text.AppendLine($"Stance: {stance}    Speed: {_player.HorizontalSpeed:0.00} m/s    Sprinting: {(_player.IsSprinting ? "YES" : "no")}    Lean: {_player.Lean:+0.00;-0.00;0}");
-        _text.AppendLine($"Stamina: {stamina.Current:0}/{stamina.Max:0}{(stamina.IsExhausted ? "   EXHAUSTED" : "")}");
+        _text.AppendLine($"Stamina: {stamina.Current:0}/{stamina.Max:0}{(stamina.IsExhausted ? "   EXHAUSTED" : "")}    Jump fatigue: {_player.JumpFatigue:0.00}");
         _text.AppendLine(skills.IsMaxLevel(SkillId.Fitness)
             ? $"Fitness: Lv {skills.GetLevel(SkillId.Fitness)} (max)"
             : $"Fitness: Lv {skills.GetLevel(SkillId.Fitness)}   XP {skills.GetXp(SkillId.Fitness):0.0} / {skills.XpForNextLevel(SkillId.Fitness):0}");

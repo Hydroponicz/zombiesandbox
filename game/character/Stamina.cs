@@ -37,6 +37,17 @@ public partial class Stamina : Node, ISaveState
         return true;
     }
 
+    /// <summary>Spends as much of the amount as is available (even when exhausted). Returns what was spent.</summary>
+    public float SpendAvailable(float amount)
+    {
+        float spent = Mathf.Min(amount, Current);
+        if (spent > 0f)
+            Spend(spent);
+        else
+            _regenDelayLeft = Config.RegenDelay;
+        return spent;
+    }
+
     /// <summary>Continuous drain (e.g. sprinting). Pass amount for this frame.</summary>
     public void Drain(float amount)
     {

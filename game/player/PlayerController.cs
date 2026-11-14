@@ -41,6 +41,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     public float Lean { get; private set; }
     public float HorizontalSpeed => new Vector2(Velocity.X, Velocity.Z).Length();
     public float CurrentHeight { get; private set; }
+    /// <summary>0..1. Builds up with quick repeated jumps; makes jumps lower and landings harsher.</summary>
+    public float JumpFatigue { get; private set; }
     public float EyeHeight => CurrentHeight - Config.EyeOffsetFromTop;
 
     private CollisionShape3D _collider = null!;
@@ -48,12 +50,13 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     private Node3D _body = null!;
     private float _gravity;
     private bool _wasOnFloor = true;
-    private float _jumpCooldownLeft;
+    private bool _inJump;
+    private float _jumpBufferLeft;
+    private float _landingRecoveryLeft;
 
     // Input intent.
     private bool _sprintHeld;
     private bool _sprintToggled;
-    private bool _jumpRequested;
     private bool _leanLeftHeld;
     private bool _leanRightHeld;
     private int _leanToggled; // -1, 0, 1
@@ -126,7 +129,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             if (WantedStance != Stance.Stand)
                 WantedStance = Stance.Stand;
             else
-                _jumpRequested = true;
+                _jumpBufferLeft = Config.JumpBufferTime;
         }
         else if (e.IsAction(InputActions.Sprint))
         {
@@ -182,19 +185,34 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         if (!onFloor)
             velocity.Y -= _gravity * dt;
 
-        // Jump cooldown starts when you land and only counts down on the ground.
-        if (onFloor && !_wasOnFloor)
-            _jumpCooldownLeft = Config.JumpCooldown;
-        else if (onFloor && _jumpCooldownLeft > 0f)
-            _jumpCooldownLeft -= dt;
+        // Landing from a jump costs momentum; more when jump-fatigued (spamming).
+        if (onFloor && !_wasOnFloor && _inJump)
+        {
+            _inJump = false;
+            float keep = Mathf.Lerp(Config.LandingSpeedKeptRested, Config.LandingSpeedKeptFatigued, JumpFatigue);
+            velocity.X *= keep;
+            velocity.Z *= keep;
+            _landingRecoveryLeft = Mathf.Lerp(Config.LandingRecoveryRested, Config.LandingRecoveryFatigued, JumpFatigue);
+        }
         _wasOnFloor = onFloor;
 
-        if (_jumpRequested)
+        if (onFloor)
         {
-            // No buffering: a press during the cooldown is simply ignored.
-            _jumpRequested = false;
-            if (onFloor && _jumpCooldownLeft <= 0f && Stance == Stance.Stand && Stamina.TrySpend(Stamina.Config.JumpCost))
-                velocity.Y = Mathf.Sqrt(2f * _gravity * Config.JumpHeight);
+            JumpFatigue = Mathf.Max(JumpFatigue - Config.JumpFatigueRecoveryPerSecond * dt, 0f);
+            _landingRecoveryLeft = Mathf.Max(_landingRecoveryLeft - dt, 0f);
+        }
+
+        // Jumping always works on the ground; stamina and fatigue only change how high.
+        _jumpBufferLeft = Mathf.Max(_jumpBufferLeft - dt, 0f);
+        if (_jumpBufferLeft > 0f && onFloor && Stance == Stance.Stand)
+        {
+            _jumpBufferLeft = 0f;
+            float cost = Stamina.Config.JumpCost;
+            float staminaFactor = Mathf.Lerp(Config.JumpHeightWithoutStamina, 1f, Stamina.SpendAvailable(cost) / cost);
+            float fatigueFactor = Mathf.Lerp(1f, Config.JumpHeightAtFullFatigue, JumpFatigue);
+            velocity.Y = Mathf.Sqrt(2f * _gravity * Config.JumpHeight * staminaFactor * fatigueFactor);
+            JumpFatigue = Mathf.Min(JumpFatigue + Config.JumpFatiguePerJump, 1f);
+            _inJump = true;
         }
 
         // Momentum: horizontal velocity moves toward the wanted velocity at a limited rate.
@@ -207,6 +225,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             ? Config.Deceleration
             : (IsSprinting ? Config.SprintAcceleration : Config.Acceleration);
         rate *= Stats.AccelerationMultiplier;
+        if (_landingRecoveryLeft > 0f)
+            rate *= Config.LandingRecoveryAcceleration;
         if (!onFloor)
             rate *= Config.AirControl;
 
