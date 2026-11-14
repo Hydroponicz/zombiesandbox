@@ -19,4 +19,6 @@ public partial class CameraConfig : Resource
     [ExportGroup("First person")]
     /// <summary>Camera sits this far in front of the body's center, at eye height.</summary>
     [Export] public float FirstPersonForwardOffset { get; set; } = 0.1f;
+    /// <summary>Camera roll at full lean, first person only (degrees).</summary>
+    [Export] public float FirstPersonLeanRoll { get; set; } = 12f;
 }

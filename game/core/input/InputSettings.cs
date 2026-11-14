@@ -25,6 +25,7 @@ public partial class InputSettings : Resource
     [Export] public PressMode SprintKeyboard { get; set; } = PressMode.Hold;
     [Export] public PressMode CrouchKeyboard { get; set; } = PressMode.Toggle;
     [Export] public PressMode ProneKeyboard { get; set; } = PressMode.Toggle;
+    [Export] public PressMode LeanKeyboard { get; set; } = PressMode.Hold;
 
     [ExportGroup("Hold / Toggle (gamepad)")]
     [Export] public PressMode SprintGamepad { get; set; } = PressMode.Toggle;

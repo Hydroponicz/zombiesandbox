@@ -93,14 +93,22 @@ public partial class CameraRig : Node3D
         _pitchPivot.Rotation = new Vector3(Pitch, 0f, 0f);
 
         float eye = _player.EyeHeight;
+        float lean = _player.Lean;
+        float leanOffset = lean * _player.Config.LeanOffset;
+
+        // In third person, leaning moves the camera to the shoulder you lean toward.
+        if (!IsFirstPerson && Mathf.Abs(lean) > 0.1f)
+            _shoulderSide = Mathf.Sign(lean);
+
         if (IsFirstPerson)
         {
-            _pitchPivot.Position = new Vector3(0f, eye, -Config.FirstPersonForwardOffset);
+            _pitchPivot.Position = new Vector3(leanOffset, eye, -Config.FirstPersonForwardOffset);
+            _pitchPivot.Rotation = new Vector3(Pitch, 0f, -lean * Mathf.DegToRad(Config.FirstPersonLeanRoll));
             _arm.Position = Vector3.Zero;
         }
         else
         {
-            _pitchPivot.Position = new Vector3(0f, eye + Config.ThirdPersonHeightOffset, 0f);
+            _pitchPivot.Position = new Vector3(leanOffset, eye + Config.ThirdPersonHeightOffset, 0f);
             _arm.Position = new Vector3(Config.ShoulderOffset * _shoulderBlend, 0f, 0f);
         }
     }

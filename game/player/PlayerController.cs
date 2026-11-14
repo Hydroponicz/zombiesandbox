@@ -37,6 +37,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     /// <summary>The stance the player asked for. Can differ from Stance when something overhead blocks standing up.</summary>
     public Stance WantedStance { get; private set; } = Stance.Stand;
     public bool IsSprinting { get; private set; }
+    /// <summary>-1 = full left, 0 = upright, 1 = full right. Smoothed and limited by nearby walls.</summary>
+    public float Lean { get; private set; }
     public float HorizontalSpeed => new Vector2(Velocity.X, Velocity.Z).Length();
     public float CurrentHeight { get; private set; }
     public float EyeHeight => CurrentHeight - Config.EyeOffsetFromTop;
@@ -50,6 +52,10 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     private bool _sprintHeld;
     private bool _sprintToggled;
     private bool _jumpRequested;
+    private bool _leanLeftHeld;
+    private bool _leanRightHeld;
+    private int _leanToggled; // -1, 0, 1
+    private int _lastLeanPressed;
     private bool _padCrouchPending; // Gamepad B pressed; tap = crouch, hold = prone.
     private float _padCrouchHeldTime;
 
@@ -58,6 +64,9 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     private PhysicsShapeQueryParameters3D _clearanceQuery = null!;
 
     // Step-up tests, reused to avoid per-frame allocations.
+    private SphereShape3D _leanHeadShape = null!;
+    private PhysicsShapeQueryParameters3D _leanQuery = null!;
+
     private readonly PhysicsTestMotionParameters3D _stepParams = new();
     private readonly PhysicsTestMotionResult3D _stepResult = new();
 
@@ -82,6 +91,14 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         _clearanceQuery = new PhysicsShapeQueryParameters3D
         {
             Shape = _clearanceShape,
+            CollisionMask = CollisionMask,
+            Exclude = new Array<Rid> { GetRid() },
+        };
+
+        _leanHeadShape = new SphereShape3D { Radius = Config.LeanHeadRadius };
+        _leanQuery = new PhysicsShapeQueryParameters3D
+        {
+            Shape = _leanHeadShape,
             CollisionMask = CollisionMask,
             Exclude = new Array<Rid> { GetRid() },
         };
@@ -125,6 +142,14 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         {
             HandleStanceInput(e, Stance.Prone, settings.ProneMode(device));
         }
+        else if (e.IsAction(InputActions.LeanLeft))
+        {
+            HandleLeanInput(e, -1, settings.LeanKeyboard);
+        }
+        else if (e.IsAction(InputActions.LeanRight))
+        {
+            HandleLeanInput(e, 1, settings.LeanKeyboard);
+        }
         else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugFitnessUp))
         {
             Skills.SetLevel(SkillId.Fitness, Skills.GetLevel(SkillId.Fitness) + 1);
@@ -147,6 +172,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
 
         Vector2 input = Input.GetVector(InputActions.MoveLeft, InputActions.MoveRight, InputActions.MoveForward, InputActions.MoveBack);
         UpdateSprint(input);
+        UpdateLean(dt);
 
         Vector3 velocity = Velocity;
         bool onFloor = IsOnFloor();
@@ -304,7 +330,64 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             speedFraction = Input.IsActionPressed(InputActions.Walk) ? walkFraction : 1f;
         }
 
+        // You can only walk while leaning.
+        if (Mathf.Abs(Lean) > 0.1f)
+            speedFraction = Mathf.Min(speedFraction, walkFraction);
+
         return stanceSpeed * speedFraction;
+    }
+
+    // ---------- Lean ----------
+
+    private void HandleLeanInput(InputEvent e, int side, PressMode mode)
+    {
+        if (mode == PressMode.Toggle)
+        {
+            if (e.IsPressed())
+                _leanToggled = _leanToggled == side ? 0 : side;
+            return;
+        }
+
+        if (side < 0)
+            _leanLeftHeld = e.IsPressed();
+        else
+            _leanRightHeld = e.IsPressed();
+        if (e.IsPressed())
+            _lastLeanPressed = side;
+    }
+
+    private int WantedLeanSide()
+    {
+        if (_leanToggled != 0)
+            return _leanToggled;
+        if (_leanLeftHeld && _leanRightHeld)
+            return _lastLeanPressed; // Both held: the most recent press wins.
+        return _leanLeftHeld ? -1 : (_leanRightHeld ? 1 : 0);
+    }
+
+    private void UpdateLean(float dt)
+    {
+        bool canLean = !IsSprinting && Stance != Stance.Prone;
+        if (!canLean)
+            _leanToggled = 0;
+
+        int side = canLean ? WantedLeanSide() : 0;
+        float target = side == 0 ? 0f : side * LeanRoom(side);
+        Lean = Mathf.MoveToward(Lean, target, Config.LeanSpeed * dt);
+
+        // A wall may have moved closer (or we walked up to one): never stay leaned into it.
+        if (side != 0 && Mathf.Abs(Lean) > Mathf.Abs(target))
+            Lean = target;
+    }
+
+    /// <summary>Fraction (0..1) of a full lean that fits before the head would hit something.</summary>
+    private float LeanRoom(int side)
+    {
+        Vector3 eye = GlobalPosition + Vector3.Up * EyeHeight;
+        _leanQuery.Transform = new Transform3D(Basis.Identity, eye);
+        _leanQuery.Motion = GlobalBasis.X * (side * Config.LeanOffset);
+        float[] fractions = GetWorld3D().DirectSpaceState.CastMotion(_leanQuery);
+        return fractions.Length > 0 ? fractions[0] : 1f;
     }
 
     // ---------- Steps ----------
@@ -414,8 +497,11 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     {
         _bodyShape.Height = CurrentHeight;
         _collider.Position = new Vector3(0f, CurrentHeight * 0.5f, 0f);
-        // Placeholder body: squash the graybox mesh to the current height.
+        // Placeholder body: squash the graybox mesh to the current height, and tilt it
+        // from the feet so the head ends up where the leaning camera is.
         _body.Scale = new Vector3(1f, CurrentHeight / Config.StandHeight, 1f);
+        float tilt = Mathf.Atan2(Lean * Config.LeanOffset, EyeHeight);
+        _body.Rotation = new Vector3(0f, 0f, -tilt);
     }
 
     // ---------- Persistence ----------

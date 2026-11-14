@@ -39,7 +39,14 @@ Every feature must serve at least one pillar.
 ### 1. Player controller (implemented on `preview` — in testing)
 - **Feel:** snappier than Tarkov, but with momentum and weight. Acceleration and
   deceleration are not instant; changing direction at a sprint is slower than when walking.
-- **Stances:** stand, crouch, prone. No lean, no fine stance height.
+- **Stances:** stand, crouch, prone. No fine stance height.
+- **Lean** (first and third person):
+  - Keyboard: hold Q / E (Hold/Toggle setting). Head and camera shift ≈0.35 m sideways;
+    first-person camera also rolls ≈12°.
+  - Stand or crouch only, never prone. Leaning limits you to walking speed; sprinting cancels it.
+  - Walls limit the lean: your head stops short of anything in the way.
+  - Third person: leaning moves the camera to the shoulder you lean toward.
+  - Gamepad: **no manual lean**. It auto-leans when aiming next to cover (built in step 2, see below).
 - **Speeds** (starting values, all tunable):
   - Walk ≈ 2.0 m/s · Run (default) ≈ 3.5 m/s · Sprint ≈ 5.5 m/s
   - Crouch ≈ 1.5 m/s · Prone ≈ 0.6 m/s
@@ -80,7 +87,8 @@ Every feature must serve at least one pillar.
 | Crouch | C | B / Circle (tap) |
 | Prone | X | B / Circle (hold) |
 | Switch first/third person | V | D-pad up (placeholder until D-pad is planned) |
-| Swap shoulder (3rd person) | Q | R3 (right stick click) |
+| Lean left / right | Q / E | Automatic when aiming at cover (step 2) |
+| Swap shoulder (3rd person) | Z | R3 (right stick click) |
 
 If the gamepad crouch is set to *Hold*, tap/hold on one button no longer works, so
 prone moves to D-pad down.
@@ -89,7 +97,7 @@ prone moves to D-pad down.
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level
   needs more XP than the last. Exact curves live in a tunable resource.
 - **Fitness** (implemented in step 1): raises max leg stamina (≈42 at level 0 → 150 at level 10: about 4.4 s of sprinting at level 1, 6 s at the starting level 3, 12.5 s at level 10), stamina regen
-  (≈ +60% at 10), and slightly raises sprint speed (≈ +8%) and acceleration (≈ +10%).
+  (8/s at level 0 → 14/s at level 10), and slightly raises sprint speed (≈ +8%) and acceleration (≈ +10%).
   Earns XP from sprinting and jumping, with more XP when stamina is low.
 - **Strength** (defined now, implemented with inventory in step 6): carry capacity.
 - Weapon and other skills are added in the step that introduces them.
@@ -116,7 +124,9 @@ Each step is refined until solid before moving on. All work happens in graybox t
 
 0. ✅ Project skeleton, conventions, this document
 1. 🧪 Player controller + first/third person camera + stats component + leg stamina
-2. Gunplay core (weapons usable by any character)
+2. Gunplay core (weapons usable by any character). Includes, because they need aiming down sights:
+   - **Gamepad auto-lean:** aiming down sights beside a corner/cover edge leans around it (CoD-style).
+   - **Peek over cover:** aiming while crouched behind waist-high cover raises you to aim over it (gamepad and keyboard).
 3. Health & damage — body parts, bleeding, fractures (shared by everyone)
 4. AI foundation — perception (sight/hearing) + navigation, zombie as first user
 5. Human NPCs — factions, disposition (hostile/neutral/friendly), combat with the same guns
@@ -146,7 +156,8 @@ Each step is refined until solid before moving on. All work happens in graybox t
 
 ## Parking Lot (ideas NOT approved for building)
 - Vaulting / climbing
-- Leaning, fine stance height
+- Fine stance height
+- Manual lean on gamepad (decided: no)
 - Arm stamina
 - Free-look
 - Skill decay over time

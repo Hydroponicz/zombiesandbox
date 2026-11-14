@@ -24,6 +24,8 @@ public static class InputActions
     public const string Prone = "prone";
     public const string ToggleView = "toggle_view";
     public const string SwapShoulder = "swap_shoulder";
+    public const string LeanLeft = "lean_left";
+    public const string LeanRight = "lean_right";
     public const string ReleaseMouse = "release_mouse";
 
     // Developer-only (debug builds).
@@ -53,7 +55,10 @@ public static class InputActions
         Bind(Crouch, 0.5f, KeyEvent(Key.C), Button(JoyButton.B));
         Bind(Prone, 0.5f, KeyEvent(Key.X), Button(JoyButton.DpadDown));
         Bind(ToggleView, 0.5f, KeyEvent(Key.V), Button(JoyButton.DpadUp));
-        Bind(SwapShoulder, 0.5f, KeyEvent(Key.Q), Button(JoyButton.RightStick));
+        Bind(SwapShoulder, 0.5f, KeyEvent(Key.Z), Button(JoyButton.RightStick));
+        // Gamepad has no manual lean: it auto-leans when aiming next to cover (build step 2).
+        Bind(LeanLeft, 0.5f, KeyEvent(Key.Q));
+        Bind(LeanRight, 0.5f, KeyEvent(Key.E));
         Bind(ReleaseMouse, 0.5f, KeyEvent(Key.Escape));
 
         if (OS.IsDebugBuild())

@@ -38,6 +38,14 @@ public partial class MovementConfig : Resource
     /// <summary>Stick tilt that reaches walking speed. Full tilt = run.</summary>
     [Export(PropertyHint.Range, "0.1,0.95,0.05")] public float GamepadWalkTilt { get; set; } = 0.6f;
 
+    [ExportGroup("Lean")]
+    /// <summary>How far the head moves sideways at full lean (m).</summary>
+    [Export] public float LeanOffset { get; set; } = 0.35f;
+    /// <summary>Full leans per second (1 / time to reach full lean).</summary>
+    [Export] public float LeanSpeed { get; set; } = 6f;
+    /// <summary>Size of the head when checking whether a lean fits next to a wall.</summary>
+    [Export] public float LeanHeadRadius { get; set; } = 0.15f;
+
     [ExportGroup("Stances (m)")]
     [Export] public float Radius { get; set; } = 0.3f;
     [Export] public float StandHeight { get; set; } = 1.8f;
