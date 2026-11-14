@@ -99,6 +99,45 @@ Every feature must serve at least one pillar.
 If the gamepad crouch is set to *Hold*, tap/hold on one button no longer works, so
 prone moves to D-pad down.
 
+### 2. Gunplay (in design)
+
+#### Locked decisions
+- **Ballistics:** simulated projectiles. Bullets have travel time and drop with distance (no hitscan).
+- **No crosshair** when not aiming. Hip fire goes where the barrel points.
+- **Recoil:** Tarkov-style. The gun kicks and settles back on its own; weapon handling and skill
+  reduce it. The player does not need to pull down to fight it.
+- **First weapon:** a graybox, fictional AR-style rifle (semi + full auto).
+- **ADS in third person:** player setting.
+  - *Switch to first person* (looks through the real sights), or
+  - *Over-the-shoulder zoom* (camera tightens over the shoulder and narrows FOV).
+- **Shared by every character:** weapons are driven by an aim direction, so zombies-with-guns
+  never happen but NPCs use exactly the same weapon code as the player.
+
+#### Pieces (each finished before the next)
+1. **Holding & aiming** — carry the rifle, ADS (both modes), sway, weapon collision with walls,
+   gamepad auto-lean at corners and peeking over low cover.
+2. **Firing & ballistics** — projectiles, drop, fire rate, semi/full-auto.
+3. **Recoil.**
+4. **Magazines & reloading.**
+5. **Malfunctions.**
+6. **Attachments** (probably after inventory exists).
+
+#### Piece 1 draft spec: holding & aiming (awaiting approval)
+- Rifle is always held ready; it lowers while sprinting and you can't fire until it comes back up
+  (≈0.25 s after sprint ends).
+- **ADS:** right mouse / left trigger. Hold/Toggle setting per device
+  (defaults: keyboard Toggle like Tarkov, gamepad Hold).
+  - ADS speed ≈0.3 s, slower while moving fast; walking speed while aiming.
+  - Mouse/stick sensitivity multiplier while aiming (setting).
+- **Third-person aiming:** gun barrel converges on what the camera center looks at. If the barrel
+  is blocked (e.g. aiming from behind cover the camera can see over), it hits the obstacle.
+- **Sway:** gentle idle sway, larger while moving, and much larger when out of breath (low leg
+  stamina). Crouch reduces it, prone reduces it most.
+- **Weapon collision:** the rifle pulls back toward the body near walls instead of clipping through
+  them, and can't fire while pulled back.
+- **Gamepad auto-lean:** while aiming next to a corner/cover edge, lean around it automatically.
+- **Peek over cover:** while crouched behind waist-high cover and aiming, rise to aim over it.
+
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level
   needs more XP than the last. Exact curves live in a tunable resource.
@@ -168,5 +207,6 @@ Each step is refined until solid before moving on. All work happens in graybox t
 - Free-look
 - Skill decay over time
 - Aim assist for gamepad (decide during gunplay step)
+- Hold breath to steady aim
 - AI chat-model NPCs (dropped)
 - Multiplayer / co-op
