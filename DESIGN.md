@@ -36,7 +36,7 @@ Every feature must serve at least one pillar.
 
 ## System specs
 
-### 1. Player controller (implemented on `preview` — in testing)
+### 1. Player controller (done)
 - **Feel:** snappier than Tarkov, but with momentum and weight. Acceleration and
   deceleration are not instant; changing direction at a sprint is slower than when walking.
 - **Stances:** stand, crouch, prone. No fine stance height.
@@ -129,7 +129,7 @@ prone moves to D-pad down.
 Each step is refined until solid before moving on. All work happens in graybox test levels until step 8.
 
 0. ✅ Project skeleton, conventions, this document
-1. 🧪 Player controller + first/third person camera + stats component + leg stamina
+1. ✅ Player controller + first/third person camera + stats component + leg stamina
 2. Gunplay core (weapons usable by any character). Includes, because they need aiming down sights:
    - **Gamepad auto-lean:** aiming down sights beside a corner/cover edge leans around it (CoD-style).
    - **Peek over cover:** aiming while crouched behind waist-high cover raises you to aim over it (gamepad and keyboard).
