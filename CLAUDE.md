@@ -24,6 +24,7 @@ that isn't in DESIGN.md.** Suggest new ideas for the Parking Lot instead.
 - `levels/`: playable maps and graybox test levels.
 - `assets/`: imported art and audio (`models/`, `textures/`, `materials/`, `audio/`).
 - Tunable numbers live in `Resource` files (`.tres`), not hard-coded constants.
+- All input via InputMap actions with both keyboard/mouse and gamepad bindings; never read raw keys.
 - Prefer composition (child component nodes) over deep inheritance.
 - Player, zombie and NPC must share the same health, weapon and perception components.
 - Anything persistent needs a stable unique ID and save/restore methods.

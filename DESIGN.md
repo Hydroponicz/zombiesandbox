@@ -32,6 +32,7 @@ Every feature must serve at least one pillar.
 | Art | Between low-poly and mid-poly, assets made with Meshy.ai and cleaned up as needed |
 | Weapons | Fictional / near-future names (avoids firearm trademark issues) — see Legal notes |
 | NPC dialogue | Scripted (AI chat models are **dropped**) |
+| Input | **Full controller support** — every feature playable on keyboard/mouse *and* gamepad. Steam Deck is a target. |
 
 ## System specs
 
@@ -57,6 +58,8 @@ Every feature must serve at least one pillar.
   - First person: camera attached to the head bone of the full-body model.
   - Toggle key swaps between them instantly at any time.
   - Bullets always originate from the weapon, never the camera, in both modes.
+- **Gamepad:** analog stick tilt scales speed (light tilt = walk, full tilt = run).
+  Look sensitivity, deadzones and response curve are adjustable settings.
 
 ## Architecture principles
 - **Shared building blocks.** Player, zombies and human NPCs use the same health/damage,
@@ -67,6 +70,10 @@ Every feature must serve at least one pillar.
   door) has a stable unique ID and can save/restore its own state.
 - **Chunked world from day one.** World positions are stored as *chunk coordinate +
   local offset*, so the map can grow far beyond floating-point-safe distances later.
+- **Input goes through named actions, never raw keys.** Every action has both a
+  keyboard/mouse and a gamepad binding, and both are rebindable.
+- **Every UI is controller-navigable from the start** (especially the grid inventory).
+  Button prompts swap icons to match the last-used device.
 - **Off-screen simulation is abstract.** Distant zombies/NPCs are simulated as cheap
   data, not full scene nodes.
 
@@ -108,5 +115,6 @@ Each step is refined until solid before moving on. All work happens in graybox t
 - Leaning, fine stance height
 - Arm stamina
 - Free-look
+- Aim assist for gamepad (decide during gunplay step)
 - AI chat-model NPCs (dropped)
 - Multiplayer / co-op
