@@ -97,6 +97,8 @@ Every feature must serve at least one pillar.
 | Swap shoulder (3rd person) | Z | R3 (right stick click) |
 | Aim down sights | Right mouse (toggle) | Left trigger (hold) |
 | Hold breath (while aiming) | Hold Shift | Click L3 |
+| Fire | Left mouse | Right trigger |
+| Fire mode (semi / auto) | B | D-pad left |
 
 If the gamepad crouch is set to *Hold*, tap/hold on one button no longer works, so
 prone moves to D-pad down.
@@ -148,6 +150,24 @@ prone moves to D-pad down.
 - **Aim assist (gamepad only, built in piece 2 once there are targets):** grippy, Apex/modern-CoD
   style: slowdown over targets + rotational tracking of moving targets. Strength setting (incl. off).
   Never through walls; only hostile targets.
+
+#### Piece 2: firing & ballistics (implemented on `preview` — in testing)
+- **Fire modes:** semi and full-auto (≈750 rpm). Switch: B (keyboard) / D-pad left (gamepad).
+  Fire: left mouse / right trigger. Pressing fire stops a sprint. Unlimited ammo until piece 4.
+- **Projectiles:** every bullet is simulated (no hitscan): ≈900 m/s muzzle velocity, real gravity
+  (9.81 m/s², not the character multiplier), air drag (≈70% speed left at 300 m).
+- **Zeroing:** sights zeroed at 100 m: the bullet crosses the sight line there, hitting slightly
+  high/low at other ranges.
+- **Hit feedback:** bullet holes, a dust puff, a short impact sound. **No hit markers.**
+- **Penetration:** designed for later (materials, buildings). For now everything stops bullets.
+- **Sound:** code-generated placeholder shot and impact sounds until real audio exists.
+- **Targets:** plain targets in the test range plus a long-range lane (25–300 m), one moving target.
+- **Aiming XP:** hitting a target earns Aiming XP (more at longer range).
+- **Aim assist** (gamepad, see piece 1 spec) lands with this piece; targets stand in for enemies.
+- **No recoil yet** (piece 3): full-auto is a laser until then.
+- Verified: drop vs sight line −3.6 cm @25 m, 0 @100 m, −8.7 cm @200 m, −36 cm @300 m (≈645 m/s,
+  0.4 s flight). At 300 m you must hold over and hold your breath, like the real thing.
+- Pulling the trigger ends a sprint; press sprint again to resume.
 
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level

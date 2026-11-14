@@ -63,6 +63,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     // Input intent.
     private bool _sprintHeld;
     private bool _sprintToggled;
+    private bool _triggerHeld;
     private bool _aimHeld;
     private bool _aimToggled;
     private bool _breathHeld;
@@ -103,7 +104,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
 
         Stats.Initialize(Skills);
         Stamina.Initialize(Stats, Skills);
-        Weapons.Initialize(Stats, GetRid(), CollisionMask);
+        Weapons.Initialize(Stats, Skills, GetRid(), CollisionMask);
 
         _gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle() * Config.GravityMultiplier;
 
@@ -148,6 +149,20 @@ public partial class PlayerController : CharacterBody3D, IPersistent
                 WantedStance = Stance.Stand;
             else
                 _jumpBufferLeft = Config.JumpBufferTime;
+        }
+        else if (e.IsAction(InputActions.Fire))
+        {
+            _triggerHeld = e.IsPressed();
+            if (_triggerHeld)
+            {
+                // Pulling the trigger ends a sprint; press sprint again to resume.
+                _sprintToggled = false;
+                _sprintHeld = false;
+            }
+        }
+        else if (e.IsActionPressed(InputActions.CycleFireMode))
+        {
+            Weapons.CycleFireMode();
         }
         else if (e.IsAction(InputActions.Aim))
         {
@@ -287,6 +302,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             _breathHeld = false;
 
         Weapons.WantsAim = WantsAim;
+        Weapons.TriggerHeld = _triggerHeld;
         Weapons.WantsHoldBreath = _breathHeld || _breathToggled;
         Weapons.Lowered = IsSprinting;
         Weapons.MoveFraction = Mathf.Clamp(HorizontalSpeed / Config.RunSpeed, 0f, 1f);
@@ -404,7 +420,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         if (_sprintToggled && (forward < Config.SprintCancelForward || Stamina.IsExhausted))
             _sprintToggled = false;
 
-        bool wantsSprint = (_sprintHeld || _sprintToggled) && !WantsAim;
+        bool wantsSprint = (_sprintHeld || _sprintToggled) && !WantsAim && !_triggerHeld;
         IsSprinting = wantsSprint
             && Stance == Stance.Stand
             && !Stamina.IsExhausted

@@ -1,8 +1,15 @@
 using Godot;
 using Godot.Collections;
 using ZombieSandbox.Character;
+using ZombieSandbox.Core.Audio;
 
 namespace ZombieSandbox.Combat;
+
+public enum FireMode
+{
+    Semi,
+    Auto,
+}
 
 /// <summary>
 /// Holds and points a weapon for any character (player or NPC). The owner feeds it intent
@@ -32,6 +39,8 @@ public partial class WeaponHolder : Node3D
     public float Breathlessness { get; set; }
     /// <summary>World transform of the eye: origin at the eye, -Z where the owner aims.</summary>
     public Transform3D AimPivot { get; set; } = Transform3D.Identity;
+    /// <summary>The trigger is being pulled.</summary>
+    public bool TriggerHeld { get; set; }
 
     // ---------- State ----------
 
@@ -49,8 +58,17 @@ public partial class WeaponHolder : Node3D
     public float WallPullBack { get; private set; }
     /// <summary>Current sway amplitude in degrees (for debugging/tuning).</summary>
     public float SwayDegrees => _swayAmplitude;
+    public FireMode FireMode { get; private set; } = FireMode.Auto;
+    public int ShotsFired { get; private set; }
 
     private CharacterStats _stats = null!;
+    private CharacterSkills _skills = null!;
+    private Rid _ownerBody;
+    private uint _collisionMask;
+    private float _zeroAngle;
+    private float _fireCooldown;
+    private bool _triggerWasHeld;
+    private AudioStreamPlayer3D _shotAudio = null!;
     private float _lowerBlend;
     private float _readyTime;
     private float _breathLeft;
@@ -59,9 +77,12 @@ public partial class WeaponHolder : Node3D
     private float _swayAmplitude;
     private readonly PhysicsRayQueryParameters3D _wallRay = new();
 
-    public void Initialize(CharacterStats stats, Rid owner, uint collisionMask)
+    public void Initialize(CharacterStats stats, CharacterSkills skills, Rid owner, uint collisionMask)
     {
         _stats = stats;
+        _skills = skills;
+        _ownerBody = owner;
+        _collisionMask = collisionMask;
         _breathLeft = stats.HoldBreathSeconds;
         _wallRay.Exclude = new Array<Rid> { owner };
         _wallRay.CollisionMask = collisionMask;
@@ -72,6 +93,8 @@ public partial class WeaponHolder : Node3D
         TopLevel = true;
         ProcessPriority = 10; // After the owner's camera has set the aim pivot this frame.
         PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off;
+        _shotAudio = new AudioStreamPlayer3D { Stream = PlaceholderSounds.Gunshot, MaxPolyphony = 8, UnitSize = 12f, MaxDistance = 400f };
+        AddChild(_shotAudio);
         if (StartingWeapon != null)
             Equip(StartingWeapon.Instantiate<Weapon>());
     }
@@ -81,6 +104,30 @@ public partial class WeaponHolder : Node3D
         Weapon?.QueueFree();
         Weapon = weapon;
         AddChild(weapon);
+
+        // Zero the sights: tilt the bore up just enough that the bullet crosses the sight line at the zero distance.
+        WeaponData data = weapon.Data;
+        if (data.Ammo != null)
+        {
+            float sightHeight = weapon.SightEye.Position.Y - weapon.Muzzle.Position.Y;
+            float gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
+            _zeroAngle = Ballistics.SolveZeroAngle(data.Ammo, sightHeight, data.ZeroDistance, gravity);
+        }
+        FireMode = data.SupportsAuto ? FireMode.Auto : FireMode.Semi;
+    }
+
+    public void CycleFireMode()
+    {
+        if (Weapon == null || !(Weapon.Data.SupportsSemi && Weapon.Data.SupportsAuto))
+            return;
+        FireMode = FireMode == FireMode.Auto ? FireMode.Semi : FireMode.Auto;
+    }
+
+    /// <summary>Called by <see cref="Ballistics"/> when one of this holder's bullets lands.</summary>
+    public void OnShotLanded(float distance, bool hitTarget)
+    {
+        if (hitTarget && _skills != null)
+            _skills.AddXp(SkillId.Aiming, Config.AimingXpPerHit * (1f + Config.AimingXpRangeBonusPer100m * distance / 100f));
     }
 
     public override void _Process(double delta)
@@ -121,6 +168,61 @@ public partial class WeaponHolder : Node3D
 
         GlobalTransform = aim * local;
         CanFire = raised && _lowerBlend <= 0f && wallBlock <= 0f;
+
+        UpdateTrigger(dt, data);
+    }
+
+    private void UpdateTrigger(float dt, WeaponData data)
+    {
+        bool pulled = TriggerHeld && !_triggerWasHeld;
+        _triggerWasHeld = TriggerHeld;
+        float interval = 60f / data.FireRateRpm;
+
+        // Holding full-auto may carry a little negative cooldown so the rate stays exact at low frame rates.
+        bool firingAuto = TriggerHeld && FireMode == FireMode.Auto && CanFire;
+        _fireCooldown = Mathf.Max(_fireCooldown - dt, firingAuto ? -interval : 0f);
+
+        if (!CanFire || data.Ammo == null)
+            return;
+
+        if (FireMode == FireMode.Semi)
+        {
+            if (pulled && _fireCooldown <= 0f)
+            {
+                Shoot(data);
+                _fireCooldown = interval;
+            }
+        }
+        else
+        {
+            while (TriggerHeld && _fireCooldown <= 0f)
+            {
+                Shoot(data);
+                _fireCooldown += interval;
+            }
+        }
+    }
+
+    private void Shoot(WeaponData data)
+    {
+        Transform3D muzzle = Weapon!.Muzzle.GlobalTransform;
+        Vector3 direction = (muzzle.Basis * new Vector3(0f, Mathf.Sin(_zeroAngle), -Mathf.Cos(_zeroAngle))).Normalized();
+        Transform3D sightEye = Weapon.SightEye.GlobalTransform;
+
+        Ballistics.Instance.Fire(new Shot(
+            Origin: muzzle.Origin,
+            Velocity: direction * data.Ammo.MuzzleVelocity,
+            Ammo: data.Ammo,
+            SafeOrigin: AimPivot.Origin,
+            SightOrigin: sightEye.Origin,
+            SightDirection: -sightEye.Basis.Z,
+            Shooter: this,
+            ShooterBody: _ownerBody,
+            CollisionMask: _collisionMask));
+
+        ShotsFired++;
+        _shotAudio.GlobalPosition = muzzle.Origin;
+        _shotAudio.Play();
     }
 
     private void UpdateBreath(float dt)

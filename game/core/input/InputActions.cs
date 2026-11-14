@@ -28,6 +28,8 @@ public static class InputActions
     public const string LeanRight = "lean_right";
     /// <summary>Aim down sights. Sprint doubles as hold breath while aiming.</summary>
     public const string Aim = "aim";
+    public const string Fire = "fire";
+    public const string CycleFireMode = "cycle_fire_mode";
     public const string ReleaseMouse = "release_mouse";
 
     // Developer-only (debug builds).
@@ -35,6 +37,7 @@ public static class InputActions
     public const string DebugFitnessDown = "debug_fitness_down";
     public const string DebugAimingUp = "debug_aiming_up";
     public const string DebugAimingDown = "debug_aiming_down";
+    public const string DebugBulletTrails = "debug_bullet_trails";
 
     /// <summary>InputMap events with this device id match any connected device.</summary>
     private const int AllDevices = -1;
@@ -64,6 +67,8 @@ public static class InputActions
         Bind(LeanLeft, 0.5f, KeyEvent(Key.Q));
         Bind(LeanRight, 0.5f, KeyEvent(Key.E));
         Bind(Aim, 0.5f, MouseButtonEvent(MouseButton.Right), Axis(JoyAxis.TriggerLeft, 1f));
+        Bind(Fire, 0.5f, MouseButtonEvent(MouseButton.Left), Axis(JoyAxis.TriggerRight, 1f));
+        Bind(CycleFireMode, 0.5f, KeyEvent(Key.B), Button(JoyButton.DpadLeft));
         Bind(ReleaseMouse, 0.5f, KeyEvent(Key.Escape));
 
         if (OS.IsDebugBuild())
@@ -72,6 +77,7 @@ public static class InputActions
             Bind(DebugFitnessDown, 0.5f, KeyEvent(Key.F4));
             Bind(DebugAimingUp, 0.5f, KeyEvent(Key.F5));
             Bind(DebugAimingDown, 0.5f, KeyEvent(Key.F6));
+            Bind(DebugBulletTrails, 0.5f, KeyEvent(Key.F7));
         }
     }
 

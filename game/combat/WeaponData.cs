@@ -12,6 +12,14 @@ public partial class WeaponData : Resource
     [Export] public string DisplayName { get; set; } = "Rifle";
     [Export] public float MassKg { get; set; } = 3.4f;
 
+    [ExportGroup("Firing")]
+    [Export] public AmmoData Ammo { get; set; } = null!;
+    [Export] public float FireRateRpm { get; set; } = 750f;
+    [Export] public bool SupportsSemi { get; set; } = true;
+    [Export] public bool SupportsAuto { get; set; } = true;
+    /// <summary>Distance (m) at which the bullet crosses the sight line.</summary>
+    [Export] public float ZeroDistance { get; set; } = 100f;
+
     [ExportGroup("Aiming")]
     /// <summary>Seconds to go from hip to fully aimed.</summary>
     [Export] public float AdsTime { get; set; } = 0.3f;

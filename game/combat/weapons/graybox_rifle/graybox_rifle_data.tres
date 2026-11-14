@@ -1,7 +1,9 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://game/combat/WeaponData.cs" id="1_script"]
+[ext_resource type="Resource" path="res://game/combat/ballistics/ammo_556.tres" id="2_ammo"]
 
 [resource]
 script = ExtResource("1_script")
 DisplayName = "AR-32 (graybox)"
+Ammo = ExtResource("2_ammo")

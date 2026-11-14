@@ -30,6 +30,12 @@ public partial class WeaponHandlingConfig : Resource
     /// <summary>Breath (fraction) needed before holding it again after a gasp.</summary>
     [Export(PropertyHint.Range, "0,1,0.05")] public float BreathNeededAfterGasp { get; set; } = 0.5f;
 
+    [ExportGroup("Aiming XP")]
+    /// <summary>Aiming XP for hitting a target up close.</summary>
+    [Export] public float AimingXpPerHit { get; set; } = 1.5f;
+    /// <summary>Extra XP multiplier per 100 m of distance (1 = double XP at 100 m).</summary>
+    [Export] public float AimingXpRangeBonusPer100m { get; set; } = 1f;
+
     [ExportGroup("Lowering & walls")]
     /// <summary>Seconds to lower the weapon when starting to sprint.</summary>
     [Export] public float LowerTime { get; set; } = 0.2f;

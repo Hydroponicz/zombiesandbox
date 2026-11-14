@@ -14,6 +14,14 @@ public enum PressMode
     Toggle,
 }
 
+public enum AimAssistStrength
+{
+    Off,
+    Low,
+    Standard,
+    Strong,
+}
+
 public enum ThirdPersonAimMode
 {
     SwitchToFirstPerson,
@@ -63,6 +71,8 @@ public partial class InputSettings : Resource
     [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float GamepadAimSensitivity { get; set; } = 0.6f;
     /// <summary>Gamepad only: aiming next to a corner leans around it.</summary>
     [Export] public bool GamepadAutoLean { get; set; } = true;
+    /// <summary>Gamepad only. Slows your aim over targets and helps track moving ones.</summary>
+    [Export] public AimAssistStrength AimAssist { get; set; } = AimAssistStrength.Standard;
     /// <summary>Aiming while crouched behind low cover rises up to aim over it.</summary>
     [Export] public bool PeekOverCover { get; set; } = true;
 
@@ -72,5 +82,13 @@ public partial class InputSettings : Resource
     public PressMode SprintMode(InputDevice device) => device == InputDevice.Gamepad ? SprintGamepad : SprintKeyboard;
     public PressMode CrouchMode(InputDevice device) => device == InputDevice.Gamepad ? CrouchGamepad : CrouchKeyboard;
     public PressMode ProneMode(InputDevice device) => device == InputDevice.Gamepad ? ProneGamepad : ProneKeyboard;
+    public float AimAssistMultiplier => AimAssist switch
+    {
+        AimAssistStrength.Low => 0.5f,
+        AimAssistStrength.Standard => 1f,
+        AimAssistStrength.Strong => 1.35f,
+        _ => 0f,
+    };
+
     public PressMode AimMode(InputDevice device) => device == InputDevice.Gamepad ? AimGamepad : AimKeyboard;
 }

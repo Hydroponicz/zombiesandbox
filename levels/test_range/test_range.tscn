@@ -1,8 +1,10 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Shader" path="res://assets/materials/dev/dev_grid.gdshader" id="1_grid"]
 [ext_resource type="PackedScene" path="res://game/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://game/debug/debug_hud.tscn" id="3_hud"]
+
+[ext_resource type="PackedScene" path="res://game/combat/targets/shooting_target.tscn" id="4_target"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
 shader = ExtResource("1_grid")
@@ -182,6 +184,18 @@ use_collision = true
 size = Vector3(2, 1.44, 3)
 material = SubResource("ShaderMaterial_grid")
 
+[node name="RangeGround" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, -0.5, -190)
+use_collision = true
+size = Vector3(20, 1, 280)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="FiringLine" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 0.01, 0)
+use_collision = true
+size = Vector3(10, 0.02, 0.15)
+material = SubResource("ShaderMaterial_grid")
+
 [node name="Signs" type="Node3D" parent="."]
 
 [node name="CrouchSign" type="Label3D" parent="Signs"]
@@ -239,6 +253,50 @@ billboard = 1
 text = "STAIRS (0.18 m steps)"
 font_size = 64
 outline_size = 12
+
+
+
+
+
+
+[node name="FiringLineSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 2.6, 4)
+billboard = 1
+text = "FIRING RANGE  —  targets left to right: 25, 50, 100, 200, 300 m
+B = fire mode    F7 = bullet trails"
+font_size = 40
+outline_size = 10
+
+[node name="MovingSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 2.4, -25)
+billboard = 1
+text = "MOVING TARGET"
+font_size = 48
+outline_size = 10
+
+[node name="Targets" type="Node3D" parent="."]
+
+[node name="Target_25m" parent="Targets" instance=ExtResource("4_target")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 0, -25)
+
+[node name="Target_50m" parent="Targets" instance=ExtResource("4_target")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, -50)
+
+[node name="Target_100m" parent="Targets" instance=ExtResource("4_target")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 0, -100)
+
+[node name="Target_200m" parent="Targets" instance=ExtResource("4_target")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38, 0, -200)
+
+[node name="Target_300m" parent="Targets" instance=ExtResource("4_target")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, -300)
+
+[node name="MovingTarget_25m" parent="Targets" instance=ExtResource("4_target")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, -25)
+MoveDistance = 6.0
+
+[node name="CoverTarget_15m" parent="Targets" instance=ExtResource("4_target")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -22)
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)

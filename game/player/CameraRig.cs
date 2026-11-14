@@ -37,6 +37,12 @@ public partial class CameraRig : Node3D
     private float _shoulderBlend = 1f;
     private PhysicsShapeQueryParameters3D _fpCollisionQuery = null!;
     private readonly PhysicsRayQueryParameters3D _convergenceRay = new();
+    private readonly PhysicsRayQueryParameters3D _assistRay = new();
+    private AimAssistTarget? _assistTarget;
+    private Vector2 _assistLastAngles;
+    private float _assistSlowdown = 1f;
+    /// <summary>The target aim assist is currently helping with (null if none).</summary>
+    public AimAssistTarget? AimAssistTarget => _assistTarget;
 
     public override void _Ready()
     {
@@ -55,6 +61,7 @@ public partial class CameraRig : Node3D
             Exclude = new Array<Rid> { _player.GetRid() },
         };
         _convergenceRay.Exclude = new Array<Rid> { _player.GetRid() };
+        _assistRay.Exclude = new Array<Rid> { _player.GetRid() };
         Yaw = _player.GlobalRotation.Y;
 
         Input.MouseMode = Input.MouseModeEnum.Captured;
@@ -97,6 +104,7 @@ public partial class CameraRig : Node3D
     public override void _Process(double delta)
     {
         float dt = (float)delta;
+        UpdateAimAssist();
         ApplyGamepadLook(dt);
 
         _shoulderBlend = Mathf.MoveToward(_shoulderBlend, _shoulderSide, Config.ShoulderSwapSpeed * dt);
@@ -196,10 +204,99 @@ public partial class CameraRig : Node3D
 
         InputSettings s = GameInput.Instance.Settings;
         Vector2 curved = stick / magnitude * Mathf.Pow(Mathf.Min(magnitude, 1f), s.LookResponseCurve);
-        float aimScale = Mathf.Lerp(1f, s.GamepadAimSensitivity, _player.Weapons.AdsBlend);
+        float aimScale = Mathf.Lerp(1f, s.GamepadAimSensitivity, _player.Weapons.AdsBlend) * _assistSlowdown;
         AddLook(
             -curved.X * Mathf.DegToRad(s.GamepadYawSpeed) * aimScale * dt,
             -curved.Y * Mathf.DegToRad(s.GamepadPitchSpeed) * aimScale * dt * (s.InvertY ? -1f : 1f));
+    }
+
+    /// <summary>
+    /// Gamepad aim assist ("grippy", Apex/modern-CoD style):
+    /// - Slowdown: look speed drops as the screen center nears a target.
+    /// - Tracking: while you're moving or aiming, the camera follows part of the target's movement
+    ///   relative to you, so strafing or a moving target doesn't drag your aim off.
+    /// Only hostile targets in line of sight, only with a gamepad.
+    /// </summary>
+    private void UpdateAimAssist()
+    {
+        _assistSlowdown = 1f;
+        InputSettings settings = GameInput.Instance.Settings;
+        float strength = settings.AimAssistMultiplier;
+        if (strength <= 0f || GameInput.Instance.LastDevice != InputDevice.Gamepad || _player.Weapons.Weapon == null)
+        {
+            _assistTarget = null;
+            return;
+        }
+
+        float ads = _player.Weapons.AdsBlend;
+        Transform3D cam = _camera.GlobalTransform;
+        Vector3 forward = -cam.Basis.Z;
+        float range = Mathf.Lerp(Config.AimAssistRangeHip, Config.AimAssistRangeAimed, ads);
+
+        AimAssistTarget? best = null;
+        float bestCloseness = 0f;
+        foreach (AimAssistTarget target in AimAssistTarget.All)
+        {
+            if (!target.Hostile || !target.IsInsideTree())
+                continue;
+            Vector3 toTarget = target.GlobalPosition - cam.Origin;
+            float distance = toTarget.Length();
+            if (distance > range || distance < 0.5f)
+                continue;
+
+            float cone = Mathf.Max(Mathf.Atan((target.Radius + Config.AimAssistPadding) / distance), Mathf.DegToRad(Config.AimAssistMinConeDegrees));
+            float angle = forward.AngleTo(toTarget);
+            if (angle > cone)
+                continue;
+
+            float closeness = 1f - angle / cone;
+            if (closeness <= bestCloseness || !HasLineOfSight(cam.Origin, target))
+                continue;
+            best = target;
+            bestCloseness = closeness;
+        }
+
+        if (best == null)
+        {
+            _assistTarget = null;
+            return;
+        }
+
+        float slowdown = Mathf.Lerp(Config.AimAssistSlowdownHip, Config.AimAssistSlowdownAimed, ads) * strength;
+        _assistSlowdown = 1f - Mathf.Clamp(slowdown * bestCloseness, 0f, 0.9f);
+
+        // Tracking: measure the target's direction from the player's eye (not the orbiting camera,
+        // which would feed our own turning back into the assist).
+        Vector3 eye = GlobalPosition + Vector3.Up * _player.EyeHeight;
+        Vector3 toBest = best.GlobalPosition - eye;
+        var angles = new Vector2(Mathf.Atan2(-toBest.X, -toBest.Z), Mathf.Asin(Mathf.Clamp(toBest.Normalized().Y, -1f, 1f)));
+
+        if (best == _assistTarget)
+        {
+            Vector2 stick = Input.GetVector(InputActions.LookLeft, InputActions.LookRight, InputActions.LookUp, InputActions.LookDown);
+            Vector2 move = Input.GetVector(InputActions.MoveLeft, InputActions.MoveRight, InputActions.MoveForward, InputActions.MoveBack);
+            // Only while the player is actively moving or aiming the stick: assist, never an aimbot.
+            bool engaged = stick.LengthSquared() > 0.01f || move.LengthSquared() > 0.01f;
+            if (engaged)
+            {
+                float tracking = Mathf.Lerp(Config.AimAssistTrackingHip, Config.AimAssistTrackingAimed, ads) * strength;
+                float yawChange = Mathf.Wrap(angles.X - _assistLastAngles.X, -Mathf.Pi, Mathf.Pi);
+                float pitchChange = angles.Y - _assistLastAngles.Y;
+                AddLook(yawChange * tracking, pitchChange * tracking);
+            }
+        }
+
+        _assistTarget = best;
+        _assistLastAngles = angles;
+    }
+
+    private bool HasLineOfSight(Vector3 from, AimAssistTarget target)
+    {
+        _assistRay.From = from;
+        _assistRay.To = target.GlobalPosition;
+        _assistRay.CollisionMask = _player.CollisionMask;
+        Dictionary hit = GetWorld3D().DirectSpaceState.IntersectRay(_assistRay);
+        return hit.Count == 0 || hit["collider"].AsGodotObject() == target.Body;
     }
 
     private void AddLook(float yawDelta, float pitchDelta)
