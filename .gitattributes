@@ -1,0 +1,17 @@
+# Normalize line endings so Windows/Linux edits don't create noisy diffs
+* text=auto eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.glb binary
+*.gltf text
+*.fbx binary
+*.blend binary
+*.wav binary
+*.ogg binary
+*.mp3 binary
+*.ttf binary
+*.otf binary
