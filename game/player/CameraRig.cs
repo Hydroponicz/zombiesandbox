@@ -1,4 +1,5 @@
 using Godot;
+using Godot.Collections;
 using ZombieSandbox.Core.Input;
 
 namespace ZombieSandbox.Player;
@@ -28,6 +29,7 @@ public partial class CameraRig : Node3D
     private Camera3D _camera = null!;
     private float _shoulderSide = 1f;
     private float _shoulderBlend = 1f;
+    private PhysicsShapeQueryParameters3D _fpCollisionQuery = null!;
 
     public override void _Ready()
     {
@@ -40,6 +42,11 @@ public partial class CameraRig : Node3D
         PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off;
         _arm.AddExcludedObject(_player.GetRid());
         _camera.Fov = Config.FieldOfView;
+        _fpCollisionQuery = new PhysicsShapeQueryParameters3D
+        {
+            Shape = new SphereShape3D { Radius = Config.FirstPersonCollisionRadius },
+            Exclude = new Array<Rid> { _player.GetRid() },
+        };
         Yaw = _player.GlobalRotation.Y;
 
         Input.MouseMode = Input.MouseModeEnum.Captured;
@@ -102,7 +109,7 @@ public partial class CameraRig : Node3D
 
         if (IsFirstPerson)
         {
-            _pitchPivot.Position = new Vector3(leanOffset, eye, -Config.FirstPersonForwardOffset);
+            _pitchPivot.Position = KeepFirstPersonCameraOutOfWalls(new Vector3(leanOffset, eye, -Config.FirstPersonForwardOffset), eye);
             _pitchPivot.Rotation = new Vector3(Pitch, 0f, -lean * Mathf.DegToRad(Config.FirstPersonLeanRoll));
             _arm.Position = Vector3.Zero;
         }
@@ -111,6 +118,23 @@ public partial class CameraRig : Node3D
             _pitchPivot.Position = new Vector3(leanOffset, eye + Config.ThirdPersonHeightOffset, 0f);
             _arm.Position = new Vector3(Config.ShoulderOffset * _shoulderBlend, 0f, 0f);
         }
+    }
+
+    /// <summary>
+    /// Sweeps a small sphere from the center of the head (always inside the body, so always clear)
+    /// to the wanted camera spot, and stops it at the first wall. Covers leaning, the forward
+    /// offset and anything else that could push the camera into geometry.
+    /// </summary>
+    private Vector3 KeepFirstPersonCameraOutOfWalls(Vector3 wantedLocal, float eye)
+    {
+        Vector3 fromLocal = new(0f, eye, 0f);
+        Vector3 from = GlobalTransform * fromLocal;
+        _fpCollisionQuery.CollisionMask = _player.CollisionMask;
+        _fpCollisionQuery.Transform = new Transform3D(Basis.Identity, from);
+        _fpCollisionQuery.Motion = GlobalTransform * wantedLocal - from;
+        float[] fractions = GetWorld3D().DirectSpaceState.CastMotion(_fpCollisionQuery);
+        float safe = fractions.Length > 0 ? fractions[0] : 1f;
+        return fromLocal.Lerp(wantedLocal, safe);
     }
 
     private void ApplyGamepadLook(float dt)

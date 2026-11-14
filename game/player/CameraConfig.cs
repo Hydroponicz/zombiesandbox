@@ -21,4 +21,6 @@ public partial class CameraConfig : Resource
     [Export] public float FirstPersonForwardOffset { get; set; } = 0.1f;
     /// <summary>Camera roll at full lean, first person only (degrees).</summary>
     [Export] public float FirstPersonLeanRoll { get; set; } = 12f;
+    /// <summary>The first-person camera is kept this far from walls so the near plane never cuts into them.</summary>
+    [Export] public float FirstPersonCollisionRadius { get; set; } = 0.12f;
 }
