@@ -47,10 +47,10 @@ use_collision = true
 size = Vector3(4, 2, 0.3)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="LowCover_1m" type="CSGBox3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -10)
+[node name="LowCover_1_15m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.575, -10)
 use_collision = true
-size = Vector3(3, 1, 0.5)
+size = Vector3(3, 1.15, 0.5)
 material = SubResource("ShaderMaterial_grid")
 
 [node name="JumpBox_0_5m" type="CSGBox3D" parent="Geometry"]
@@ -222,7 +222,7 @@ outline_size = 12
 [node name="CoverSign" type="Label3D" parent="Signs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, -10)
 billboard = 1
-text = "COVER / CAMERA TEST"
+text = "LOW COVER 1.15 m (crouch + aim to peek)"
 font_size = 64
 outline_size = 12
 

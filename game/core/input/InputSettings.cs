@@ -14,6 +14,12 @@ public enum PressMode
     Toggle,
 }
 
+public enum ThirdPersonAimMode
+{
+    SwitchToFirstPerson,
+    OverTheShoulder,
+}
+
 /// <summary>
 /// Player-facing input settings. Later these will be editable in an options menu and saved
 /// to user://; for now edit input_settings.tres in the inspector.
@@ -26,12 +32,14 @@ public partial class InputSettings : Resource
     [Export] public PressMode CrouchKeyboard { get; set; } = PressMode.Toggle;
     [Export] public PressMode ProneKeyboard { get; set; } = PressMode.Toggle;
     [Export] public PressMode LeanKeyboard { get; set; } = PressMode.Hold;
+    [Export] public PressMode AimKeyboard { get; set; } = PressMode.Toggle;
 
     [ExportGroup("Hold / Toggle (gamepad)")]
     [Export] public PressMode SprintGamepad { get; set; } = PressMode.Toggle;
     /// <summary>Toggle = tap B to crouch, hold B to go prone. Hold = hold B to crouch (prone moves to D-pad down).</summary>
     [Export] public PressMode CrouchGamepad { get; set; } = PressMode.Toggle;
     [Export] public PressMode ProneGamepad { get; set; } = PressMode.Toggle;
+    [Export] public PressMode AimGamepad { get; set; } = PressMode.Hold;
     /// <summary>How long B must be held to go prone instead of crouching.</summary>
     [Export(PropertyHint.Range, "0.1,1.0,0.05")] public float CrouchHoldForProneSeconds { get; set; } = 0.3f;
 
@@ -47,10 +55,22 @@ public partial class InputSettings : Resource
     /// <summary>1 = linear. Higher = finer control near the center of the stick.</summary>
     [Export(PropertyHint.Range, "1.0,4.0,0.1")] public float LookResponseCurve { get; set; } = 1.8f;
 
+    [ExportGroup("Aiming")]
+    /// <summary>What aiming down sights does in third person.</summary>
+    [Export] public ThirdPersonAimMode ThirdPersonAim { get; set; } = ThirdPersonAimMode.SwitchToFirstPerson;
+    /// <summary>Look sensitivity multiplier while aiming down sights.</summary>
+    [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float MouseAimSensitivity { get; set; } = 0.7f;
+    [Export(PropertyHint.Range, "0.1,1.5,0.05")] public float GamepadAimSensitivity { get; set; } = 0.6f;
+    /// <summary>Gamepad only: aiming next to a corner leans around it.</summary>
+    [Export] public bool GamepadAutoLean { get; set; } = true;
+    /// <summary>Aiming while crouched behind low cover rises up to aim over it.</summary>
+    [Export] public bool PeekOverCover { get; set; } = true;
+
     [ExportGroup("General")]
     [Export] public bool InvertY { get; set; }
 
     public PressMode SprintMode(InputDevice device) => device == InputDevice.Gamepad ? SprintGamepad : SprintKeyboard;
     public PressMode CrouchMode(InputDevice device) => device == InputDevice.Gamepad ? CrouchGamepad : CrouchKeyboard;
     public PressMode ProneMode(InputDevice device) => device == InputDevice.Gamepad ? ProneGamepad : ProneKeyboard;
+    public PressMode AimMode(InputDevice device) => device == InputDevice.Gamepad ? AimGamepad : AimKeyboard;
 }

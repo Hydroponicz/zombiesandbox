@@ -16,6 +16,11 @@ public partial class CameraConfig : Resource
     /// <summary>How fast the camera slides to the other shoulder (shoulder widths per second).</summary>
     [Export] public float ShoulderSwapSpeed { get; set; } = 7f;
 
+    [ExportGroup("Over-the-shoulder aiming")]
+    [Export] public float ShoulderAimDistance { get; set; } = 1.0f;
+    [Export] public float ShoulderAimOffset { get; set; } = 0.55f;
+    [Export] public float ShoulderAimFieldOfView { get; set; } = 55f;
+
     [ExportGroup("First person")]
     /// <summary>Camera sits this far in front of the body's center, at eye height.</summary>
     [Export] public float FirstPersonForwardOffset { get; set; } = 0.1f;

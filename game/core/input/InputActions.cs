@@ -26,11 +26,15 @@ public static class InputActions
     public const string SwapShoulder = "swap_shoulder";
     public const string LeanLeft = "lean_left";
     public const string LeanRight = "lean_right";
+    /// <summary>Aim down sights. Sprint doubles as hold breath while aiming.</summary>
+    public const string Aim = "aim";
     public const string ReleaseMouse = "release_mouse";
 
     // Developer-only (debug builds).
     public const string DebugFitnessUp = "debug_fitness_up";
     public const string DebugFitnessDown = "debug_fitness_down";
+    public const string DebugAimingUp = "debug_aiming_up";
+    public const string DebugAimingDown = "debug_aiming_down";
 
     /// <summary>InputMap events with this device id match any connected device.</summary>
     private const int AllDevices = -1;
@@ -59,12 +63,15 @@ public static class InputActions
         // Gamepad has no manual lean: it auto-leans when aiming next to cover (build step 2).
         Bind(LeanLeft, 0.5f, KeyEvent(Key.Q));
         Bind(LeanRight, 0.5f, KeyEvent(Key.E));
+        Bind(Aim, 0.5f, MouseButtonEvent(MouseButton.Right), Axis(JoyAxis.TriggerLeft, 1f));
         Bind(ReleaseMouse, 0.5f, KeyEvent(Key.Escape));
 
         if (OS.IsDebugBuild())
         {
             Bind(DebugFitnessUp, 0.5f, KeyEvent(Key.F3));
             Bind(DebugFitnessDown, 0.5f, KeyEvent(Key.F4));
+            Bind(DebugAimingUp, 0.5f, KeyEvent(Key.F5));
+            Bind(DebugAimingDown, 0.5f, KeyEvent(Key.F6));
         }
     }
 
@@ -81,6 +88,8 @@ public static class InputActions
 
     // Physical keycodes keep WASD in the same place on non-QWERTY keyboards.
     private static InputEventKey KeyEvent(Key key) => new() { PhysicalKeycode = key, Device = AllDevices };
+
+    private static InputEventMouseButton MouseButtonEvent(MouseButton button) => new() { ButtonIndex = button, Device = AllDevices };
 
     private static InputEventJoypadButton Button(JoyButton button) => new() { ButtonIndex = button, Device = AllDevices };
 

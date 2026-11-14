@@ -69,6 +69,12 @@ public partial class MovementConfig : Resource
     /// <summary>Size of the head when checking whether a lean fits next to a wall.</summary>
     [Export] public float LeanHeadRadius { get; set; } = 0.15f;
 
+    [ExportGroup("Cover")]
+    /// <summary>Height you rise to when peeking over low cover from a crouch (m).</summary>
+    [Export] public float PeekHeight { get; set; } = 1.55f;
+    /// <summary>How close cover must be in front of you for auto-lean / peeking (m).</summary>
+    [Export] public float CoverCheckDistance { get; set; } = 0.9f;
+
     [ExportGroup("Stances (m)")]
     [Export] public float Radius { get; set; } = 0.3f;
     [Export] public float StandHeight { get; set; } = 1.8f;

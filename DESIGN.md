@@ -95,6 +95,8 @@ Every feature must serve at least one pillar.
 | Switch first/third person | V | D-pad up (placeholder until D-pad is planned) |
 | Lean left / right | Q / E | Automatic when aiming at cover (step 2) |
 | Swap shoulder (3rd person) | Z | R3 (right stick click) |
+| Aim down sights | Right mouse (toggle) | Left trigger (hold) |
+| Hold breath (while aiming) | Hold Shift | Click L3 |
 
 If the gamepad crouch is set to *Hold*, tap/hold on one button no longer works, so
 prone moves to D-pad down.
@@ -122,21 +124,30 @@ prone moves to D-pad down.
 5. **Malfunctions.**
 6. **Attachments** (probably after inventory exists).
 
-#### Piece 1 draft spec: holding & aiming (awaiting approval)
-- Rifle is always held ready; it lowers while sprinting and you can't fire until it comes back up
-  (≈0.25 s after sprint ends).
-- **ADS:** right mouse / left trigger. Hold/Toggle setting per device
-  (defaults: keyboard Toggle like Tarkov, gamepad Hold).
-  - ADS speed ≈0.3 s, slower while moving fast; walking speed while aiming.
-  - Mouse/stick sensitivity multiplier while aiming (setting).
-- **Third-person aiming:** gun barrel converges on what the camera center looks at. If the barrel
-  is blocked (e.g. aiming from behind cover the camera can see over), it hits the obstacle.
-- **Sway:** gentle idle sway, larger while moving, and much larger when out of breath (low leg
-  stamina). Crouch reduces it, prone reduces it most.
-- **Weapon collision:** the rifle pulls back toward the body near walls instead of clipping through
-  them, and can't fire while pulled back.
-- **Gamepad auto-lean:** while aiming next to a corner/cover edge, lean around it automatically.
-- **Peek over cover:** while crouched behind waist-high cover and aiming, rise to aim over it.
+#### Piece 1: holding & aiming (implemented on `preview` — in testing)
+- Rifle is always held ready; it lowers while sprinting and comes back up ≈0.25 s after sprint ends
+  before it can fire.
+- **ADS:** right mouse / left trigger. Hold/Toggle setting per device (defaults: keyboard Toggle, gamepad Hold).
+  - ≈0.3 s to aim (slower while moving fast). Walking speed while aiming; aiming stops a sprint.
+  - Separate look sensitivity while aiming (mouse and gamepad settings).
+  - First person: look through the iron sights (FOV 75° → 60°).
+  - Third person: setting **Switch to first person** (default) or **Over the shoulder**
+    (camera closer, FOV 55°, a small **aim dot** shows where the barrel really points — the only
+    on-screen aiming aid in the game).
+- **Third-person aim:** the weapon converges on what the camera center looks at; if the barrel is
+  blocked (camera sees over cover the gun can't), the barrel's line wins.
+- **Sway:** gentle idle sway, larger while moving, much larger when out of breath (low leg stamina).
+  Crouch and prone reduce it. Higher Aiming skill reduces it (to 60% at level 10).
+- **Hold breath:** sprint button while aiming (keyboard: hold Shift; gamepad: click L3, click again to
+  release). Duration is a flat timer from the **Aiming** skill (4 s at level 0 → 10 s at level 10).
+  Running out = 2 s gasp with heavy sway; breath must refill to 50% before holding again.
+- **Weapon collision:** near walls the rifle pulls back toward the body; pushed far enough it lowers
+  and can't fire.
+- **Gamepad auto-lean:** aiming with cover right in front leans toward the open side (right first).
+- **Peek over cover:** aiming while crouched behind low cover rises you up (to 1.55 m) to aim over it.
+- **Aim assist (gamepad only, built in piece 2 once there are targets):** grippy, Apex/modern-CoD
+  style: slowdown over targets + rotational tracking of moving targets. Strength setting (incl. off).
+  Never through walls; only hostile targets.
 
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level
@@ -145,6 +156,7 @@ prone moves to D-pad down.
   (8/s at level 0 → 14/s at level 10), and slightly raises sprint speed (≈ +8%) and acceleration (≈ +10%).
   Earns XP from sprinting and jumping, with more XP when stamina is low.
 - **Strength** (defined now, implemented with inventory in step 6): carry capacity.
+- **Aiming** (step 2): hold-breath duration (4 s → 10 s) and less weapon sway. Earns XP from hits (piece 2).
 - Weapon and other skills are added in the step that introduces them.
 - A developer-only debug key sets skill levels for testing (removed from release builds).
 
@@ -207,6 +219,5 @@ Each step is refined until solid before moving on. All work happens in graybox t
 - Free-look
 - Skill decay over time
 - Aim assist for gamepad (decide during gunplay step)
-- Hold breath to steady aim
 - AI chat-model NPCs (dropped)
 - Multiplayer / co-op

@@ -1,0 +1,114 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://game/combat/Weapon.cs" id="1_weapon"]
+[ext_resource type="Resource" path="res://game/combat/weapons/graybox_rifle/graybox_rifle_data.tres" id="2_data"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_metal"]
+albedo_color = Color(0.13, 0.13, 0.14, 1)
+metallic = 0.6
+roughness = 0.45
+
+[sub_resource type="StandardMaterial3D" id="Mat_polymer"]
+albedo_color = Color(0.22, 0.21, 0.19, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="Box_receiver"]
+size = Vector3(0.06, 0.09, 0.32)
+
+[sub_resource type="BoxMesh" id="Box_handguard"]
+size = Vector3(0.055, 0.065, 0.3)
+
+[sub_resource type="BoxMesh" id="Box_stock"]
+size = Vector3(0.045, 0.09, 0.26)
+
+[sub_resource type="BoxMesh" id="Box_grip"]
+size = Vector3(0.03, 0.1, 0.04)
+
+[sub_resource type="BoxMesh" id="Box_mag"]
+size = Vector3(0.03, 0.17, 0.07)
+
+[sub_resource type="BoxMesh" id="Box_rear_ear"]
+size = Vector3(0.005, 0.02, 0.012)
+
+[sub_resource type="BoxMesh" id="Box_rear_base"]
+size = Vector3(0.026, 0.015, 0.016)
+
+[sub_resource type="BoxMesh" id="Box_front_post"]
+size = Vector3(0.004, 0.03, 0.006)
+
+[sub_resource type="BoxMesh" id="Box_front_base"]
+size = Vector3(0.03, 0.012, 0.02)
+
+[sub_resource type="CylinderMesh" id="Cyl_barrel"]
+top_radius = 0.011
+bottom_radius = 0.011
+height = 0.2
+radial_segments = 12
+rings = 1
+
+[node name="GrayboxRifle" type="Node3D"]
+script = ExtResource("1_weapon")
+Data = ExtResource("2_data")
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="Receiver" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("Box_receiver")
+surface_material_override/0 = SubResource("Mat_metal")
+
+[node name="Handguard" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, -0.31)
+mesh = SubResource("Box_handguard")
+surface_material_override/0 = SubResource("Mat_polymer")
+
+[node name="Stock" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.015, 0.29)
+mesh = SubResource("Box_stock")
+surface_material_override/0 = SubResource("Mat_polymer")
+
+[node name="Grip" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.095, 0.08)
+mesh = SubResource("Box_grip")
+surface_material_override/0 = SubResource("Mat_polymer")
+
+[node name="Magazine" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.13, -0.07)
+mesh = SubResource("Box_mag")
+surface_material_override/0 = SubResource("Mat_metal")
+
+[node name="RearSightLeft" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0085, 0.07, 0.1)
+mesh = SubResource("Box_rear_ear")
+surface_material_override/0 = SubResource("Mat_metal")
+
+[node name="RearSightRight" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0085, 0.07, 0.1)
+mesh = SubResource("Box_rear_ear")
+surface_material_override/0 = SubResource("Mat_metal")
+
+[node name="RearSightBase" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0525, 0.1)
+mesh = SubResource("Box_rear_base")
+surface_material_override/0 = SubResource("Mat_metal")
+
+[node name="FrontSightPost" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.42)
+mesh = SubResource("Box_front_post")
+surface_material_override/0 = SubResource("Mat_metal")
+
+[node name="FrontSightBase" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, -0.42)
+mesh = SubResource("Box_front_base")
+surface_material_override/0 = SubResource("Mat_metal")
+
+[node name="Barrel" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.01, -0.55)
+mesh = SubResource("Cyl_barrel")
+surface_material_override/0 = SubResource("Mat_metal")
+
+[node name="Muzzle" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, -0.65)
+
+[node name="SightEye" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.075, 0.22)

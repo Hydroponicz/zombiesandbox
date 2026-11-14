@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://game/player/PlayerController.cs" id="1_player"]
 [ext_resource type="Resource" path="res://game/player/movement_config.tres" id="2_move"]
@@ -11,6 +11,11 @@
 [ext_resource type="Script" path="res://game/character/Stamina.cs" id="9_stamina"]
 [ext_resource type="Resource" path="res://game/character/stamina_config.tres" id="10_staminacfg"]
 
+[ext_resource type="Script" path="res://game/combat/WeaponHolder.cs" id="11_holder"]
+[ext_resource type="Resource" path="res://game/combat/player_handling.tres" id="12_handling"]
+[ext_resource type="PackedScene" path="res://game/combat/weapons/graybox_rifle/graybox_rifle.tscn" id="13_rifle"]
+[ext_resource type="Script" path="res://game/ui/AimDot.cs" id="14_aimdot"]
+
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_body"]
 resource_local_to_scene = true
 radius = 0.3
@@ -21,7 +26,7 @@ albedo_color = Color(0.32, 0.5, 0.36, 1)
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
 material = SubResource("StandardMaterial3D_body")
-radius = 0.3
+radius = 0.2
 height = 1.8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_visor"]
@@ -29,7 +34,7 @@ albedo_color = Color(0.08, 0.08, 0.08, 1)
 
 [sub_resource type="BoxMesh" id="BoxMesh_visor"]
 material = SubResource("StandardMaterial3D_visor")
-size = Vector3(0.36, 0.12, 0.14)
+size = Vector3(0.26, 0.1, 0.1)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_arm"]
 radius = 0.15
@@ -49,7 +54,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 mesh = SubResource("CapsuleMesh_body")
 
 [node name="Visor" type="MeshInstance3D" parent="Body"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.62, -0.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.62, -0.16)
 layers = 2
 mesh = SubResource("BoxMesh_visor")
 
@@ -81,3 +86,21 @@ margin = 0.05
 current = true
 fov = 75.0
 near = 0.05
+
+[node name="WeaponHolder" type="Node3D" parent="."]
+top_level = true
+script = ExtResource("11_holder")
+Config = ExtResource("12_handling")
+StartingWeapon = ExtResource("13_rifle")
+
+[node name="Hud" type="CanvasLayer" parent="."]
+
+[node name="AimDot" type="Control" parent="Hud"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("14_aimdot")

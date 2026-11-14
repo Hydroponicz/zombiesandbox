@@ -1,6 +1,7 @@
 using Godot;
 using Godot.Collections;
 using ZombieSandbox.Character;
+using ZombieSandbox.Combat;
 using ZombieSandbox.Core;
 using ZombieSandbox.Core.Input;
 
@@ -31,12 +32,17 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     public CharacterStats Stats { get; private set; } = null!;
     public Stamina Stamina { get; private set; } = null!;
     public CameraRig CameraRig { get; private set; } = null!;
+    public WeaponHolder Weapons { get; private set; } = null!;
 
     /// <summary>The stance the body is in (or moving into).</summary>
     public Stance Stance { get; private set; } = Stance.Stand;
     /// <summary>The stance the player asked for. Can differ from Stance when something overhead blocks standing up.</summary>
     public Stance WantedStance { get; private set; } = Stance.Stand;
     public bool IsSprinting { get; private set; }
+    /// <summary>The player is asking to aim down sights (the weapon may still be coming up).</summary>
+    public bool WantsAim => _aimHeld || _aimToggled;
+    /// <summary>Crouched and risen up to aim over low cover.</summary>
+    public bool IsPeeking { get; private set; }
     /// <summary>-1 = full left, 0 = upright, 1 = full right. Smoothed and limited by nearby walls.</summary>
     public float Lean { get; private set; }
     public float HorizontalSpeed => new Vector2(Velocity.X, Velocity.Z).Length();
@@ -57,6 +63,11 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     // Input intent.
     private bool _sprintHeld;
     private bool _sprintToggled;
+    private bool _aimHeld;
+    private bool _aimToggled;
+    private bool _breathHeld;
+    private bool _breathToggled;
+    private int _autoLeanSide;
     private bool _leanLeftHeld;
     private bool _leanRightHeld;
     private int _leanToggled; // -1, 0, 1
@@ -72,6 +83,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     private SphereShape3D _leanHeadShape = null!;
     private PhysicsShapeQueryParameters3D _leanQuery = null!;
 
+    private readonly PhysicsRayQueryParameters3D _coverRay = new();
+
     private readonly PhysicsTestMotionParameters3D _stepParams = new();
     private readonly PhysicsTestMotionResult3D _stepResult = new();
 
@@ -86,9 +99,11 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         Skills = GetNode<CharacterSkills>("Skills");
         Stats = GetNode<CharacterStats>("Stats");
         Stamina = GetNode<Stamina>("Stamina");
+        Weapons = GetNode<WeaponHolder>("WeaponHolder");
 
         Stats.Initialize(Skills);
         Stamina.Initialize(Stats, Skills);
+        Weapons.Initialize(Stats, GetRid(), CollisionMask);
 
         _gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle() * Config.GravityMultiplier;
 
@@ -107,6 +122,9 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             CollisionMask = CollisionMask,
             Exclude = new Array<Rid> { GetRid() },
         };
+
+        _coverRay.CollisionMask = CollisionMask;
+        _coverRay.Exclude = new Array<Rid> { GetRid() };
 
         FloorSnapLength = Config.MaxStepHeight; // Stay on the ground walking down stairs.
 
@@ -131,9 +149,17 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             else
                 _jumpBufferLeft = Config.JumpBufferTime;
         }
+        else if (e.IsAction(InputActions.Aim))
+        {
+            HandleAimInput(e, settings.AimMode(device));
+        }
         else if (e.IsAction(InputActions.Sprint))
         {
-            HandleSprintInput(e, settings.SprintMode(device));
+            // While aiming, the sprint button holds your breath instead.
+            if (WantsAim && e.IsPressed())
+                HandleHoldBreathInput(device);
+            else
+                HandleSprintInput(e, settings.SprintMode(device));
         }
         else if (e.IsAction(InputActions.Crouch))
         {
@@ -162,6 +188,14 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugFitnessDown))
         {
             Skills.SetLevel(SkillId.Fitness, Skills.GetLevel(SkillId.Fitness) - 1);
+        }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugAimingUp))
+        {
+            Skills.SetLevel(SkillId.Aiming, Skills.GetLevel(SkillId.Aiming) + 1);
+        }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugAimingDown))
+        {
+            Skills.SetLevel(SkillId.Aiming, Skills.GetLevel(SkillId.Aiming) - 1);
         }
     }
 
@@ -241,6 +275,28 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         if (IsSprinting && IsOnFloor() && HorizontalSpeed > Config.WalkSpeed)
             Stamina.Drain(Stamina.Config.SprintDrainPerSecond * dt);
         Stamina.Tick(dt);
+
+        UpdateWeaponIntent();
+    }
+
+    private void UpdateWeaponIntent()
+    {
+        if (!WantsAim || Weapons.IsGasping)
+            _breathToggled = false;
+        if (!WantsAim)
+            _breathHeld = false;
+
+        Weapons.WantsAim = WantsAim;
+        Weapons.WantsHoldBreath = _breathHeld || _breathToggled;
+        Weapons.Lowered = IsSprinting;
+        Weapons.MoveFraction = Mathf.Clamp(HorizontalSpeed / Config.RunSpeed, 0f, 1f);
+        Weapons.Breathlessness = 1f - Stamina.Fraction;
+        Weapons.StanceSwayMultiplier = Stance switch
+        {
+            Stance.Crouch => Weapons.Config.CrouchSwayMultiplier,
+            Stance.Prone => Weapons.Config.ProneSwayMultiplier,
+            _ => 1f,
+        };
     }
 
     // ---------- Input intent ----------
@@ -256,10 +312,38 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             else
                 _sprintToggled = !_sprintToggled;
         }
+        else
+        {
+            // The button may have been pressed as sprint and released as hold-breath (or vice versa).
+            if (mode == PressMode.Hold)
+                _sprintHeld = false;
+            _breathHeld = false;
+        }
+    }
+
+    private void HandleAimInput(InputEvent e, PressMode mode)
+    {
+        if (e.IsPressed())
+        {
+            _sprintToggled = false; // Aiming stops a sprint.
+            if (mode == PressMode.Hold)
+                _aimHeld = true;
+            else
+                _aimToggled = !_aimToggled;
+        }
         else if (mode == PressMode.Hold)
         {
-            _sprintHeld = false;
+            _aimHeld = false;
         }
+    }
+
+    /// <summary>Keyboard: hold Shift while aiming. Gamepad: click L3 while aiming (click again to let go).</summary>
+    private void HandleHoldBreathInput(InputDevice device)
+    {
+        if (device == InputDevice.Gamepad)
+            _breathToggled = !_breathToggled;
+        else
+            _breathHeld = true;
     }
 
     private void HandleStanceInput(InputEvent e, Stance stance, PressMode mode)
@@ -320,7 +404,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         if (_sprintToggled && (forward < Config.SprintCancelForward || Stamina.IsExhausted))
             _sprintToggled = false;
 
-        bool wantsSprint = _sprintHeld || _sprintToggled;
+        bool wantsSprint = (_sprintHeld || _sprintToggled) && !WantsAim;
         IsSprinting = wantsSprint
             && Stance == Stance.Stand
             && !Stamina.IsExhausted
@@ -360,8 +444,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             speedFraction = Input.IsActionPressed(InputActions.Walk) ? walkFraction : 1f;
         }
 
-        // You can only walk while leaning.
-        if (Mathf.Abs(Lean) > 0.1f)
+        // You can only walk while leaning or aiming.
+        if (Mathf.Abs(Lean) > 0.1f || WantsAim)
             speedFraction = Mathf.Min(speedFraction, walkFraction);
 
         return stanceSpeed * speedFraction;
@@ -388,6 +472,12 @@ public partial class PlayerController : CharacterBody3D, IPersistent
 
     private int WantedLeanSide()
     {
+        int manual = ManualLeanSide();
+        return manual != 0 ? manual : _autoLeanSide;
+    }
+
+    private int ManualLeanSide()
+    {
         if (_leanToggled != 0)
             return _leanToggled;
         if (_leanLeftHeld && _leanRightHeld)
@@ -401,6 +491,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         if (!canLean)
             _leanToggled = 0;
 
+        _autoLeanSide = canLean ? AutoLeanSide() : 0;
         int side = canLean ? WantedLeanSide() : 0;
         float target = side == 0 ? 0f : side * LeanRoom(side);
         Lean = Mathf.MoveToward(Lean, target, Config.LeanSpeed * dt);
@@ -408,6 +499,49 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         // A wall may have moved closer (or we walked up to one): never stay leaned into it.
         if (side != 0 && Mathf.Abs(Lean) > Mathf.Abs(target))
             Lean = target;
+    }
+
+    /// <summary>
+    /// Gamepad auto-lean: while aiming with cover right in front of you, lean toward the side
+    /// that has a clear view past it (CoD-style corner peeking).
+    /// </summary>
+    private int AutoLeanSide()
+    {
+        InputSettings settings = GameInput.Instance.Settings;
+        if (!settings.GamepadAutoLean || GameInput.Instance.LastDevice != InputDevice.Gamepad || !WantsAim)
+            return 0;
+
+        Vector3 eye = GlobalPosition + Vector3.Up * EyeHeight;
+        Vector3 ahead = -GlobalBasis.Z * Config.CoverCheckDistance;
+        if (!RayHits(eye, eye + ahead))
+            return 0; // Nothing in front to lean around.
+
+        for (int side = 1; side >= -1; side -= 2)
+        {
+            Vector3 leaned = eye + GlobalBasis.X * (side * Config.LeanOffset);
+            if (!RayHits(eye, leaned) && !RayHits(leaned, leaned + ahead))
+                return side; // Right is checked first, so it wins when both sides are open.
+        }
+        return 0;
+    }
+
+    /// <summary>Crouched and aiming with low cover in front that you could see over if you rose up.</summary>
+    private bool WantsToPeekOverCover()
+    {
+        if (!GameInput.Instance.Settings.PeekOverCover || !WantsAim || WantedStance != Stance.Crouch)
+            return false;
+
+        Vector3 ahead = -GlobalBasis.Z * Config.CoverCheckDistance;
+        Vector3 crouchEye = GlobalPosition + Vector3.Up * (Config.CrouchHeight - Config.EyeOffsetFromTop);
+        Vector3 peekEye = GlobalPosition + Vector3.Up * (Config.PeekHeight - Config.EyeOffsetFromTop);
+        return RayHits(crouchEye, crouchEye + ahead) && !RayHits(peekEye, peekEye + ahead);
+    }
+
+    private bool RayHits(Vector3 from, Vector3 to)
+    {
+        _coverRay.From = from;
+        _coverRay.To = to;
+        return GetWorld3D().DirectSpaceState.IntersectRay(_coverRay).Count > 0;
     }
 
     /// <summary>Fraction (0..1) of a full lean that fits before the head would hit something.</summary>
@@ -500,6 +634,10 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         Stance = next;
 
         float target = HeightFor(Stance);
+        IsPeeking = Stance == Stance.Crouch && WantsToPeekOverCover()
+            && (CurrentHeight >= Config.PeekHeight - 0.01f || HasClearance(Config.PeekHeight));
+        if (IsPeeking)
+            target = Config.PeekHeight;
         bool involvesProne = Stance == Stance.Prone || CurrentHeight < Config.CrouchHeight - 0.01f;
         float speed = involvesProne ? Config.ProneTransitionSpeed : Config.CrouchTransitionSpeed;
         CurrentHeight = Mathf.MoveToward(CurrentHeight, target, speed * dt);

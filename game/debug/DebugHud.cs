@@ -32,7 +32,7 @@ public partial class DebugHud : CanvasLayer
         Stamina stamina = _player.Stamina;
         CameraRig rig = _player.CameraRig;
 
-        string view = rig.IsFirstPerson ? "First person" : (rig.IsRightShoulder ? "Third person (right)" : "Third person (left)");
+        string view = rig.IsViewFirstPerson ? "First person" : (rig.IsRightShoulder ? "Third person (right)" : "Third person (left)");
         string stance = _player.Stance == _player.WantedStance
             ? _player.Stance.ToString()
             : $"{_player.Stance} (wants {_player.WantedStance}, blocked)";
@@ -44,8 +44,12 @@ public partial class DebugHud : CanvasLayer
         _text.AppendLine(skills.IsMaxLevel(SkillId.Fitness)
             ? $"Fitness: Lv {skills.GetLevel(SkillId.Fitness)} (max)"
             : $"Fitness: Lv {skills.GetLevel(SkillId.Fitness)}   XP {skills.GetXp(SkillId.Fitness):0.0} / {skills.XpForNextLevel(SkillId.Fitness):0}");
+        _text.AppendLine($"Aiming: Lv {skills.GetLevel(SkillId.Aiming)}");
+        Combat.WeaponHolder w = _player.Weapons;
+        string breath = w.IsGasping ? "GASPING" : (w.IsHoldingBreath ? "HOLDING" : "normal");
+        _text.AppendLine($"Weapon: ADS {w.AdsBlend:0.00}{(w.IsAiming ? " (aiming)" : "")}    Can fire: {(w.CanFire ? "yes" : "NO")}    Sway: {w.SwayDegrees:0.00}°    Breath: {breath} {w.BreathFraction:P0}    Wall: {w.WallPullBack:0.00} m{(_player.IsPeeking ? "    PEEKING" : "")}");
         _text.AppendLine();
-        _text.AppendLine("[DEV] F3/F4 = Fitness +/-    Esc = release mouse, click = recapture");
+        _text.AppendLine("[DEV] F3/F4 = Fitness +/-   F5/F6 = Aiming +/-    Esc = release mouse, click = recapture");
         _info.Text = _text.ToString();
     }
 }

@@ -12,6 +12,12 @@ public partial class StatsConfig : Resource
     [Export] public float StaminaRegenAtLevel0 { get; set; } = 8f;
     [Export] public float StaminaRegenAtLevel10 { get; set; } = 14f;
 
+    [ExportGroup("Aiming → weapon handling")]
+    [Export] public float HoldBreathSecondsAtLevel0 { get; set; } = 4f;
+    [Export] public float HoldBreathSecondsAtLevel10 { get; set; } = 10f;
+    /// <summary>Sway multiplier at Aiming 10 (level 0 = 1.0).</summary>
+    [Export] public float AimSwayMultiplierAtLevel10 { get; set; } = 0.6f;
+
     [ExportGroup("Fitness → movement (level 0 = 1.0)")]
     [Export] public float SprintSpeedMultiplierAtLevel10 { get; set; } = 1.08f;
     [Export] public float AccelerationMultiplierAtLevel10 { get; set; } = 1.10f;

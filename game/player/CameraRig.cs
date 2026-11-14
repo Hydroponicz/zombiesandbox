@@ -1,5 +1,6 @@
 using Godot;
 using Godot.Collections;
+using ZombieSandbox.Combat;
 using ZombieSandbox.Core.Input;
 
 namespace ZombieSandbox.Player;
@@ -22,6 +23,11 @@ public partial class CameraRig : Node3D
     public float Pitch { get; private set; }
     public bool IsFirstPerson { get; private set; }
     public bool IsRightShoulder => _shoulderSide > 0f;
+    /// <summary>The camera is actually rendering first person right now (chosen view, or aiming in "switch to first person" mode).</summary>
+    public bool IsViewFirstPerson { get; private set; }
+    /// <summary>Third-person over-the-shoulder aiming is (nearly) fully engaged; the HUD shows the aim dot.</summary>
+    public bool ShowAimDot { get; private set; }
+    public Camera3D Camera => _camera;
 
     private PlayerController _player = null!;
     private Node3D _pitchPivot = null!;
@@ -30,6 +36,7 @@ public partial class CameraRig : Node3D
     private float _shoulderSide = 1f;
     private float _shoulderBlend = 1f;
     private PhysicsShapeQueryParameters3D _fpCollisionQuery = null!;
+    private readonly PhysicsRayQueryParameters3D _convergenceRay = new();
 
     public override void _Ready()
     {
@@ -47,10 +54,10 @@ public partial class CameraRig : Node3D
             Shape = new SphereShape3D { Radius = Config.FirstPersonCollisionRadius },
             Exclude = new Array<Rid> { _player.GetRid() },
         };
+        _convergenceRay.Exclude = new Array<Rid> { _player.GetRid() };
         Yaw = _player.GlobalRotation.Y;
 
         Input.MouseMode = Input.MouseModeEnum.Captured;
-        ApplyView();
     }
 
     public override void _UnhandledInput(InputEvent e)
@@ -60,7 +67,7 @@ public partial class CameraRig : Node3D
             if (Input.MouseMode == Input.MouseModeEnum.Captured)
             {
                 InputSettings s = GameInput.Instance.Settings;
-                float radiansPerPixel = Mathf.DegToRad(s.MouseSensitivity);
+                float radiansPerPixel = Mathf.DegToRad(s.MouseSensitivity) * Mathf.Lerp(1f, s.MouseAimSensitivity, _player.Weapons.AdsBlend);
                 AddLook(-motion.Relative.X * radiansPerPixel, -motion.Relative.Y * radiansPerPixel * (s.InvertY ? -1f : 1f));
             }
             return;
@@ -80,7 +87,6 @@ public partial class CameraRig : Node3D
         else if (e.IsActionPressed(InputActions.ToggleView))
         {
             IsFirstPerson = !IsFirstPerson;
-            ApplyView();
         }
         else if (e.IsActionPressed(InputActions.SwapShoulder) && !IsFirstPerson)
         {
@@ -107,17 +113,61 @@ public partial class CameraRig : Node3D
         if (!IsFirstPerson && Mathf.Abs(lean) > 0.1f)
             _shoulderSide = Mathf.Sign(lean);
 
-        if (IsFirstPerson)
+        WeaponHolder weapons = _player.Weapons;
+        InputSettings settings = GameInput.Instance.Settings;
+        float ads = weapons.AdsBlend;
+
+        IsViewFirstPerson = IsFirstPerson
+            || (weapons.IsAiming && settings.ThirdPersonAim == ThirdPersonAimMode.SwitchToFirstPerson);
+        _camera.SetCullMaskValue(FirstPersonHiddenLayer, !IsViewFirstPerson);
+
+        if (IsViewFirstPerson)
         {
             _pitchPivot.Position = KeepFirstPersonCameraOutOfWalls(new Vector3(leanOffset, eye, -Config.FirstPersonForwardOffset), eye);
             _pitchPivot.Rotation = new Vector3(Pitch, 0f, -lean * Mathf.DegToRad(Config.FirstPersonLeanRoll));
             _arm.Position = Vector3.Zero;
+            _arm.SpringLength = 0f;
+            float adsFov = weapons.Weapon?.Data.AdsFieldOfView ?? Config.FieldOfView;
+            _camera.Fov = Mathf.Lerp(Config.FieldOfView, adsFov, ads);
+            ShowAimDot = false;
+
+            // First person: the weapon is aimed exactly where the camera looks.
+            weapons.AimPivot = _camera.GlobalTransform;
         }
         else
         {
+            float shoulderAim = settings.ThirdPersonAim == ThirdPersonAimMode.OverTheShoulder ? Mathf.SmoothStep(0f, 1f, ads) : 0f;
             _pitchPivot.Position = new Vector3(leanOffset, eye + Config.ThirdPersonHeightOffset, 0f);
-            _arm.Position = new Vector3(Config.ShoulderOffset * _shoulderBlend, 0f, 0f);
+            float shoulder = Mathf.Lerp(Config.ShoulderOffset, Config.ShoulderAimOffset, shoulderAim);
+            _arm.Position = new Vector3(shoulder * _shoulderBlend, 0f, 0f);
+            _arm.SpringLength = Mathf.Lerp(Config.ThirdPersonDistance, Config.ShoulderAimDistance, shoulderAim);
+            _camera.Fov = Mathf.Lerp(Config.FieldOfView, Config.ShoulderAimFieldOfView, shoulderAim);
+            ShowAimDot = shoulderAim > 0.8f;
+
+            // Third person: the weapon is held at the character's eye and aimed at whatever the
+            // camera's center is looking at, so the shot lands where the player is looking.
+            Vector3 eyeWorld = GlobalTransform * new Vector3(leanOffset, eye, -Config.FirstPersonForwardOffset);
+            weapons.AimPivot = new Transform3D(Basis.Identity, eyeWorld).LookingAt(ConvergencePoint(eyeWorld), Vector3.Up);
         }
+    }
+
+    /// <summary>The point the third-person camera's center is looking at (or a far point along its view).</summary>
+    private Vector3 ConvergencePoint(Vector3 eyeWorld)
+    {
+        Transform3D cam = _camera.GlobalTransform;
+        Vector3 forward = -cam.Basis.Z;
+        // Start the ray level with the character so we never "aim" at things between the camera and the player.
+        float startAlong = Mathf.Max((eyeWorld - cam.Origin).Dot(forward), 0f);
+        _convergenceRay.From = cam.Origin + forward * startAlong;
+        _convergenceRay.To = cam.Origin + forward * 1000f;
+        _convergenceRay.CollisionMask = _player.CollisionMask;
+        Dictionary hit = GetWorld3D().DirectSpaceState.IntersectRay(_convergenceRay);
+        Vector3 point = hit.Count > 0 ? hit["position"].AsVector3() : _convergenceRay.To;
+
+        // Too close to aim at sensibly (e.g. a wall right next to you): fall back to a point straight ahead.
+        if ((point - eyeWorld).Dot(forward) < 1f)
+            point = eyeWorld + forward * 10f;
+        return point;
     }
 
     /// <summary>
@@ -146,9 +196,10 @@ public partial class CameraRig : Node3D
 
         InputSettings s = GameInput.Instance.Settings;
         Vector2 curved = stick / magnitude * Mathf.Pow(Mathf.Min(magnitude, 1f), s.LookResponseCurve);
+        float aimScale = Mathf.Lerp(1f, s.GamepadAimSensitivity, _player.Weapons.AdsBlend);
         AddLook(
-            -curved.X * Mathf.DegToRad(s.GamepadYawSpeed) * dt,
-            -curved.Y * Mathf.DegToRad(s.GamepadPitchSpeed) * dt * (s.InvertY ? -1f : 1f));
+            -curved.X * Mathf.DegToRad(s.GamepadYawSpeed) * aimScale * dt,
+            -curved.Y * Mathf.DegToRad(s.GamepadPitchSpeed) * aimScale * dt * (s.InvertY ? -1f : 1f));
     }
 
     private void AddLook(float yawDelta, float pitchDelta)
@@ -157,9 +208,4 @@ public partial class CameraRig : Node3D
         Pitch = Mathf.Clamp(Pitch + pitchDelta, Mathf.DegToRad(Config.PitchMin), Mathf.DegToRad(Config.PitchMax));
     }
 
-    private void ApplyView()
-    {
-        _arm.SpringLength = IsFirstPerson ? 0f : Config.ThirdPersonDistance;
-        _camera.SetCullMaskValue(FirstPersonHiddenLayer, !IsFirstPerson);
-    }
 }
