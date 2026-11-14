@@ -124,7 +124,7 @@ prone moves to D-pad down.
 5. **Malfunctions.**
 6. **Attachments** (probably after inventory exists).
 
-#### Piece 1: holding & aiming (implemented on `preview` — in testing)
+#### Piece 1: holding & aiming (done)
 - Rifle is always held ready; it lowers while sprinting and comes back up ≈0.25 s after sprint ends
   before it can fire.
 - **ADS:** right mouse / left trigger. Hold/Toggle setting per device (defaults: keyboard Toggle, gamepad Hold).
