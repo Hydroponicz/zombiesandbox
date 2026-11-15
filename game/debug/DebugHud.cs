@@ -38,7 +38,7 @@ public partial class DebugHud : CanvasLayer
             : $"{_player.Stance} (wants {_player.WantedStance}, blocked)";
 
         _text.Clear();
-        _text.AppendLine($"Device: {GameInput.Instance.LastDevice}    View: {view}");
+        _text.AppendLine($"Device: {GameInput.Instance.LastDevice}    View: {view}    {ZombieSandbox.World.WorldClock.Instance.TimeText} (x{ZombieSandbox.World.WorldClock.Instance.TimeScale:0}, daylight {ZombieSandbox.World.WorldClock.Instance.Daylight:0.00})    Zombies: {GetTree().GetNodeCountInGroup(ZombieSandbox.AI.Zombie.Group)}");
         _text.AppendLine($"Stance: {stance}    Speed: {_player.HorizontalSpeed:0.00} m/s    Sprinting: {(_player.IsSprinting ? "YES" : "no")}    Lean: {_player.Lean:+0.00;-0.00;0}");
         _text.AppendLine($"Stamina: {stamina.Current:0}/{stamina.Max:0}{(stamina.IsExhausted ? "   EXHAUSTED" : "")}    Jump fatigue: {_player.JumpFatigue:0.00}");
         _text.AppendLine(skills.IsMaxLevel(SkillId.Fitness)
@@ -81,7 +81,7 @@ public partial class DebugHud : CanvasLayer
         if (ballistics.LastImpact is { } hit)
             _text.AppendLine($"Last hit: {hit.Distance:0.0} m   {hit.Speed:0} m/s   {hit.FlightTime * 1000f:0} ms   {Mathf.Round(hit.DropFromSightLine * 1000f) / 10f:+0.0;-0.0;0.0} cm vs sight line{(hit.HitTarget ? "   TARGET" : "")}");
         _text.AppendLine();
-        _text.AppendLine("[DEV] Ctrl+1/2 = Fitness -/+   Ctrl+3/4 = Aiming -/+   Ctrl+5/6 = Strength -/+   Ctrl+7/8 = Reloading -/+   Ctrl+9/0 = Maintenance -/+   Ctrl+K = condition   Ctrl+J = jam next shot   Ctrl+R = refill ammo   Ctrl+H = hurt self   Ctrl+N = break leg   Ctrl+G = heal   Ctrl+-/= = Medical -/+   H = health screen   Ctrl+T = bullet trails    Esc = release mouse, click = recapture");
+        _text.AppendLine("[DEV] Ctrl+1/2 = Fitness -/+   Ctrl+3/4 = Aiming -/+   Ctrl+5/6 = Strength -/+   Ctrl+7/8 = Reloading -/+   Ctrl+9/0 = Maintenance -/+   Ctrl+K = condition   Ctrl+J = jam next shot   Ctrl+R = refill ammo   Ctrl+H = hurt self   Ctrl+N = break leg   Ctrl+G = heal   Ctrl+-/= = Medical -/+   Ctrl+Z = spawn zombie   Ctrl+P = time speed   Ctrl+O = +3 h   H = health screen   Ctrl+T = bullet trails    Esc = release mouse, click = recapture");
         _info.Text = _text.ToString();
     }
 }

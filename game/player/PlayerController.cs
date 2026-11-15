@@ -1,5 +1,6 @@
 using Godot;
 using Godot.Collections;
+using ZombieSandbox.AI;
 using ZombieSandbox.Character;
 using ZombieSandbox.Combat;
 using ZombieSandbox.Core;
@@ -23,7 +24,7 @@ public enum Stance
 /// Input is turned into intent (wanted stance, sprint request, jump request) in _UnhandledInput,
 /// and intent is applied in _PhysicsProcess.
 /// </summary>
-public partial class PlayerController : CharacterBody3D, IPersistent
+public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarget
 {
     public const string Group = "player";
 
@@ -70,6 +71,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     private bool _wasOnFloor = true;
     private bool _inJump;
     private float _airPeakY;
+    private float _strideDistance;
     private float _jumpBufferLeft;
     private float _landingRecoveryLeft;
 
@@ -174,6 +176,49 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         _bodyShape.Radius = Config.Radius;
         CurrentHeight = Config.StandHeight;
         ApplyHeight();
+    }
+
+    // ---------- What AI can see and hear ----------
+
+    public Vector3 SightPoint => GlobalPosition + Vector3.Up * Mathf.Max(EyeHeight - 0.2f, 0.25f);
+    public Vector3 GroundPosition => GlobalPosition;
+    public Array<Rid> SightExclude => SelfExclude;
+    public bool IsAlive => !IsDead;
+
+    /// <summary>How easy the player is to spot: stance and movement.</summary>
+    public float Visibility
+    {
+        get
+        {
+            float stance = Stance switch { Stance.Crouch => 0.6f, Stance.Prone => 0.35f, _ => 1f };
+            float movement = IsSprinting ? 1.15f : HorizontalSpeed > Config.WalkSpeed * 1.1f ? 1f : HorizontalSpeed > 0.3f ? 0.9f : 0.75f;
+            return stance * movement;
+        }
+    }
+
+    public override void _EnterTree() => SenseTargets.All.Add(this);
+
+    public override void _ExitTree() => SenseTargets.All.Remove(this);
+
+    /// <summary>Footsteps make noise each stride; louder the faster you move, quieter crouched/prone.</summary>
+    private void EmitFootsteps(float dt)
+    {
+        if (!IsOnFloor() || HorizontalSpeed < 0.3f)
+            return;
+        _strideDistance += HorizontalSpeed * dt;
+        float stride = IsSprinting ? 1.0f : 0.75f;
+        if (_strideDistance < stride)
+            return;
+        _strideDistance = 0f;
+        float loudness = Stance switch
+        {
+            Stance.Prone => GameNoise.Prone,
+            Stance.Crouch => GameNoise.CrouchWalking,
+            _ when IsSprinting => GameNoise.Sprinting,
+            _ when HorizontalSpeed > Config.WalkSpeed * 1.1f => GameNoise.Running,
+            _ => GameNoise.Walking,
+        };
+        GameNoise.Emit(GlobalPosition, loudness, NoiseKind.Footstep, this);
     }
 
     public override void _UnhandledInput(InputEvent e)
@@ -382,7 +427,12 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         else
         {
             if (!_wasOnFloor)
-                Health.ApplyFall(_airPeakY - GlobalPosition.Y);
+            {
+                float drop = _airPeakY - GlobalPosition.Y;
+                Health.ApplyFall(drop);
+                if (drop > 0.4f)
+                    GameNoise.Emit(GlobalPosition, GameNoise.JumpLanding, NoiseKind.Landing, this);
+            }
             _airPeakY = GlobalPosition.Y;
         }
         _wasOnFloor = onFloor;
@@ -432,6 +482,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         if (IsSprinting && IsOnFloor() && HorizontalSpeed > Config.WalkSpeed)
             Stamina.Drain(Stamina.Config.SprintDrainPerSecond * dt);
         Stamina.Tick(dt);
+        EmitFootsteps(dt);
 
         UpdateWeaponIntent();
     }

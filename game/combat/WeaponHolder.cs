@@ -1,5 +1,6 @@
 using Godot;
 using Godot.Collections;
+using ZombieSandbox.AI;
 using ZombieSandbox.Character;
 using ZombieSandbox.Core.Audio;
 
@@ -291,6 +292,7 @@ public partial class WeaponHolder : Node3D
             CollisionMask: _bulletMask));
 
         ShotsFired++;
+        GameNoise.Emit(muzzle.Origin, GameNoise.RifleShot, NoiseKind.Gunshot, GetParent());
         ApplyWear(data);
         if (malfunction == Malfunction.None)
         {

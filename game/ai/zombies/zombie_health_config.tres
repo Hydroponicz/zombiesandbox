@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="HealthConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/health/HealthConfig.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+HeadMax = 25.0
+ChestMax = 160.0
+StomachMax = 120.0
+ArmMax = 70.0
+LegMax = 70.0
+ChestDeathDelay = 1.2
+BulletLightBleedChance = 0.2
+BulletHeavyBleedChance = 0.05
+BulletLimbFractureChance = 0.0
+LightBleedRate = 0.3
+HeavyBleedRate = 0.8
+PainPerDamage = 0.0
+FracturePain = 0.0
+DestroyedPartPain = 0.0
+MedicalXpPerDamage = 0.0

@@ -19,6 +19,7 @@ public static class PlaceholderSounds
     private static AudioStreamWav? _heartbeat;
     private static AudioStreamWav? _hurt;
     private static AudioStreamWav? _boneCrack;
+    private static AudioStreamWav? _zombieGroan;
 
     /// <summary>Sharp crack plus a low thump with a short noisy tail.</summary>
     public static AudioStreamWav Gunshot => _gunshot ??= Generate(0.35f, seed: 1, (t, noise) =>
@@ -67,6 +68,16 @@ public static class PlaceholderSounds
     /// <summary>Sharp crack for a broken bone.</summary>
     public static AudioStreamWav BoneCrack => _boneCrack ??= Generate(0.15f, seed: 9, (t, noise) =>
         noise * MathF.Exp(-t * 90f) * 0.9f + MathF.Sin(2f * MathF.PI * 1300f * t) * MathF.Exp(-t * 70f) * 0.3f);
+
+    /// <summary>Low, wavering groan with a breathy rasp.</summary>
+    public static AudioStreamWav ZombieGroan => _zombieGroan ??= Generate(1.4f, seed: 10, (t, noise) =>
+    {
+        float envelope = MathF.Sin(MathF.PI * MathF.Min(t / 1.4f, 1f)) * MathF.Exp(-t * 0.6f);
+        float pitch = 82f + 10f * MathF.Sin(2f * MathF.PI * 3.3f * t) - 14f * t;
+        float phase = 2f * MathF.PI * pitch * t;
+        float voice = MathF.Sin(phase) * 0.6f + MathF.Sin(phase * 2f) * 0.3f + MathF.Sin(phase * 3.1f) * 0.15f;
+        return (voice + noise * 0.25f) * envelope * 0.9f;
+    });
 
     private static AudioStreamWav Generate(float seconds, int seed, Func<float, float, float> sample)
     {

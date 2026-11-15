@@ -14,6 +14,14 @@ public partial class HealthConfig : Resource
     /// <summary>Damage to a destroyed part spreads to the rest of the body, multiplied by this.</summary>
     [Export] public float DestroyedPartSpreadMultiplier { get; set; } = 0.7f;
 
+    [ExportGroup("Death")]
+    /// <summary>Destroying the head kills.</summary>
+    [Export] public bool HeadIsVital { get; set; } = true;
+    /// <summary>Destroying the chest kills (for zombies: through blood loss, after a delay).</summary>
+    [Export] public bool ChestIsVital { get; set; } = true;
+    /// <summary>Seconds between the chest being destroyed and death (0 = instant). Zombies stagger, then collapse.</summary>
+    [Export] public float ChestDeathDelay { get; set; } = 0f;
+
     [ExportGroup("Bullets")]
     [Export(PropertyHint.Range, "0,1,0.05")] public float BulletLightBleedChance { get; set; } = 0.35f;
     [Export(PropertyHint.Range, "0,1,0.05")] public float BulletHeavyBleedChance { get; set; } = 0.15f;

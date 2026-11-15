@@ -273,6 +273,45 @@ Shared by player, zombies and NPCs (one Health component).
 
 #### Piece 2: healing & medical items (with inventory, step 6)
 
+### 4. Zombies & AI foundation (in progress)
+
+#### Vision for 1.0
+- Zombies start as **shamblers**. Over the first few in-game months the virus **mutates**, producing
+  tougher, faster **runners**. At 1.0 this is a sandbox setting players can turn off or customize.
+- **Infection is punishing and scary:** any wound from the infected (scratch, laceration, bite) or blood
+  transfer has an **85–95%** infection chance. Infection is hidden at first, then symptoms, then death
+  over roughly 2–3 game days.
+- **Game clock:** 1 game day = 3 real hours (2 h daylight, 1 h night). Seasons with varying daylight and
+  weather come later.
+
+#### Piece A: clock, senses, navigation, zombie (implemented on `preview` — in testing)
+- **World clock** (autoload): game time flows at 1 game day / 3 real hours; daylight 06:00–22:00
+  (2 real hours), night 22:00–06:00 (1 real hour). Sun moves; nights are dark. Debug: speed up time.
+- **Noise system** (shared): every sound is an event with a loudness radius. Rifle shot ≈250 m,
+  sprinting ≈12 m, walking ≈5 m, crouch-walking ≈2 m, jumping/landing, reloading and dropped mags
+  in between. Anything in range hears it (closer = more certain of where).
+- **Sight** (shared): ≈25 m in daylight (much less at night), within a field of view, needs line of
+  sight. Crouching, prone and standing still make you harder to spot; spotting takes a moment unless
+  you're close.
+- **Navigation:** zombies path around obstacles (Godot navigation; per-chunk nav data later).
+- **Zombie behavior:** wander → investigate sounds → chase what they see → lose you → search the last
+  known position → wander. Shamblers ≈1.0–1.6 m/s with variety (stats from a zombie type resource,
+  so runners can be added later). Graybox body, Meshy model later.
+- **Killing zombies:** destroying the **head** (brain) kills instantly. Zombie chest/stomach have lots
+  of HP; a destroyed chest means it staggers and collapses from **blood loss** (≈3 rifle hits).
+  Destroyed legs make it a **crawler**. Arms damage does little.
+- Test range: 3 zombies wandering behind the spawn; navigation baked from level geometry on load.
+- Developer keys: Ctrl+Z spawn a zombie 20 m ahead, Ctrl+P cycle time speed (×1/×60/×600),
+  Ctrl+O skip 3 game hours. Zombies show their state/awareness above their heads (dev builds).
+
+#### Piece B: attacks, wounds, infection, shove
+- Zombies grab and attack: scratches, lacerations, bites to a body part (bites mostly when grabbed).
+  Being grabbed slows you hard.
+- Wounds bleed and carry the 85–95% infection chance. Infection: hidden → symptoms (shown on the health
+  screen, screen effects) → health drains → death.
+- **Shove / rifle-butt strike** (G / gamepad RB): short-range push that staggers, sometimes knocks
+  down, breaks a grab. Costs stamina, short cooldown, small damage.
+
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level
   needs more XP than the last. Exact curves live in a tunable resource.
@@ -313,7 +352,7 @@ Each step is refined until solid before moving on. All work happens in graybox t
    - **Gamepad auto-lean:** aiming down sights beside a corner/cover edge leans around it (CoD-style).
    - **Peek over cover:** aiming while crouched behind waist-high cover raises you to aim over it (gamepad and keyboard).
 3. 🧪 Health & damage — body parts, bleeding, fractures (shared by everyone)
-4. AI foundation — perception (sight/hearing) + navigation, zombie as first user
+4. 🧪 AI foundation — perception (sight/hearing) + navigation, zombie as first user
 5. Human NPCs — factions, disposition (hostile/neutral/friendly), combat with the same guns
 6. Inventory & loot
 7. Survival stats (hunger, thirst, fatigue)
@@ -349,3 +388,5 @@ Each step is refined until solid before moving on. All work happens in graybox t
 - Aim assist for gamepad (decide during gunplay step)
 - AI chat-model NPCs (dropped)
 - Multiplayer / co-op
+- Virus mutation / runners (planned for 1.0, see step 4)
+- Seasons and weather

@@ -19,6 +19,7 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 GameInput="*res://game/core/input/GameInput.cs"
 Ballistics="*res://game/combat/ballistics/Ballistics.cs"
+WorldClock="*res://game/world/WorldClock.cs"
 
 [dotnet]
 
@@ -32,6 +33,11 @@ project/assembly_name="Zombie Sandbox"
 3d_physics/layer_4="hitboxes"
 3d_render/layer_1="world"
 3d_render/layer_2="first_person_hidden"
+
+[navigation]
+
+3d/default_cell_height=0.1
+world/region_use_async_iterations=false
 
 [physics]
 

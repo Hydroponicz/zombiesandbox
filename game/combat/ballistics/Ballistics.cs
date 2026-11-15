@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 using Godot.Collections;
+using ZombieSandbox.AI;
 using ZombieSandbox.Core.Audio;
 using ZombieSandbox.Core.Input;
 
@@ -234,6 +235,7 @@ public partial class Ballistics : Node3D
         _nextImpactAudio = (_nextImpactAudio + 1) % _impactAudio.Count;
         audio.GlobalPosition = position;
         audio.Play();
+        GameNoise.Emit(position, GameNoise.BulletImpact, NoiseKind.Impact, null);
     }
 
     private static float DropFromSightLine(in Shot shot, Vector3 point)

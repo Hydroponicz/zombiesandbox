@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using ZombieSandbox.AI;
 using ZombieSandbox.Character;
 using ZombieSandbox.Core.Audio;
 
@@ -62,6 +63,8 @@ public partial class WeaponHolder
         _handlingAudio.GlobalPosition = Weapon.GlobalPosition;
         _handlingAudio.Stream = sound;
         _handlingAudio.Play();
+        float loudness = sound == PlaceholderSounds.DryClick ? GameNoise.DryFire : GameNoise.Reload;
+        GameNoise.Emit(Weapon.GlobalPosition, loudness, NoiseKind.Handling, GetParent());
     }
 
     /// <summary>Fresh weapon: a full magazine inserted and a round chambered from it.</summary>
@@ -251,6 +254,7 @@ public partial class WeaponHolder
         Transform3D from = Weapon.MagazineVisual?.GlobalTransform ?? Weapon.GlobalTransform;
         dropped.GlobalTransform = from;
         dropped.LinearVelocity = -from.Basis.Y.Normalized() * 1.2f + new Vector3(0f, -0.5f, 0f);
+        GameNoise.Emit(from.Origin, GameNoise.MagazineDrop, NoiseKind.Handling, GetParent());
         dropped.AngularVelocity = new Vector3(_rng.RandfRange(-4f, 4f), _rng.RandfRange(-4f, 4f), _rng.RandfRange(-4f, 4f));
     }
 

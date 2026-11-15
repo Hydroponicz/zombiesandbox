@@ -54,6 +54,7 @@ shader = ExtResource("22_effects_shader")
 
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 2
+collision_mask = 3
 script = ExtResource("1_player")
 Config = ExtResource("2_move")
 

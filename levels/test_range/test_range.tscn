@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Shader" path="res://assets/materials/dev/dev_grid.gdshader" id="1_grid"]
 [ext_resource type="PackedScene" path="res://game/player/player.tscn" id="2_player"]
@@ -7,6 +7,18 @@
 [ext_resource type="PackedScene" path="res://game/combat/targets/shooting_target.tscn" id="4_target"]
 
 [ext_resource type="PackedScene" path="res://game/combat/targets/training_dummy.tscn" id="5_dummy"]
+
+[ext_resource type="Script" path="res://game/world/RuntimeNavigationBaker.cs" id="6_navbake"]
+[ext_resource type="Script" path="res://game/world/DayNightCycle.cs" id="7_daynight"]
+[ext_resource type="PackedScene" path="res://game/ai/zombies/zombie.tscn" id="8_zombie"]
+[ext_resource type="Script" path="res://game/debug/DebugZombieSpawner.cs" id="10_spawner"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_main"]
+cell_height = 0.1
+agent_height = 1.8
+agent_radius = 0.5
+agent_max_climb = 0.3
+agent_max_slope = 45.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
 shader = ExtResource("1_grid")
@@ -31,204 +43,208 @@ environment = SubResource("Environment_main")
 transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.75, -0.43301, 0, 10, 0)
 shadow_enabled = true
 
-[node name="Geometry" type="Node3D" parent="."]
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_main")
+script = ExtResource("6_navbake")
 
-[node name="Ground" type="CSGBox3D" parent="Geometry"]
+[node name="Geometry" type="Node3D" parent="NavigationRegion3D"]
+
+[node name="Ground" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 use_collision = true
 size = Vector3(100, 1, 100)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="Crate_1m" type="CSGBox3D" parent="Geometry"]
+[node name="Crate_1m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.5, -4)
 use_collision = true
 size = Vector3(1, 1, 1)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="Wall_2m" type="CSGBox3D" parent="Geometry"]
+[node name="Wall_2m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1, -6)
 use_collision = true
 size = Vector3(4, 2, 0.3)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="LowCover_1_15m" type="CSGBox3D" parent="Geometry"]
+[node name="LowCover_1_15m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.575, -10)
 use_collision = true
 size = Vector3(3, 1.15, 0.5)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="JumpBox_0_5m" type="CSGBox3D" parent="Geometry"]
+[node name="JumpBox_0_5m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.25, -2)
 use_collision = true
 size = Vector3(1.5, 0.5, 1.5)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="Ramp_20deg" type="CSGBox3D" parent="Geometry"]
+[node name="Ramp_20deg" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 0.939693, -0.34202, 0, 0.34202, 0.939693, 12, 1.3, -4)
 use_collision = true
 size = Vector3(3, 0.2, 8)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="CrouchTunnel_WallL" type="CSGBox3D" parent="Geometry"]
+[node name="CrouchTunnel_WallL" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0.7, -6)
 use_collision = true
 size = Vector3(0.3, 1.4, 6)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="CrouchTunnel_WallR" type="CSGBox3D" parent="Geometry"]
+[node name="CrouchTunnel_WallR" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0.7, -6)
 use_collision = true
 size = Vector3(0.3, 1.4, 6)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="CrouchTunnel_Roof" type="CSGBox3D" parent="Geometry"]
+[node name="CrouchTunnel_Roof" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 1.55, -6)
 use_collision = true
 size = Vector3(2.3, 0.3, 6)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="CrawlTunnel_WallL" type="CSGBox3D" parent="Geometry"]
+[node name="CrawlTunnel_WallL" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.4, -6)
 use_collision = true
 size = Vector3(0.3, 0.8, 6)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="CrawlTunnel_WallR" type="CSGBox3D" parent="Geometry"]
+[node name="CrawlTunnel_WallR" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.4, -6)
 use_collision = true
 size = Vector3(0.3, 0.8, 6)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="CrawlTunnel_Roof" type="CSGBox3D" parent="Geometry"]
+[node name="CrawlTunnel_Roof" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0.95, -6)
 use_collision = true
 size = Vector3(2.3, 0.3, 6)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="LaneMarker_0m" type="CSGBox3D" parent="Geometry"]
+[node name="LaneMarker_0m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.05, 0)
 use_collision = true
 size = Vector3(2, 0.1, 0.2)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="LaneMarker_10m" type="CSGBox3D" parent="Geometry"]
+[node name="LaneMarker_10m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.05, -10)
 use_collision = true
 size = Vector3(2, 0.1, 0.2)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="LaneMarker_20m" type="CSGBox3D" parent="Geometry"]
+[node name="LaneMarker_20m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.05, -20)
 use_collision = true
 size = Vector3(2, 0.1, 0.2)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="LaneMarker_30m" type="CSGBox3D" parent="Geometry"]
+[node name="LaneMarker_30m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.05, -30)
 use_collision = true
 size = Vector3(2, 0.1, 0.2)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="LaneMarker_40m" type="CSGBox3D" parent="Geometry"]
+[node name="LaneMarker_40m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.05, -40)
 use_collision = true
 size = Vector3(2, 0.1, 0.2)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="Curb_0_15m" type="CSGBox3D" parent="Geometry"]
+[node name="Curb_0_15m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0.075, 12)
 use_collision = true
 size = Vector3(6, 0.15, 3)
 material = SubResource("ShaderMaterial_grid")
-[node name="Stair_1" type="CSGBox3D" parent="Geometry"]
+[node name="Stair_1" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.090, 13.850)
 use_collision = true
 size = Vector3(2, 0.18, 0.3)
 material = SubResource("ShaderMaterial_grid")
-[node name="Stair_2" type="CSGBox3D" parent="Geometry"]
+[node name="Stair_2" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.180, 13.550)
 use_collision = true
 size = Vector3(2, 0.36, 0.3)
 material = SubResource("ShaderMaterial_grid")
-[node name="Stair_3" type="CSGBox3D" parent="Geometry"]
+[node name="Stair_3" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.270, 13.250)
 use_collision = true
 size = Vector3(2, 0.54, 0.3)
 material = SubResource("ShaderMaterial_grid")
-[node name="Stair_4" type="CSGBox3D" parent="Geometry"]
+[node name="Stair_4" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.360, 12.950)
 use_collision = true
 size = Vector3(2, 0.72, 0.3)
 material = SubResource("ShaderMaterial_grid")
-[node name="Stair_5" type="CSGBox3D" parent="Geometry"]
+[node name="Stair_5" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.450, 12.650)
 use_collision = true
 size = Vector3(2, 0.90, 0.3)
 material = SubResource("ShaderMaterial_grid")
-[node name="Stair_6" type="CSGBox3D" parent="Geometry"]
+[node name="Stair_6" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.540, 12.350)
 use_collision = true
 size = Vector3(2, 1.08, 0.3)
 material = SubResource("ShaderMaterial_grid")
-[node name="Stair_7" type="CSGBox3D" parent="Geometry"]
+[node name="Stair_7" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.630, 12.050)
 use_collision = true
 size = Vector3(2, 1.26, 0.3)
 material = SubResource("ShaderMaterial_grid")
-[node name="Stair_8" type="CSGBox3D" parent="Geometry"]
+[node name="Stair_8" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.720, 11.750)
 use_collision = true
 size = Vector3(2, 1.44, 0.3)
 material = SubResource("ShaderMaterial_grid")
-[node name="StairLanding" type="CSGBox3D" parent="Geometry"]
+[node name="StairLanding" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.72, 10.10)
 use_collision = true
 size = Vector3(2, 1.44, 3)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="RangeGround" type="CSGBox3D" parent="Geometry"]
+[node name="RangeGround" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, -0.5, -190)
 use_collision = true
 size = Vector3(20, 1, 280)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="FiringLine" type="CSGBox3D" parent="Geometry"]
+[node name="FiringLine" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 0.01, 0)
 use_collision = true
 size = Vector3(10, 0.02, 0.15)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="Tower_Ramp1" type="CSGBox3D" parent="Geometry"]
+[node name="Tower_Ramp1" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 0.906183, -0.422885, 0, 0.422885, 0.906183, -30, 1.650, 1.250)
 use_collision = true
 size = Vector3(3, 0.2, 8.276)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="Tower_Platform_3_5m" type="CSGBox3D" parent="Geometry"]
+[node name="Tower_Platform_3_5m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 3.25, -5.5)
 use_collision = true
 size = Vector3(6, 0.5, 6)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="Tower_Ramp2" type="CSGBox3D" parent="Geometry"]
+[node name="Tower_Ramp2" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 0.906183, -0.422885, 0, 0.422885, 0.906183, -30, 5.150, -12.250)
 use_collision = true
 size = Vector3(3, 0.2, 8.276)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="Tower_Platform_7m" type="CSGBox3D" parent="Geometry"]
+[node name="Tower_Platform_7m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 6.75, -19)
 use_collision = true
 size = Vector3(6, 0.5, 6)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="Tower_Ramp3" type="CSGBox3D" parent="Geometry"]
+[node name="Tower_Ramp3" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 0.906721, -0.421731, 0, 0.421731, 0.906721, -30, 8.900, -26.300)
 use_collision = true
 size = Vector3(3, 0.2, 9.485)
 material = SubResource("ShaderMaterial_grid")
 
-[node name="Tower_Platform_11m" type="CSGBox3D" parent="Geometry"]
+[node name="Tower_Platform_11m" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 10.75, -33.6)
 use_collision = true
 size = Vector3(6, 0.5, 6)
@@ -362,6 +378,24 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0, -15)
 
 [node name="Dummy_2" parent="Targets" instance=ExtResource("5_dummy")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0, -35)
+
+[node name="DayNightCycle" type="Node" parent="."]
+script = ExtResource("7_daynight")
+
+[node name="Zombies" type="Node3D" parent="."]
+
+[node name="Zombie_1" parent="Zombies" instance=ExtResource("8_zombie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.05, 28)
+
+[node name="Zombie_2" parent="Zombies" instance=ExtResource("8_zombie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0.05, 33)
+
+[node name="Zombie_3" parent="Zombies" instance=ExtResource("8_zombie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0.05, 24)
+
+[node name="DebugZombieSpawner" type="Node" parent="."]
+script = ExtResource("10_spawner")
+ZombieScene = ExtResource("8_zombie")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)

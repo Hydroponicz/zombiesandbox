@@ -22,6 +22,9 @@ public partial class BodyHealth : Node, ISaveState
     private CharacterSkills? _skills;
 
     public bool IsDead { get; private set; }
+    /// <summary>Fatally wounded but not down yet (e.g. a zombie bleeding out from a destroyed chest).</summary>
+    public bool IsDying => _dyingTimer >= 0f && !IsDead;
+    private float _dyingTimer = -1f;
     /// <summary>0..1. Builds with damage, fractures and destroyed parts; fades slowly.</summary>
     public float Pain { get; private set; }
 
@@ -208,9 +211,26 @@ public partial class BodyHealth : Node, ISaveState
 
     private void CheckDeath()
     {
-        if (IsDead || (!IsDestroyed(BodyPart.Head) && !IsDestroyed(BodyPart.Chest)))
+        if (IsDead)
             return;
+        if (Config.HeadIsVital && IsDestroyed(BodyPart.Head))
+        {
+            Die();
+            return;
+        }
+        if (Config.ChestIsVital && IsDestroyed(BodyPart.Chest))
+        {
+            if (Config.ChestDeathDelay <= 0f)
+                Die();
+            else if (_dyingTimer < 0f)
+                _dyingTimer = Config.ChestDeathDelay;
+        }
+    }
+
+    private void Die()
+    {
         IsDead = true;
+        _dyingTimer = -1f;
         Died?.Invoke();
     }
 
@@ -219,6 +239,16 @@ public partial class BodyHealth : Node, ISaveState
         if (IsDead)
             return;
         float dt = (float)delta;
+
+        if (_dyingTimer >= 0f)
+        {
+            _dyingTimer -= dt;
+            if (_dyingTimer <= 0f)
+            {
+                Die();
+                return;
+            }
+        }
 
         foreach (BodyPart part in BodyParts.All)
         {
@@ -254,6 +284,7 @@ public partial class BodyHealth : Node, ISaveState
         }
         Pain = 0f;
         IsDead = false;
+        _dyingTimer = -1f;
     }
 
     // ---------- Persistence ----------
