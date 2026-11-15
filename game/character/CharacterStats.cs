@@ -28,7 +28,7 @@ public partial class CharacterStats : Node
 
     public float HoldBreathSeconds => Mathf.Lerp(Config.HoldBreathSecondsAtLevel0, Config.HoldBreathSecondsAtLevel10, Aiming);
 
-    public float RecoilMultiplier => Mathf.Lerp(1f, Config.RecoilMultiplierAtLevel10, Strength);
+    public float RecoilMultiplier => Mathf.Lerp(Config.RecoilMultiplierAtLevel0, Config.RecoilMultiplierAtLevel10, Strength);
 
     public float AimSwayMultiplier => Mathf.Lerp(1f, Config.AimSwayMultiplierAtLevel10, Aiming);
 }

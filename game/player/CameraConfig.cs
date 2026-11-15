@@ -22,9 +22,9 @@ public partial class CameraConfig : Resource
     [Export] public float ShoulderAimFieldOfView { get; set; } = 55f;
 
     [ExportGroup("Camera shake (per shot, at 100% setting)")]
-    [Export] public float ShakePitchDegrees { get; set; } = 0.25f;
-    [Export] public float ShakeYawDegrees { get; set; } = 0.15f;
-    [Export] public float ShakeRollDegrees { get; set; } = 0.6f;
+    [Export] public float ShakePitchDegrees { get; set; } = 0.4f;
+    [Export] public float ShakeYawDegrees { get; set; } = 0.25f;
+    [Export] public float ShakeRollDegrees { get; set; } = 1.0f;
 
     [ExportGroup("Aim assist (gamepad)")]
     [Export] public float AimAssistRangeHip { get; set; } = 40f;

@@ -35,9 +35,9 @@ public partial class WeaponHandlingConfig : Resource
     [Export] public float CrouchRecoilMultiplier { get; set; } = 0.85f;
     [Export] public float ProneRecoilMultiplier { get; set; } = 0.6f;
     /// <summary>After the first few shots of a burst, vertical kick eases to this fraction.</summary>
-    [Export(PropertyHint.Range, "0,1,0.05")] public float SustainedFireVerticalMultiplier { get; set; } = 0.3f;
+    [Export(PropertyHint.Range, "0,1,0.05")] public float SustainedFireVerticalMultiplier { get; set; } = 0.25f;
     /// <summary>Shots at full vertical kick before it starts easing.</summary>
-    [Export] public int BurstClimbShots { get; set; } = 3;
+    [Export] public int BurstClimbShots { get; set; } = 1;
     /// <summary>A pause longer than this (s) starts a new burst.</summary>
     [Export] public float BurstResetTime { get; set; } = 0.25f;
 

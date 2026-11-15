@@ -22,13 +22,21 @@ public partial class WeaponData : Resource
 
     [ExportGroup("Recoil")]
     /// <summary>Upward kick per shot while aiming (degrees).</summary>
-    [Export] public float VerticalRecoilDegrees { get; set; } = 0.8f;
+    [Export] public float VerticalRecoilDegrees { get; set; } = 0.9f;
     /// <summary>Maximum random sideways kick per shot while aiming (degrees).</summary>
-    [Export] public float HorizontalRecoilDegrees { get; set; } = 0.18f;
+    [Export] public float HorizontalRecoilDegrees { get; set; } = 0.22f;
     /// <summary>How hard the gun springs back to the point of aim. Higher = snappier return.</summary>
-    [Export] public float RecoilRecoveryStiffness { get; set; } = 400f;
+    [Export] public float RecoilRecoveryStiffness { get; set; } = 300f;
     /// <summary>Fraction of the kick the camera follows (the rest is the gun moving in view).</summary>
     [Export(PropertyHint.Range, "0,1,0.05")] public float CameraRecoilFraction { get; set; } = 0.3f;
+    /// <summary>Full auto: how much the point of aim climbs per shot after the first (degrees).</summary>
+    [Export] public float ClimbPerShotDegrees { get; set; } = 0.1f;
+    /// <summary>Full auto: the climb levels off here (degrees).</summary>
+    [Export] public float MaxClimbDegrees { get; set; } = 0.75f;
+    /// <summary>Seconds for the climb to settle back after the burst (time constant).</summary>
+    [Export] public float ClimbRecoveryTime { get; set; } = 0.3f;
+    /// <summary>Fraction of the climb the camera follows. High, so you see your sights walk up.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float CameraClimbFraction { get; set; } = 0.85f;
     /// <summary>How far the gun shoves back into the shoulder per shot (m).</summary>
     [Export] public float KickbackMeters { get; set; } = 0.025f;
 

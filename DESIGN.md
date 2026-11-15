@@ -174,15 +174,17 @@ prone moves to D-pad down.
   returns **all the way** to the point of aim on its own. The player never pulls down.
 - **Gun kicks more than the view:** the camera follows ≈30% of the kick, so you see the rifle jump;
   the barrel always ends up where the full kick puts it.
-- **Full auto:** the first ≈3 shots climb hardest, then vertical kick eases (≈50%) and the group
-  bounces around a raised point; sideways spread widens a little in long bursts.
+- **Full auto:** besides each shot's kick, the point of aim **climbs** a little per shot (≈0.13°)
+  and levels off (≈0.75° × the recoil multiplier). The camera follows most of the climb, so
+  you see the sights walk up. It settles all the way back after the burst. Vertical kick eases
+  after the first few shots; sideways spread widens a little in long bursts.
 - **Modifiers:** hip fire ×1.6, crouch ×0.85, prone ×0.6, weapon recoil stats (attachments will
-  change these later), and the **Strength** skill (down to ×0.7 at level 10).
+  change these later), and the **Strength** skill (×1.25 at level 0 → ×0.7 at level 10).
 - **Camera shake:** small per-shot shake, on by default, with a 0–100% setting (0 = off).
   The view kick itself is part of recoil and isn't affected by this setting.
-- Measured (graybox rifle, Strength 3): single shot kicks ≈0.65° and is fully back in ≈0.33 s.
-  30-round full-auto at 50 m: standing aimed ≈61×71 cm group (+12 cm rise), Strength 10 ≈62×52 cm,
-  prone ≈25×40 cm, hip ≈110×119 cm.
+- Measured (graybox rifle, standing, aimed): single shot kicks ≈0.9° (Strength 3) and is back in
+  ≈0.38 s. 30-round full auto at 50 m: Strength 0 ≈105×117 cm, Strength 3 ≈78×103 cm (view climbs
+  0.4° → 0.8°), Strength 10 ≈65×66 cm. Short bursts stay much tighter.
 - Every trigger press fires, even a click shorter than one frame.
 
 ### Skills
@@ -191,7 +193,7 @@ prone moves to D-pad down.
 - **Fitness** (implemented in step 1): raises max leg stamina (≈42 at level 0 → 150 at level 10: about 4.4 s of sprinting at level 1, 6 s at the starting level 3, 12.5 s at level 10), stamina regen
   (8/s at level 0 → 14/s at level 10), and slightly raises sprint speed (≈ +8%) and acceleration (≈ +10%).
   Earns XP from sprinting and jumping, with more XP when stamina is low.
-- **Strength**: reduces weapon recoil (gunplay piece 3, down to ×0.7 at level 10); carry capacity comes
+- **Strength**: reduces weapon recoil (gunplay piece 3, ×1.25 at level 0 → ×0.7 at level 10); carry capacity comes
   with inventory (step 6).
 - **Aiming** (step 2): hold-breath duration (4 s → 10 s) and less weapon sway. Earns XP from hits (piece 2).
 - Weapon and other skills are added in the step that introduces them.

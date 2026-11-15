@@ -62,11 +62,13 @@ public partial class WeaponHolder : Node3D
     public float SwayDegrees => _swayAmplitude;
     public FireMode FireMode { get; private set; } = FireMode.Auto;
     public int ShotsFired { get; private set; }
-    /// <summary>Current recoil offset of the point of aim in degrees (X = up, Y = sideways). Springs back to zero.</summary>
-    public Vector2 RecoilDegrees => _recoil;
+    /// <summary>Total recoil offset of the point of aim in degrees (X = up, Y = sideways): per-shot kick plus full-auto climb. Returns to zero.</summary>
+    public Vector2 RecoilDegrees => _recoil + new Vector2(_climb, 0f);
+    /// <summary>The part of the recoil the camera shows (the owner's camera applies it).</summary>
+    public Vector2 CameraRecoilDegrees => Weapon == null ? Vector2.Zero
+        : _recoil * Weapon.Data.CameraRecoilFraction + new Vector2(_climb * Weapon.Data.CameraClimbFraction, 0f);
     /// <summary>Shots in the current burst.</summary>
     public int BurstShots { get; private set; }
-    public float CameraRecoilFraction => Weapon?.Data.CameraRecoilFraction ?? 0f;
 
     private CharacterStats _stats = null!;
     private CharacterSkills _skills = null!;
@@ -78,6 +80,8 @@ public partial class WeaponHolder : Node3D
     private bool _pendingPull;
     private AudioStreamPlayer3D _shotAudio = null!;
     private Vector2 _recoil;
+    private float _climbTarget;
+    private float _climb;
     private Vector2 _recoilVelocity;
     private float _kickback;
     private float _kickbackVelocity;
@@ -182,7 +186,7 @@ public partial class WeaponHolder : Node3D
         Transform3D local = ready.InterpolateWith(lowered, lowerAmount);
 
         // Sway plus the part of the recoil the camera doesn't already show.
-        Vector2 gunRecoil = _recoil * (1f - data.CameraRecoilFraction);
+        Vector2 gunRecoil = RecoilDegrees - CameraRecoilDegrees;
         Transform3D sway = new(Basis.FromEuler(new Vector3(
             SwayPitch() + Mathf.DegToRad(gunRecoil.X),
             SwayYaw() + Mathf.DegToRad(gunRecoil.Y),
@@ -268,7 +272,7 @@ public partial class WeaponHolder : Node3D
         BurstShots = _sinceLastShot > Config.BurstResetTime ? 1 : BurstShots + 1;
         _sinceLastShot = 0f;
 
-        float easing = Mathf.Clamp((BurstShots - Config.BurstClimbShots) / 4f, 0f, 1f);
+        float easing = Mathf.Clamp((BurstShots - Config.BurstClimbShots) / 3f, 0f, 1f);
         float climb = Mathf.Lerp(1f, Config.SustainedFireVerticalMultiplier, easing);
         float widen = 1f + 0.3f * Mathf.Min(BurstShots / 5f, 1f);
         float multiplier = Mathf.Lerp(Config.HipRecoilMultiplier, 1f, AdsBlend) * RecoilStanceMultiplier * _stats.RecoilMultiplier;
@@ -278,6 +282,10 @@ public partial class WeaponHolder : Node3D
             data.HorizontalRecoilDegrees * widen * _rng.RandfRange(-1f, 1f)) * multiplier;
 
         // For a critically damped spring, an impulse of kick·ω·e peaks at exactly `kick`.
+        // Full auto walks the point of aim up a little more each shot until it levels off.
+        if (BurstShots > 1)
+            _climbTarget = Mathf.Min(_climbTarget + data.ClimbPerShotDegrees * multiplier, data.MaxClimbDegrees * multiplier);
+
         float omega = Mathf.Sqrt(data.RecoilRecoveryStiffness);
         _recoilVelocity += kick * omega * Mathf.E;
         _kickbackVelocity += data.KickbackMeters * multiplier * KickbackOmega * Mathf.E;
@@ -288,6 +296,14 @@ public partial class WeaponHolder : Node3D
     private void UpdateRecoil(float dt, WeaponData data)
     {
         _sinceLastShot += dt;
+
+        // The climb eases toward its target while firing and settles all the way back once you stop.
+        float interval = 60f / data.FireRateRpm;
+        if (_sinceLastShot > interval * 1.5f)
+            _climbTarget = 0f;
+        float rate = _climbTarget > _climb ? 12f : 1f / data.ClimbRecoveryTime;
+        _climb = Mathf.Lerp(_climb, _climbTarget, 1f - Mathf.Exp(-rate * dt));
+
         float k = data.RecoilRecoveryStiffness;
         float c = 2f * Mathf.Sqrt(k);
         const float kk = KickbackOmega * KickbackOmega;

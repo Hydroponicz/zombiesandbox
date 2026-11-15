@@ -117,7 +117,7 @@ public partial class CameraRig : Node3D
         Rotation = new Vector3(0f, Yaw, 0f);
 
         // The camera shows part of the weapon's recoil kick (it springs back on its own).
-        Vector2 cameraKick = _player.Weapons.RecoilDegrees * _player.Weapons.CameraRecoilFraction;
+        Vector2 cameraKick = _player.Weapons.CameraRecoilDegrees;
         float kickPitch = Mathf.DegToRad(cameraKick.X);
         float kickYaw = Mathf.DegToRad(cameraKick.Y);
         _pitchPivot.Rotation = new Vector3(Pitch + kickPitch, kickYaw, 0f);
