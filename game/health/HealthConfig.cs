@@ -43,8 +43,8 @@ public partial class HealthConfig : Resource
     [Export] public float DestroyedPartPain { get; set; } = 0.3f;
 
     [ExportGroup("Effects")]
-    [Export] public float FracturedLegSpeed { get; set; } = 0.8f;
-    [Export] public float DestroyedLegSpeed { get; set; } = 0.6f;
+    [Export] public float FracturedLegSpeed { get; set; } = 0.55f;
+    [Export] public float DestroyedLegSpeed { get; set; } = 0.4f;
     [Export] public float FracturedArmSway { get; set; } = 1.6f;
     [Export] public float DestroyedArmSway { get; set; } = 2.2f;
     /// <summary>Extra sway at full pain.</summary>

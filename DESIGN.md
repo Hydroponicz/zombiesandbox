@@ -249,8 +249,8 @@ Shared by player, zombies and NPCs (one Health component).
 - **Hits land on body-part hitboxes.** Bullets do the ammo's damage (5.56 ≈ 55, less as the bullet
   slows down): ≈2 chest hits or 1 head hit kills.
 - **Bleeding:** hits can cause light (≈0.5 HP/s) or heavy (≈2 HP/s) bleeding on that part.
-- **Fractures** (bullets to limbs, falls): broken leg = limp, no sprint; broken arm = much more sway.
-  Destroyed legs: very slow; destroyed arms: huge sway.
+- **Fractures** (bullets to limbs, falls): broken leg = slow limp (55% speed per broken leg), no
+  sprint; broken arm = much more sway. Destroyed leg: 40% speed; destroyed arms: huge sway.
 - **Pain** builds with damage, fractures and destroyed parts, fades over time: shakier aim, screen effects.
 - **Fall damage** from drops over ≈3 m (legs first, fracture chance grows with height; ≈10 m+ is
   usually lethal).
