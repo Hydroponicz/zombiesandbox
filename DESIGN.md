@@ -190,7 +190,7 @@ prone moves to D-pad down.
   0.4° → 0.8°), Strength 10 ≈65×66 cm. Short bursts stay much tighter.
 - Every trigger press fires, even a click shorter than one frame.
 
-#### Piece 4: magazines & reloading (implemented on `preview` — in testing)
+#### Piece 4: magazines & reloading (done)
 - **Magazines are items** with their own round count (built as item data now; the temporary
   **magazine pouch**, 6 slots, becomes part of the inventory/rig in step 6). Start: 1 in the gun +
   4 full 30-round mags. Loose ammo and loading mags come with inventory.
