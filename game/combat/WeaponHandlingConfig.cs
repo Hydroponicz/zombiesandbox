@@ -41,6 +41,12 @@ public partial class WeaponHandlingConfig : Resource
     /// <summary>A pause longer than this (s) starts a new burst.</summary>
     [Export] public float BurstResetTime { get; set; } = 0.25f;
 
+    [ExportGroup("Reloading XP")]
+    [Export] public float ReloadingXpPerReload { get; set; } = 2f;
+    [Export] public float ReloadingXpPerMagazineCheck { get; set; } = 0.5f;
+    /// <summary>Seconds to move into / out of the reload pose.</summary>
+    [Export] public float ReloadPoseBlendTime { get; set; } = 0.2f;
+
     [ExportGroup("Aiming XP")]
     /// <summary>Aiming XP for hitting a target up close.</summary>
     [Export] public float AimingXpPerHit { get; set; } = 1.5f;

@@ -20,6 +20,20 @@ public partial class WeaponData : Resource
     /// <summary>Distance (m) at which the bullet crosses the sight line.</summary>
     [Export] public float ZeroDistance { get; set; } = 100f;
 
+    [ExportGroup("Magazines & reloading (times at Reloading skill 0)")]
+    [Export] public int MagazineCapacity { get; set; } = 30;
+    [Export] public PackedScene? DroppedMagazineScene { get; set; }
+    /// <summary>Old mag back into the pouch, new mag in (s).</summary>
+    [Export] public float TacticalReloadTime { get; set; } = 4.2f;
+    /// <summary>Old mag dropped on the ground, new mag in (s).</summary>
+    [Export] public float FastReloadTime { get; set; } = 3.0f;
+    /// <summary>Extra time to rack the charging handle when the gun was empty (s).</summary>
+    [Export] public float ChargingHandleTime { get; set; } = 1.3f;
+    [Export] public float MagazineCheckTime { get; set; } = 1.5f;
+    /// <summary>Pose while reloading / checking the magazine (gun canted, magazine toward you).</summary>
+    [Export] public Vector3 ReloadPosition { get; set; } = new(0.06f, -0.24f, -0.3f);
+    [Export] public Vector3 ReloadRotationDegrees { get; set; } = new(-8f, 18f, 38f);
+
     [ExportGroup("Recoil")]
     /// <summary>Upward kick per shot while aiming (degrees).</summary>
     [Export] public float VerticalRecoilDegrees { get; set; } = 0.9f;

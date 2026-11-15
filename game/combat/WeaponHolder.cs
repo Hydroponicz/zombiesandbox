@@ -95,10 +95,11 @@ public partial class WeaponHolder : Node3D
     private float _swayAmplitude;
     private readonly PhysicsRayQueryParameters3D _wallRay = new();
 
-    public void Initialize(CharacterStats stats, CharacterSkills skills, Rid owner, uint collisionMask)
+    public void Initialize(CharacterStats stats, CharacterSkills skills, MagazinePouch? pouch, Rid owner, uint collisionMask)
     {
         _stats = stats;
         _skills = skills;
+        Pouch = pouch;
         _ownerBody = owner;
         _collisionMask = collisionMask;
         _breathLeft = stats.HoldBreathSeconds;
@@ -113,6 +114,7 @@ public partial class WeaponHolder : Node3D
         PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off;
         _shotAudio = new AudioStreamPlayer3D { Stream = PlaceholderSounds.Gunshot, MaxPolyphony = 8, UnitSize = 12f, MaxDistance = 400f };
         AddChild(_shotAudio);
+        CreateHandlingAudio();
         if (StartingWeapon != null)
             Equip(StartingWeapon.Instantiate<Weapon>());
     }
@@ -132,6 +134,7 @@ public partial class WeaponHolder : Node3D
             _zeroAngle = Ballistics.SolveZeroAngle(data.Ammo, sightHeight, data.ZeroDistance, gravity);
         }
         FireMode = data.SupportsAuto ? FireMode.Auto : FireMode.Semi;
+        LoadStartingMagazine(data);
     }
 
     /// <summary>
@@ -169,7 +172,11 @@ public partial class WeaponHolder : Node3D
 
         float wallBlock = Mathf.SmoothStep(Config.WallPullBackBlocksAt, Config.MaxWallPullBack, WallPullBack);
 
-        IsAiming = WantsAim && raised && wallBlock < 0.5f;
+        UpdateReload(dt);
+        UpdateMagazineCheck(dt);
+        _busyBlend = Mathf.MoveToward(_busyBlend, IsBusy ? 1f : 0f, dt / Config.ReloadPoseBlendTime);
+
+        IsAiming = WantsAim && raised && wallBlock < 0.5f && !IsBusy;
         float adsSpeed = 1f / data.AdsTime * (MoveFraction > 0.75f ? 0.6f : 1f);
         AdsBlend = Mathf.MoveToward(AdsBlend, IsAiming ? 1f : 0f, adsSpeed * dt);
 
@@ -184,6 +191,8 @@ public partial class WeaponHolder : Node3D
         Transform3D lowered = WeaponData.Pose(data.LoweredPosition, data.LoweredRotationDegrees);
         float lowerAmount = Mathf.Max(Mathf.SmoothStep(0f, 1f, _lowerBlend), wallBlock);
         Transform3D local = ready.InterpolateWith(lowered, lowerAmount);
+        if (_busyBlend > 0f)
+            local = local.InterpolateWith(WeaponData.Pose(data.ReloadPosition, data.ReloadRotationDegrees), Mathf.SmoothStep(0f, 1f, _busyBlend));
 
         // Sway plus the part of the recoil the camera doesn't already show.
         Vector2 gunRecoil = RecoilDegrees - CameraRecoilDegrees;
@@ -197,7 +206,7 @@ public partial class WeaponHolder : Node3D
         local.Origin += Vector3.Back * (WallPullBack + _kickback);
 
         GlobalTransform = aim * local;
-        CanFire = raised && _lowerBlend <= 0f && wallBlock <= 0f;
+        CanFire = raised && _lowerBlend <= 0f && wallBlock <= 0f && !IsBusy && _busyBlend <= 0f;
 
         UpdateTrigger(dt, data);
     }
@@ -216,6 +225,14 @@ public partial class WeaponHolder : Node3D
         if (!CanFire || data.Ammo == null)
             return;
 
+        // Empty chamber: the trigger just clicks (once per pull, not continuously in full auto).
+        if (!Chambered)
+        {
+            if (pulled)
+                PlayHandling(PlaceholderSounds.DryClick);
+            return;
+        }
+
         if (FireMode == FireMode.Semi)
         {
             if (pulled && _fireCooldown <= 0f)
@@ -231,7 +248,7 @@ public partial class WeaponHolder : Node3D
                 Shoot(data); // A click shorter than a frame still fires one round.
                 _fireCooldown = interval;
             }
-            while (TriggerHeld && _fireCooldown <= 0f)
+            while (TriggerHeld && _fireCooldown <= 0f && Chambered)
             {
                 Shoot(data);
                 _fireCooldown += interval;
@@ -257,6 +274,7 @@ public partial class WeaponHolder : Node3D
             CollisionMask: _collisionMask));
 
         ShotsFired++;
+        CycleAfterShot();
         _shotAudio.GlobalPosition = muzzle.Origin;
         _shotAudio.Play();
         ApplyRecoil(data);

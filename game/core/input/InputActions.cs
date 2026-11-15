@@ -30,6 +30,11 @@ public static class InputActions
     public const string Aim = "aim";
     public const string Fire = "fire";
     public const string CycleFireMode = "cycle_fire_mode";
+    /// <summary>Keyboard: tap = tactical, double-tap = fast. Gamepad: tap = tactical, hold = fast.</summary>
+    public const string Reload = "reload";
+    public const string CheckMagazine = "check_magazine";
+    /// <summary>Gamepad shares X with reload: it interacts when looking at something usable.</summary>
+    public const string Interact = "interact";
     public const string ReleaseMouse = "release_mouse";
 
     // Developer-only (debug builds).
@@ -40,6 +45,9 @@ public static class InputActions
     public const string DebugBulletTrails = "debug_bullet_trails";
     public const string DebugStrengthUp = "debug_strength_up";
     public const string DebugStrengthDown = "debug_strength_down";
+    public const string DebugRefillAmmo = "debug_refill_ammo";
+    public const string DebugReloadingUp = "debug_reloading_up";
+    public const string DebugReloadingDown = "debug_reloading_down";
 
     /// <summary>InputMap events with this device id match any connected device.</summary>
     private const int AllDevices = -1;
@@ -71,6 +79,9 @@ public static class InputActions
         Bind(Aim, 0.5f, MouseButtonEvent(MouseButton.Right), Axis(JoyAxis.TriggerLeft, 1f));
         Bind(Fire, 0.5f, MouseButtonEvent(MouseButton.Left), Axis(JoyAxis.TriggerRight, 1f));
         Bind(CycleFireMode, 0.5f, KeyEvent(Key.B), Button(JoyButton.DpadLeft));
+        Bind(Reload, 0.5f, KeyEvent(Key.R), Button(JoyButton.X));
+        Bind(CheckMagazine, 0.5f, KeyEvent(Key.T), Button(JoyButton.DpadRight));
+        Bind(Interact, 0.5f, KeyEvent(Key.F), Button(JoyButton.X));
         Bind(ReleaseMouse, 0.5f, KeyEvent(Key.Escape));
 
         if (OS.IsDebugBuild())
@@ -82,7 +93,10 @@ public static class InputActions
             Bind(DebugAimingUp, 0.5f, CtrlKeyEvent(Key.Key4));
             Bind(DebugStrengthDown, 0.5f, CtrlKeyEvent(Key.Key5));
             Bind(DebugStrengthUp, 0.5f, CtrlKeyEvent(Key.Key6));
+            Bind(DebugReloadingDown, 0.5f, CtrlKeyEvent(Key.Key7));
+            Bind(DebugReloadingUp, 0.5f, CtrlKeyEvent(Key.Key8));
             Bind(DebugBulletTrails, 0.5f, CtrlKeyEvent(Key.T));
+            Bind(DebugRefillAmmo, 0.5f, CtrlKeyEvent(Key.R));
         }
     }
 

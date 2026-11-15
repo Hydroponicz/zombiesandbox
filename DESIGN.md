@@ -99,6 +99,9 @@ Every feature must serve at least one pillar.
 | Hold breath (while aiming) | Hold Shift | Click L3 |
 | Fire | Left mouse | Right trigger |
 | Fire mode (semi / auto) | B | D-pad left |
+| Reload: tactical / fast | R / double-tap R | Tap X / hold X |
+| Check magazine | T | D-pad right |
+| Interact (pick up) | F | X (when looking at an item) |
 
 If the gamepad crouch is set to *Hold*, tap/hold on one button no longer works, so
 prone moves to D-pad down.
@@ -187,6 +190,31 @@ prone moves to D-pad down.
   0.4° → 0.8°), Strength 10 ≈65×66 cm. Short bursts stay much tighter.
 - Every trigger press fires, even a click shorter than one frame.
 
+#### Piece 4: magazines & reloading (implemented on `preview` — in testing)
+- **Magazines are items** with their own round count (built as item data now; the temporary
+  **magazine pouch**, 6 slots, becomes part of the inventory/rig in step 6). Start: 1 in the gun +
+  4 full 30-round mags. Loose ammo and loading mags come with inventory.
+- **No ammo counter.** Check the magazine (T / D-pad right): takes a moment and gives an estimate.
+  Precision grows with the Reloading skill: rough at low levels ("feels about half"), finer steps
+  mid-way, within a few rounds at high levels, exact at 10.
+- **Chamber:** a reload before empty keeps the chambered round (30+1). Running dry means the
+  reload also racks the charging handle (slower). Pulling the trigger on an empty gun just clicks.
+- **Reloads** always take the **fullest** magazine from the pouch.
+  - **Tactical** (tap R / tap X): old mag goes back into the pouch (dropped if the pouch is full).
+  - **Fast** (double-tap R / hold X): old mag is dropped on the ground. Faster.
+  - Starting tactical and then double-tapping/holding switches to fast if the old mag isn't out yet.
+  - Walking is fine; **sprinting cancels** the reload. Cancelled after the old mag is out = no mag in
+    the gun until you reload again. Can't aim or fire while reloading.
+- **Dropped magazines** are physical objects. Look at one within reach and press **F** (keyboard)
+  or **X** (gamepad: X is "interact" when looking at an item, otherwise reload) to put it back in
+  the pouch. First use of the interaction system (doors, loot later).
+- **Reloading skill** (new): reload times scale ×1.0 at level 0 (civilian: tactical 4.2 s, fast
+  3.0 s, +1.3 s when empty) → ×0.5 at level 10. XP from reloads and magazine checks.
+- **Interaction targeting is forgiving:** if the exact view center isn't on something usable, the
+  nearest item within ≈10° of it (and within 2.2 m, with nothing in between) is targeted. Small
+  items on the floor would otherwise be nearly impossible to point at without a crosshair.
+- **Developer keys:** Ctrl+7/8 Reloading −/+, Ctrl+R refill ammo.
+
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level
   needs more XP than the last. Exact curves live in a tunable resource.
@@ -195,6 +223,7 @@ prone moves to D-pad down.
   Earns XP from sprinting and jumping, with more XP when stamina is low.
 - **Strength**: reduces weapon recoil (gunplay piece 3, ×1.25 at level 0 → ×0.7 at level 10); carry capacity comes
   with inventory (step 6).
+- **Reloading** (step 2): reload and magazine-check speed, magazine-check precision.
 - **Aiming** (step 2): hold-breath duration (4 s → 10 s) and less weapon sway. Earns XP from hits (piece 2).
 - Weapon and other skills are added in the step that introduces them.
 - A developer-only debug key sets skill levels for testing (removed from release builds).

@@ -4,6 +4,7 @@ using ZombieSandbox.Character;
 using ZombieSandbox.Combat;
 using ZombieSandbox.Core;
 using ZombieSandbox.Core.Input;
+using ZombieSandbox.Core.Interaction;
 
 namespace ZombieSandbox.Player;
 
@@ -33,6 +34,9 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     public Stamina Stamina { get; private set; } = null!;
     public CameraRig CameraRig { get; private set; } = null!;
     public WeaponHolder Weapons { get; private set; } = null!;
+    public MagazinePouch Pouch { get; private set; } = null!;
+    /// <summary>The usable thing the player is looking at, within reach (null if none).</summary>
+    public IInteractable? InteractTarget { get; private set; }
 
     /// <summary>The stance the body is in (or moving into).</summary>
     public Stance Stance { get; private set; } = Stance.Stand;
@@ -64,6 +68,17 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     private bool _sprintHeld;
     private bool _sprintToggled;
     private bool _triggerHeld;
+    private ulong _lastReloadPressMs;
+    private bool _padReloadHeld;
+    private float _padReloadHeldTime;
+    private bool _padFastReloadSent;
+    private readonly PhysicsRayQueryParameters3D _interactRay = new();
+    private const float InteractReach = 2.2f;
+    /// <summary>Small items count as targeted within this angle of the view center (no crosshair to aim with).</summary>
+    private const float InteractConeDegrees = 10f;
+    private readonly PhysicsShapeQueryParameters3D _nearbyItemsQuery = new();
+    private const uint ItemsLayerMask = 1u << 2;
+    private const int StartingSpareMagazines = 4;
     private bool _aimInputDown; // Physical state of the aim button/trigger (edge detection).
     private bool _aimHeld;
     private bool _aimToggled;
@@ -102,10 +117,12 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         Stats = GetNode<CharacterStats>("Stats");
         Stamina = GetNode<Stamina>("Stamina");
         Weapons = GetNode<WeaponHolder>("WeaponHolder");
+        Pouch = GetNode<MagazinePouch>("MagazinePouch");
 
         Stats.Initialize(Skills);
         Stamina.Initialize(Stats, Skills);
-        Weapons.Initialize(Stats, Skills, GetRid(), CollisionMask);
+        Weapons.Initialize(Stats, Skills, Pouch, GetRid(), CollisionMask);
+        Weapons.GiveSpareMagazines(StartingSpareMagazines);
 
         _gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle() * Config.GravityMultiplier;
 
@@ -126,6 +143,10 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         };
 
         _coverRay.CollisionMask = CollisionMask;
+        _interactRay.CollisionMask = CollisionMask | ItemsLayerMask;
+        _interactRay.Exclude = new Array<Rid> { GetRid() };
+        _nearbyItemsQuery.Shape = new SphereShape3D { Radius = InteractReach };
+        _nearbyItemsQuery.CollisionMask = ItemsLayerMask;
         _coverRay.Exclude = new Array<Rid> { GetRid() };
 
         FloorSnapLength = Config.MaxStepHeight; // Stay on the ground walking down stairs.
@@ -142,6 +163,26 @@ public partial class PlayerController : CharacterBody3D, IPersistent
 
         InputSettings settings = GameInput.Instance.Settings;
         InputDevice device = GameInput.DeviceOf(e);
+
+        // Gamepad X is both interact and reload: interacting wins when looking at something usable.
+        if (e.IsActionPressed(InputActions.Interact, exactMatch: true) && InteractTarget != null)
+        {
+            InteractTarget.Interact(this);
+            return;
+        }
+
+        if (e.IsAction(InputActions.Reload, exactMatch: true))
+        {
+            HandleReloadInput(e, device);
+            return;
+        }
+
+        if (e.IsActionPressed(InputActions.CheckMagazine, exactMatch: true))
+        {
+            StopSprintForHands();
+            Weapons.RequestMagazineCheck();
+            return;
+        }
 
         if (e.IsActionPressed(InputActions.Jump))
         {
@@ -215,6 +256,18 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         {
             Skills.SetLevel(SkillId.Strength, Skills.GetLevel(SkillId.Strength) - 1);
         }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugRefillAmmo))
+        {
+            Weapons.DebugRefill(StartingSpareMagazines);
+        }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugReloadingUp))
+        {
+            Skills.SetLevel(SkillId.Reloading, Skills.GetLevel(SkillId.Reloading) + 1);
+        }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugReloadingDown))
+        {
+            Skills.SetLevel(SkillId.Reloading, Skills.GetLevel(SkillId.Reloading) - 1);
+        }
         else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugAimingUp))
         {
             Skills.SetLevel(SkillId.Aiming, Skills.GetLevel(SkillId.Aiming) + 1);
@@ -233,6 +286,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         Rotation = new Vector3(0f, CameraRig.Yaw, 0f);
 
         UpdatePadCrouchHold(dt);
+        UpdatePadReloadHold(dt);
+        UpdateInteractTarget();
         UpdateStance(dt);
 
         Vector2 input = Input.GetVector(InputActions.MoveLeft, InputActions.MoveRight, InputActions.MoveForward, InputActions.MoveBack);
@@ -367,6 +422,98 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             return wasPressed ? amount > 0.3f : amount > 0.55f;
         }
         return e.IsPressed();
+    }
+
+    // ---------- Reloading & interaction ----------
+
+    /// <summary>Hands are needed (reload, magazine check): a sprint ends, like pulling the trigger.</summary>
+    private void StopSprintForHands()
+    {
+        _sprintToggled = false;
+        _sprintHeld = false;
+    }
+
+    private void HandleReloadInput(InputEvent e, InputDevice device)
+    {
+        if (device == InputDevice.Gamepad)
+        {
+            // Tap = tactical. Holding past 0.3 s turns it into a fast reload (see UpdatePadReloadHold).
+            _padReloadHeld = e.IsPressed();
+            if (!e.IsPressed())
+                return;
+            _padReloadHeldTime = 0f;
+            _padFastReloadSent = false;
+            StopSprintForHands();
+            Weapons.RequestReload(fast: false);
+            return;
+        }
+
+        if (!e.IsPressed() || e.IsEcho())
+            return;
+        // Keyboard: a second press within 0.3 s upgrades the reload to a fast one (old mag dropped).
+        ulong now = Time.GetTicksMsec();
+        bool doubleTap = now - _lastReloadPressMs < 300;
+        _lastReloadPressMs = now;
+        StopSprintForHands();
+        Weapons.RequestReload(fast: doubleTap);
+    }
+
+    private void UpdatePadReloadHold(float dt)
+    {
+        if (!_padReloadHeld || _padFastReloadSent)
+            return;
+        _padReloadHeldTime += dt;
+        if (_padReloadHeldTime >= 0.3f)
+        {
+            _padFastReloadSent = true;
+            Weapons.RequestReload(fast: true);
+        }
+    }
+
+    /// <summary>
+    /// Find the usable thing the player is looking at, within arm's reach of the body.
+    /// 1. Whatever is exactly at the center of the view.
+    /// 2. Otherwise the small item closest to the view center within a narrow cone, with nothing
+    ///    in between: items on the floor are tiny and there is no crosshair to aim with.
+    /// </summary>
+    private void UpdateInteractTarget()
+    {
+        InteractTarget = null;
+        PhysicsDirectSpaceState3D space = GetWorld3D().DirectSpaceState;
+        Transform3D view = CameraRig.Camera.GlobalTransform;
+        Vector3 forward = -view.Basis.Z.Normalized();
+        Vector3 eye = GlobalPosition + Vector3.Up * EyeHeight;
+
+        _interactRay.From = view.Origin;
+        _interactRay.To = view.Origin + forward * (view.Origin.DistanceTo(eye) + InteractReach);
+        Dictionary hit = space.IntersectRay(_interactRay);
+        if (hit.Count > 0 && hit["position"].AsVector3().DistanceTo(eye) <= InteractReach
+            && hit["collider"].AsGodotObject() is IInteractable direct && direct.CanInteract(this))
+        {
+            InteractTarget = direct;
+            return;
+        }
+
+        _nearbyItemsQuery.Transform = new Transform3D(Basis.Identity, eye);
+        float bestAngle = Mathf.DegToRad(InteractConeDegrees);
+        foreach (Dictionary result in space.IntersectShape(_nearbyItemsQuery, 16))
+        {
+            if (result["collider"].AsGodotObject() is not Node3D node || node is not IInteractable candidate || !candidate.CanInteract(this))
+                continue;
+            float angle = forward.AngleTo(node.GlobalPosition - view.Origin);
+            if (angle >= bestAngle)
+                continue;
+
+            // Line of sight from the eye: the first thing hit must be the item itself.
+            _interactRay.From = eye;
+            _interactRay.To = node.GlobalPosition;
+            Dictionary sight = space.IntersectRay(_interactRay);
+            if (sight.Count > 0 && sight["collider"].AsGodotObject() != node)
+                continue;
+
+            bestAngle = angle;
+            InteractTarget = candidate;
+        }
     }
 
     private void HandleAimInput(InputEvent e, PressMode mode)

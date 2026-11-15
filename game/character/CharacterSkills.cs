@@ -10,6 +10,7 @@ public enum SkillId
     Fitness,
     Strength, // Recoil control now; carry capacity with inventory (build step 6).
     Aiming, // Hold-breath time and weapon sway. Earns XP from hits (gunplay piece 2).
+    Reloading, // Reload and magazine-check speed, magazine-check precision.
 }
 
 /// <summary>

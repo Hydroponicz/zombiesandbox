@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://game/combat/WeaponData.cs" id="1_script"]
 [ext_resource type="Resource" path="res://game/combat/ballistics/ammo_556.tres" id="2_ammo"]
+[ext_resource type="PackedScene" path="res://game/combat/magazines/dropped_magazine.tscn" id="3_dropped"]
 
 [resource]
 script = ExtResource("1_script")
 DisplayName = "AR-32 (graybox)"
 Ammo = ExtResource("2_ammo")
+DroppedMagazineScene = ExtResource("3_dropped")

@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://game/combat/magazines/DroppedMagazine.cs" id="1_mag"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_mag"]
+size = Vector3(0.03, 0.17, 0.07)
+
+[sub_resource type="StandardMaterial3D" id="Mat_mag"]
+albedo_color = Color(0.13, 0.13, 0.14, 1)
+metallic = 0.6
+roughness = 0.45
+
+[sub_resource type="BoxMesh" id="BoxMesh_mag"]
+material = SubResource("Mat_mag")
+size = Vector3(0.03, 0.17, 0.07)
+
+[node name="DroppedMagazine" type="RigidBody3D"]
+collision_layer = 4
+mass = 0.5
+continuous_cd = true
+script = ExtResource("1_mag")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_mag")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_mag")
