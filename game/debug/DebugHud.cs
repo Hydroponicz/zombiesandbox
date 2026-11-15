@@ -88,6 +88,7 @@ public partial class DebugHud : CanvasLayer
             hp.Append("  ");
         }
         Line($"Health (dev only): {hp}   pain {h.Pain:0.00}   danger {h.Danger:0.00}   Medical Lv {skills.GetLevel(SkillId.Medical)}{(h.IsDead ? "   DEAD" : "")}");
+        Line($"Infection (dev only): {_player.Infection.Stage}{(_player.Infection.IsInfected ? $" severity {_player.Infection.Severity:0.00}" : "")}    Wounds: {h.Wounds.Count}    Grabbed by: {_player.GrabbedByCount}");
         Combat.Ballistics ballistics = Combat.Ballistics.Instance;
         string assist = rig.AimAssistTarget != null ? "    Aim assist: ON TARGET" : "";
         Line($"Fire mode: {w.FireMode}    Shots: {w.ShotsFired}    In flight: {ballistics.BulletsInFlight}    Trails: {(ballistics.ShowTrails ? "on" : "off")}    Recoil: {w.RecoilDegrees.X:+0.00;-0.00;0.00}° up {w.RecoilDegrees.Y:+0.00;-0.00;0.00}° side (burst {w.BurstShots}){assist}");
@@ -96,8 +97,8 @@ public partial class DebugHud : CanvasLayer
         Line("");
         Line("[DEV] Skills -/+:  Ctrl+1/2 Fitness   Ctrl+3/4 Aiming   Ctrl+5/6 Strength   Ctrl+7/8 Reloading   Ctrl+9/0 Maintenance   Ctrl+-/= Medical");
         Line("[DEV] Weapon:  Ctrl+R refill ammo   Ctrl+K condition   Ctrl+J jam next shot   Ctrl+T bullet trails");
-        Line("[DEV] Health:  Ctrl+H hurt self   Ctrl+N break leg   Ctrl+G heal      World:  Ctrl+Z spawn zombie   Ctrl+P time speed   Ctrl+O +3 h");
-        Line("[DEV] Ctrl+I hide this overlay      H health screen   Esc release mouse (click to recapture)");
+        Line("[DEV] Health:  Ctrl+H hurt self   Ctrl+N break leg   Ctrl+U infect self   Ctrl+G heal (+cure)      World:  Ctrl+Z spawn zombie   Ctrl+P time speed   Ctrl+O +3 h");
+        Line("[DEV] Ctrl+I hide this overlay      G shove   H health screen   Esc release mouse (click to recapture)");
         _info.Text = _text.ToString();
     }
 }

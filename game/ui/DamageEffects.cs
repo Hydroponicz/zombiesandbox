@@ -35,7 +35,7 @@ public partial class DamageEffects : ColorRect
         _crackAudio = AddAudio(PlaceholderSounds.BoneCrack, 0f);
         _heartAudio = AddAudio(PlaceholderSounds.Heartbeat, 0f);
 
-        _deathTitle = AddLabel("You died", 54, 0.42f);
+        _deathTitle = AddLabel("You died", 46, 0.42f);
         _deathHint = AddLabel("Press Enter / A to start a new character", 20, 0.52f);
     }
 
@@ -95,7 +95,9 @@ public partial class DamageEffects : ColorRect
             vignette = 0f;
 
         _material.SetShaderParameter("vignette", vignette);
-        _material.SetShaderParameter("desaturate", Mathf.Clamp(health.Pain * 0.5f + danger * 0.35f, 0f, 0.85f));
+        // Fever: a slow, sickly pulse of washed-out color.
+        float fever = _player.Infection.Severity * (0.6f + 0.4f * Mathf.Sin(_clock * 0.8f));
+        _material.SetShaderParameter("desaturate", Mathf.Clamp(health.Pain * 0.5f + danger * 0.35f + fever * 0.3f, 0f, 0.85f));
         // Blur only once pain is significant, and never so much that you can't aim.
         _material.SetShaderParameter("blur", Mathf.Max(0f, health.Pain - 0.3f) * 1.1f);
 
@@ -130,6 +132,7 @@ public partial class DamageEffects : ColorRect
         }
         _deathTime += dt;
         _material.SetShaderParameter("darken", Mathf.Clamp(_deathTime / 2f, 0f, 0.85f));
+        _deathTitle.Text = _player.Health.DeathCause;
         _deathTitle.Visible = _deathTime > 1f;
         _deathHint.Visible = _deathTime > 2f;
     }

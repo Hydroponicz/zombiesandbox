@@ -63,6 +63,10 @@ public partial class WeaponHolder : Node3D
     public float SwayDegrees => _swayAmplitude;
     public FireMode FireMode { get; private set; } = FireMode.Auto;
     public int ShotsFired { get; private set; }
+    /// <summary>A rifle-butt shove is playing (can't fire).</summary>
+    public bool IsShoving => _shoveTime >= 0f;
+    private float _shoveTime = -1f;
+    private const float ShoveDuration = 0.35f;
     /// <summary>Total recoil offset of the point of aim in degrees (X = up, Y = sideways): per-shot kick plus full-auto climb. Returns to zero.</summary>
     public Vector2 RecoilDegrees => _recoil + new Vector2(_climb, 0f);
     /// <summary>The part of the recoil the camera shows (the owner's camera applies it).</summary>
@@ -150,6 +154,14 @@ public partial class WeaponHolder : Node3D
     /// </summary>
     public void PullTrigger() => _pendingPull = true;
 
+    /// <summary>Play the shove animation. Interrupts reloading / checking (hands are needed).</summary>
+    public void PlayShove()
+    {
+        CancelReload();
+        CancelMagazineCheck();
+        _shoveTime = 0f;
+    }
+
     public void CycleFireMode()
     {
         if (Weapon == null || !(Weapon.Data.SupportsSemi && Weapon.Data.SupportsAuto))
@@ -213,8 +225,20 @@ public partial class WeaponHolder : Node3D
         UpdateWallPullBack(dt, aim, ready);
         local.Origin += Vector3.Back * (WallPullBack + _kickback);
 
+        // Rifle-butt shove: thrust the weapon forward and down, then back.
+        if (_shoveTime >= 0f)
+        {
+            _shoveTime += dt;
+            float thrust = Mathf.Sin(Mathf.Pi * Mathf.Clamp(_shoveTime / ShoveDuration, 0f, 1f));
+            local = new Transform3D(Basis.FromEuler(new Vector3(Mathf.DegToRad(-25f) * thrust, Mathf.DegToRad(15f) * thrust, Mathf.DegToRad(30f) * thrust)), Vector3.Zero)
+                * local;
+            local.Origin += new Vector3(-0.05f, -0.05f, -0.28f) * thrust;
+            if (_shoveTime >= ShoveDuration)
+                _shoveTime = -1f;
+        }
+
         GlobalTransform = aim * local;
-        CanFire = raised && _lowerBlend <= 0f && wallBlock <= 0f && !IsBusy && _busyBlend <= 0f;
+        CanFire = raised && _lowerBlend <= 0f && wallBlock <= 0f && !IsBusy && _busyBlend <= 0f && _shoveTime < 0f;
 
         UpdateTrigger(dt, data);
     }

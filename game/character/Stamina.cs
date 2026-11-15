@@ -17,7 +17,9 @@ public partial class Stamina : Node, ISaveState
     private float _regenDelayLeft;
 
     public float Current { get; private set; }
-    public float Max => _stats.MaxStamina;
+    /// <summary>Temporary reduction from illness etc. Set by the owner.</summary>
+    public float MaxMultiplier { get; set; } = 1f;
+    public float Max => _stats.MaxStamina * MaxMultiplier;
     public float Fraction => Max > 0f ? Current / Max : 0f;
     public bool IsExhausted { get; private set; }
 

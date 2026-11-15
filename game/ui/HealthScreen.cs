@@ -63,6 +63,9 @@ public partial class HealthScreen : Control
 
             string bleeding = HealthEstimate.Bleeding(health.Bleeding(part), medical);
             string status = (bleeding + (health.IsFractured(part) ? (bleeding != "" ? ", " : "") + "Broken" : "")).Trim();
+            string wounds = WoundSummary(health, part);
+            if (wounds != "")
+                status = status == "" ? wounds : status + ", " + wounds;
             if (status != "")
                 DrawString(_font, line + new Vector2(100f, 19f), status, HorizontalAlignment.Left, -1, 14, new Color(1f, 0.45f, 0.4f));
             line += new Vector2(0f, 50f);
@@ -70,6 +73,33 @@ public partial class HealthScreen : Control
 
         DrawString(_font, panel.Position + new Vector2(20f, PanelHeight - 18f), $"Pain: {HealthEstimate.Pain(health.Pain)}",
             HorizontalAlignment.Left, -1, 16, Colors.White);
+        string symptoms = _player.Infection.SymptomsText;
+        if (symptoms != "")
+            DrawString(_font, panel.Position + new Vector2(230f, PanelHeight - 18f), symptoms, HorizontalAlignment.Left, -1, 16, new Color(0.95f, 0.75f, 0.35f));
+    }
+
+    /// <summary>Wounds on a part, e.g. "Bite, 2 Scratches".</summary>
+    private static string WoundSummary(BodyHealth health, BodyPart part)
+    {
+        int scratches = 0, cuts = 0, bites = 0, bullets = 0;
+        foreach (Wound wound in health.Wounds)
+        {
+            if (wound.Part != part)
+                continue;
+            switch (wound.Type)
+            {
+                case WoundType.Scratch: scratches++; break;
+                case WoundType.Laceration: cuts++; break;
+                case WoundType.Bite: bites++; break;
+                case WoundType.Bullet: bullets++; break;
+            }
+        }
+        var parts = new System.Collections.Generic.List<string>();
+        if (bites > 0) parts.Add(bites == 1 ? "Bite" : $"{bites} Bites");
+        if (cuts > 0) parts.Add(cuts == 1 ? "Laceration" : $"{cuts} Lacerations");
+        if (scratches > 0) parts.Add(scratches == 1 ? "Scratch" : $"{scratches} Scratches");
+        if (bullets > 0) parts.Add(bullets == 1 ? "Gunshot wound" : $"{bullets} Gunshot wounds");
+        return string.Join(", ", parts);
     }
 
     private void DrawPart(BodyHealth health, BodyPart part, int medical, Rect2 rect)

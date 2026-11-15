@@ -24,6 +24,9 @@ public enum DamageSource
     Bullet,
     Fall,
     Bleeding,
+    Infection,
+    ZombieAttack,
+    Shove,
     Debug,
 }
 

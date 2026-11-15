@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using Godot.Collections;
 using ZombieSandbox.Character;
@@ -22,6 +23,14 @@ public partial class BodyHealth : Node, ISaveState
     private CharacterSkills? _skills;
 
     public bool IsDead { get; private set; }
+    /// <summary>Why this body died (shown on the death screen).</summary>
+    public string DeathCause { get; private set; } = "";
+    /// <summary>If set, the cause used when this body next dies (e.g. an illness draining it).</summary>
+    public string PendingDeathCause { get; set; } = "";
+    private readonly List<Wound> _wounds = new();
+    public IReadOnlyList<Wound> Wounds => _wounds;
+    /// <summary>A wound was received (scratch, laceration, bite, bullet).</summary>
+    public event Action<Wound>? WoundReceived;
     /// <summary>Fatally wounded but not down yet (e.g. a zombie bleeding out from a destroyed chest).</summary>
     public bool IsDying => _dyingTimer >= 0f && !IsDead;
     private float _dyingTimer = -1f;
@@ -87,6 +96,9 @@ public partial class BodyHealth : Node, ISaveState
     public bool CanSprint => !IsDestroyed(BodyPart.LeftLeg) && !IsDestroyed(BodyPart.RightLeg)
         && !IsFractured(BodyPart.LeftLeg) && !IsFractured(BodyPart.RightLeg);
 
+    /// <summary>Lasting pain from outside causes (illness). Set by e.g. <see cref="Infection"/>.</summary>
+    public float ExtraPainFloor { get; set; }
+
     public float SwayMultiplier
     {
         get
@@ -137,9 +149,39 @@ public partial class BodyHealth : Node, ISaveState
     }
 
     /// <summary>A bullet hit on a body part.</summary>
-    public void ApplyBulletHit(BodyPart part, float damage) =>
+    public void ApplyBulletHit(BodyPart part, float damage)
+    {
         ApplyDamage(part, damage, DamageSource.Bullet,
             Config.BulletLightBleedChance, Config.BulletHeavyBleedChance, Config.BulletLimbFractureChance);
+        AddWound(part, WoundType.Bullet);
+    }
+
+    /// <summary>A wound with its damage and bleeding (zombie attacks: scratches, lacerations, bites).</summary>
+    public void ApplyWound(BodyPart part, WoundType type, float damage, float lightBleedChance, float heavyBleedChance, DamageSource source)
+    {
+        if (IsDead)
+            return;
+        ApplyDamage(part, damage, source, lightBleedChance, heavyBleedChance);
+        AddWound(part, type);
+    }
+
+    private void AddWound(BodyPart part, WoundType type)
+    {
+        if (IsDead && type != WoundType.Bullet)
+            return;
+        var wound = new Wound(part, type, World.WorldClock.Instance?.GameHours ?? 0);
+        _wounds.Add(wound);
+        WoundReceived?.Invoke(wound);
+    }
+
+    /// <summary>Die from something other than damage to a vital part (e.g. infection).</summary>
+    public void Kill(string cause)
+    {
+        if (IsDead)
+            return;
+        DeathCause = cause;
+        Die();
+    }
 
     /// <summary>Landing after a drop of <paramref name="height"/> meters.</summary>
     public void ApplyFall(float height)
@@ -229,6 +271,8 @@ public partial class BodyHealth : Node, ISaveState
 
     private void Die()
     {
+        if (DeathCause == "")
+            DeathCause = PendingDeathCause != "" ? PendingDeathCause : "You died";
         IsDead = true;
         _dyingTimer = -1f;
         Died?.Invoke();
@@ -267,6 +311,7 @@ public partial class BodyHealth : Node, ISaveState
                 floor += Config.DestroyedPartPain;
         }
         floor = Mathf.Min(floor, 0.8f);
+        floor = Mathf.Min(floor + ExtraPainFloor, 0.9f);
         Pain = Pain > floor ? Mathf.Max(floor, Pain - Config.PainFadePerSecond * dt) : floor;
     }
 
@@ -284,6 +329,9 @@ public partial class BodyHealth : Node, ISaveState
         }
         Pain = 0f;
         IsDead = false;
+        DeathCause = "";
+        PendingDeathCause = "";
+        _wounds.Clear();
         _dyingTimer = -1f;
     }
 

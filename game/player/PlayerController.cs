@@ -24,7 +24,7 @@ public enum Stance
 /// Input is turned into intent (wanted stance, sprint request, jump request) in _UnhandledInput,
 /// and intent is applied in _PhysicsProcess.
 /// </summary>
-public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarget
+public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarget, IAttackable
 {
     public const string Group = "player";
 
@@ -38,6 +38,13 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
     public WeaponHolder Weapons { get; private set; } = null!;
     public MagazinePouch Pouch { get; private set; } = null!;
     public BodyHealth Health { get; private set; } = null!;
+    public Infection Infection { get; private set; } = null!;
+    Infection? IAttackable.Infection => Infection;
+    /// <summary>Zombies currently holding on to the player.</summary>
+    public int GrabbedByCount => _grabbedBy.Count;
+    private readonly System.Collections.Generic.HashSet<Node3D> _grabbedBy = new();
+    private float _shoveCooldown;
+    private AudioStreamPlayer _shoveAudio = null!;
     public HitboxRig Hitboxes { get; private set; } = null!;
     /// <summary>The player's own body and hitboxes: own bullets and aiming rays ignore them.</summary>
     public Array<Rid> SelfExclude { get; } = new();
@@ -135,6 +142,9 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         Weapons = GetNode<WeaponHolder>("WeaponHolder");
         Pouch = GetNode<MagazinePouch>("MagazinePouch");
         Health = GetNode<BodyHealth>("Health");
+        Infection = GetNode<Infection>("Infection");
+        _shoveAudio = new AudioStreamPlayer { Stream = ZombieSandbox.Core.Audio.PlaceholderSounds.ShoveThud };
+        AddChild(_shoveAudio);
         Hitboxes = GetNode<HitboxRig>("Hitboxes");
 
         SelfExclude.Add(GetRid());
@@ -233,6 +243,12 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
             return;
         if (IsDead)
             return; // The death screen handles restarting.
+
+        if (e.IsActionPressed(InputActions.Shove))
+        {
+            TryShove();
+            return;
+        }
 
         if (e.IsActionPressed(InputActions.HealthScreen))
         {
@@ -392,6 +408,9 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         UpdatePadCrouchHold(dt);
         UpdatePadReloadHold(dt);
         UpdateHoldButtons(dt);
+        _shoveCooldown = Mathf.Max(0f, _shoveCooldown - dt);
+        if (IsDead)
+            _grabbedBy.Clear();
         UpdateInteractTarget();
         UpdateStance(dt);
 
@@ -495,7 +514,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
             _breathHeld = false;
 
         Weapons.WantsAim = WantsAim;
-        Weapons.InjurySwayMultiplier = Health.SwayMultiplier;
+        Weapons.InjurySwayMultiplier = Health.SwayMultiplier * Infection.SwayMultiplier;
+        Stamina.MaxMultiplier = Infection.StaminaMultiplier;
         Weapons.TriggerHeld = _triggerHeld;
         Weapons.WantsHoldBreath = _breathHeld || _breathToggled;
         Weapons.Lowered = IsSprinting;
@@ -774,7 +794,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         if (_sprintToggled && (forward < Config.SprintCancelForward || Stamina.IsExhausted))
             _sprintToggled = false;
 
-        bool wantsSprint = (_sprintHeld || _sprintToggled) && !WantsAim && !_triggerHeld && Health.CanSprint;
+        bool wantsSprint = (_sprintHeld || _sprintToggled) && !WantsAim && !_triggerHeld && Health.CanSprint && _grabbedBy.Count == 0;
         IsSprinting = wantsSprint
             && Stance == Stance.Stand
             && !Stamina.IsExhausted
@@ -818,7 +838,9 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         if (Mathf.Abs(Lean) > 0.1f || WantsAim)
             speedFraction = Mathf.Min(speedFraction, walkFraction);
 
-        return stanceSpeed * speedFraction * Health.SpeedMultiplier;
+        // Held by a zombie: barely able to move (≈0.7 m/s), less with more of them. Shove them off.
+        float grabbed = _grabbedBy.Count == 0 ? 1f : Mathf.Max(0.08f, 0.2f - 0.06f * (_grabbedBy.Count - 1));
+        return stanceSpeed * speedFraction * Health.SpeedMultiplier * grabbed;
     }
 
     // ---------- Lean ----------
@@ -1044,6 +1066,56 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         Hitboxes.Rotation = _body.Rotation;
     }
 
+    // ---------- Grabs & shove ----------
+
+    public void OnGrabbed(Node3D grabber) => _grabbedBy.Add(grabber);
+
+    public void OnReleased(Node3D grabber) => _grabbedBy.Remove(grabber);
+
+    private const float ShoveReach = 1.9f;
+    private const float ShoveConeDegrees = 70f;
+    private const float ShoveStaminaCost = 8f;
+    private const float ShoveCooldown = 0.9f;
+
+    /// <summary>
+    /// Rifle-butt shove: knocks back zombies in front, staggers them, breaks grabs, sometimes knocks
+    /// them down. Costs stamina (weaker when tired). Short cooldown.
+    /// </summary>
+    private void TryShove()
+    {
+        if (_shoveCooldown > 0f || IsDead)
+            return;
+        _shoveCooldown = ShoveCooldown;
+        StopSprintForHands();
+        Weapons.PlayShove();
+        float strength = Mathf.Lerp(0.5f, 1f, Stamina.SpendAvailable(ShoveStaminaCost) / ShoveStaminaCost);
+        GameNoise.Emit(GlobalPosition, 4f, NoiseKind.Handling, this);
+
+        Vector3 forward = -GlobalBasis.Z;
+        forward.Y = 0f;
+        bool hitAny = false;
+        foreach (Node node in GetTree().GetNodesInGroup(Zombie.Group))
+        {
+            if (node is not Zombie zombie || zombie.State == ZombieState.Dead)
+                continue;
+            Vector3 to = zombie.GlobalPosition - GlobalPosition;
+            to.Y = 0f;
+            bool holdingMe = zombie.IsGrabbing && _grabbedBy.Contains(zombie);
+            if (to.Length() > ShoveReach || (!holdingMe && forward.AngleTo(to) > Mathf.DegToRad(ShoveConeDegrees * 0.5f)))
+                continue;
+
+            hitAny = true;
+            // Wounded legs or a full-strength shove topple it more easily.
+            float legDamage = 1f - 0.5f * (zombie.Health.Fraction(BodyPart.LeftLeg) + zombie.Health.Fraction(BodyPart.RightLeg));
+            bool knockDown = GD.Randf() < (0.3f + 0.4f * legDamage) * strength;
+            zombie.ApplyShove(to.LengthSquared() > 0.01f ? to : forward, strength, knockDown);
+            BodyPart part = GD.Randf() < 0.3f ? BodyPart.Head : (GD.Randf() < 0.5f ? BodyPart.Chest : BodyPart.LeftArm);
+            zombie.Health.ApplyDamage(part, 6f * strength, DamageSource.Shove);
+        }
+        if (hitAny)
+            _shoveAudio.Play();
+    }
+
     /// <summary>Developer keys for health testing. Works even when dead (Ctrl+G revives).</summary>
     private bool HandleHealthDebugInput(InputEvent e)
     {
@@ -1052,6 +1124,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         if (e.IsActionPressed(InputActions.DebugHealAll))
         {
             Health.HealAll();
+            Infection.Cure();
             return true;
         }
         if (IsDead)
@@ -1060,6 +1133,11 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         {
             BodyPart part = BodyParts.All[(int)(GD.Randi() % BodyParts.Count)];
             Health.ApplyBulletHit(part, 25f);
+            return true;
+        }
+        if (e.IsActionPressed(InputActions.DebugInfectSelf))
+        {
+            Infection.Infect();
             return true;
         }
         if (e.IsActionPressed(InputActions.DebugBreakLeg))

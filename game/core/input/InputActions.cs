@@ -35,6 +35,8 @@ public static class InputActions
     public const string CheckMagazine = "check_magazine";
     /// <summary>Gamepad shares X with reload: it interacts when looking at something usable.</summary>
     public const string Interact = "interact";
+    /// <summary>Rifle-butt shove.</summary>
+    public const string Shove = "shove";
     public const string ReleaseMouse = "release_mouse";
     /// <summary>Toggle the body diagram.</summary>
     public const string HealthScreen = "health_screen";
@@ -53,6 +55,7 @@ public static class InputActions
     public const string DebugCycleCondition = "debug_cycle_condition";
     public const string DebugForceJam = "debug_force_jam";
     public const string DebugHealAll = "debug_heal_all";
+    public const string DebugInfectSelf = "debug_infect_self";
     public const string DebugToggleOverlay = "debug_toggle_overlay";
     public const string DebugSpawnZombie = "debug_spawn_zombie";
     public const string DebugTimeScale = "debug_time_scale";
@@ -97,6 +100,7 @@ public static class InputActions
         Bind(Reload, 0.5f, KeyEvent(Key.R), Button(JoyButton.X));
         Bind(CheckMagazine, 0.5f, KeyEvent(Key.T), Button(JoyButton.DpadRight));
         Bind(Interact, 0.5f, KeyEvent(Key.F), Button(JoyButton.X));
+        Bind(Shove, 0.5f, KeyEvent(Key.G), Button(JoyButton.RightShoulder));
         Bind(HealthScreen, 0.5f, KeyEvent(Key.H), Button(JoyButton.Back));
         Bind(ReleaseMouse, 0.5f, KeyEvent(Key.Escape));
 
@@ -118,6 +122,7 @@ public static class InputActions
             Bind(DebugCycleCondition, 0.5f, CtrlKeyEvent(Key.K));
             Bind(DebugForceJam, 0.5f, CtrlKeyEvent(Key.J));
             Bind(DebugHealAll, 0.5f, CtrlKeyEvent(Key.G));
+            Bind(DebugInfectSelf, 0.5f, CtrlKeyEvent(Key.U));
             Bind(DebugToggleOverlay, 0.5f, CtrlKeyEvent(Key.I));
             Bind(DebugSpawnZombie, 0.5f, CtrlKeyEvent(Key.Z));
             Bind(DebugTimeScale, 0.5f, CtrlKeyEvent(Key.P));

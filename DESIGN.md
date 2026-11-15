@@ -307,13 +307,22 @@ Shared by player, zombies and NPCs (one Health component).
 - Developer keys: Ctrl+Z spawn a zombie 20 m ahead, Ctrl+P cycle time speed (×1/×60/×600),
   Ctrl+O skip 3 game hours. Zombies show their state/awareness above their heads (dev builds).
 
-#### Piece B: attacks, wounds, infection, shove
+#### Piece B: attacks, wounds, infection, shove (implemented on `preview` — in testing)
 - Zombies grab and attack: scratches, lacerations, bites to a body part (bites mostly when grabbed).
   Being grabbed slows you hard.
 - Wounds bleed and carry the 85–95% infection chance. Infection: hidden → symptoms (shown on the health
   screen, screen effects) → health drains → death.
 - **Shove / rifle-butt strike** (G / gamepad RB): short-range push that staggers, sometimes knocks
   down, breaks a grab. Costs stamina, short cooldown, small damage.
+- Details as built: attacks have a ≈0.6 s lunge wind-up (back off or shove to avoid it); 35% of landed
+  attacks become a grab; while grabbed you move at ≈0.7 m/s and it bites every ≈1.3 s until shoved off
+  or killed. Passing swipes are mostly scratches; grabs are mostly bites. Shove: ≈1.9 m reach, 70°
+  in front (or any zombie holding you), 8 stamina (weaker when tired), 0.9 s cooldown, knockdown ≈30%
+  on a healthy zombie (more with damaged legs), 2.5 s on the ground.
+- Infection is never labeled: the health screen shows wounds and symptoms only ("Feverish, aching",
+  "Very sick, nauseous"). Fever ≈6–12 game h after infection, sickness drains the body, death after
+  ≈48–72 game h ("You succumbed to the infection"). Fever also adds sway, pain and lowers stamina.
+- Developer keys: Ctrl+U infect self, Ctrl+G heal also cures; Ctrl+P speeds time up to watch it.
 
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level

@@ -54,6 +54,15 @@ public partial class Zombie : CharacterBody3D
     private SearchPhase _searchPhase;
     private Vector3 _searchDirection;
     private float _deathTime;
+    private float _attackCooldown;
+    private float _windupLeft = -1f;
+    private IAttackable? _grabbing;
+    private float _grabAttackTimer;
+    private float _knockdownLeft;
+    private AudioStreamPlayer3D _attackVoice = null!;
+
+    public bool IsGrabbing => _grabbing != null;
+    public bool IsKnockedDown => _knockdownLeft > 0f;
 
     public override void _Ready()
     {
@@ -85,6 +94,8 @@ public partial class Zombie : CharacterBody3D
         _voice = new AudioStreamPlayer3D { Stream = PlaceholderSounds.ZombieGroan, UnitSize = 4f, MaxDistance = 45f, PitchScale = _rng.RandfRange(0.8f, 1.15f) };
         AddChild(_voice);
         _groanTimer = _rng.RandfRange(2f, 10f);
+        _attackVoice = new AudioStreamPlayer3D { Stream = PlaceholderSounds.ZombieAttack, UnitSize = 5f, MaxDistance = 30f, PitchScale = _rng.RandfRange(0.85f, 1.15f) };
+        AddChild(_attackVoice);
         _idleTimer = _rng.RandfRange(0f, 3f);
 
     }
@@ -107,8 +118,11 @@ public partial class Zombie : CharacterBody3D
         }
 
         UpdateCrawler();
+        if (UpdateKnockdown(dt, ref velocity))
+            return;
         Think(dt);
         GiveUpOnUnreachableDestination(dt);
+        UpdateAttack(dt);
 
         // Move along the path.
         float speed = CurrentSpeed();
@@ -122,10 +136,20 @@ public partial class Zombie : CharacterBody3D
                 desired = to.Normalized() * speed;
         }
 
-        // Stop at arm's length from what it's chasing.
-        if (State == ZombieState.Chase && Perception.Target != null
+        // Stop at arm's length from what it's chasing, and hold still while lunging.
+        if ((State == ZombieState.Chase && Perception.Target != null
             && GlobalPosition.DistanceTo(Perception.Target.GroundPosition) <= Type.ReachDistance)
+            || _windupLeft >= 0f)
             desired = Vector3.Zero;
+
+        // Holding on: hang on to the target and get dragged/pulled along with it.
+        if (_grabbing != null && Perception.Target != null)
+        {
+            Vector3 toTarget = Perception.Target.GroundPosition - GlobalPosition;
+            toTarget.Y = 0f;
+            float gap = toTarget.Length() - Type.ReachDistance * 0.8f;
+            desired = gap > 0.05f ? toTarget.Normalized() * Mathf.Min(gap * 6f, 4f) : Vector3.Zero;
+        }
 
         Vector3 horizontal = new Vector3(velocity.X, 0f, velocity.Z).MoveToward(desired, Type.Acceleration * dt);
         velocity.X = horizontal.X;
@@ -333,8 +357,171 @@ public partial class Zombie : CharacterBody3D
         Perception.Position = new Vector3(0f, 0.35f, -0.6f);
     }
 
+    // ---------- Attacks ----------
+
+    private void UpdateAttack(float dt)
+    {
+        _attackCooldown = Mathf.Max(0f, _attackCooldown - dt);
+        IAttackable? target = State == ZombieState.Chase ? Perception.Target as IAttackable : null;
+        if (target == null || target.Health.IsDead || _staggerLeft > 0f || Health.IsDying)
+        {
+            CancelAttack();
+            Release();
+            return;
+        }
+
+        float distance = GlobalPosition.DistanceTo(Perception.Target!.GroundPosition);
+
+        if (_grabbing != null)
+        {
+            // Holding on: keep biting until shoved off or killed. It moves with you (see movement).
+            if (distance > Type.ReachDistance + 2.5f)
+            {
+                Release();
+                return;
+            }
+            _grabAttackTimer -= dt;
+            if (_grabAttackTimer <= 0f)
+            {
+                _grabAttackTimer = Type.GrabAttackInterval;
+                _attackVoice.Play();
+                LandAttack(target, grabbed: true);
+            }
+            return;
+        }
+
+        if (_windupLeft < 0f)
+        {
+            if (_attackCooldown <= 0f && distance <= Type.ReachDistance + 0.15f && FacingTargetWithin(50f))
+            {
+                _windupLeft = Type.AttackWindup;
+                _attackVoice.Play();
+            }
+            return;
+        }
+
+        // Lunging: lean in, then the swipe/bite lands if the target is still within reach.
+        _windupLeft -= dt;
+        if (!IsCrawler)
+            _visual.Rotation = new Vector3(Mathf.DegToRad(-18f) * (1f - _windupLeft / Type.AttackWindup), 0f, 0f);
+        if (_windupLeft > 0f)
+            return;
+        _windupLeft = -1f;
+        _attackCooldown = Type.AttackCooldown;
+        if (!IsCrawler)
+            _visual.Rotation = Vector3.Zero;
+        if (distance <= Type.ReachDistance + 0.4f && FacingTargetWithin(70f))
+        {
+            LandAttack(target, grabbed: false);
+            if (_rng.Randf() < Type.GrabChance)
+                Grab(target);
+        }
+    }
+
+    private void LandAttack(IAttackable target, bool grabbed)
+    {
+        BodyPart part = PickBodyPart();
+        // Holding on means bites; a passing swipe is mostly scratches.
+        float roll = _rng.Randf();
+        WoundType type = grabbed
+            ? (roll < 0.5f ? WoundType.Bite : roll < 0.8f ? WoundType.Laceration : WoundType.Scratch)
+            : (roll < 0.6f ? WoundType.Scratch : roll < 0.95f ? WoundType.Laceration : WoundType.Bite);
+
+        (float damage, float light, float heavy, float infection) = type switch
+        {
+            WoundType.Bite => (Type.BiteDamage, 0.4f, 0.6f, Type.BiteInfection),
+            WoundType.Laceration => (Type.LacerationDamage, 0.7f, 0.15f, Type.LacerationInfection),
+            _ => (Type.ScratchDamage, 0.3f, 0f, Type.ScratchInfection),
+        };
+        target.Health.ApplyWound(part, type, damage, light, heavy, DamageSource.ZombieAttack);
+        target.Infection?.Expose(infection);
+    }
+
+    private BodyPart PickBodyPart()
+    {
+        if (IsCrawler)
+            return _rng.Randf() < 0.5f ? BodyPart.LeftLeg : BodyPart.RightLeg;
+        float roll = _rng.Randf();
+        return roll < 0.18f ? BodyPart.LeftArm
+            : roll < 0.36f ? BodyPart.RightArm
+            : roll < 0.58f ? BodyPart.Chest
+            : roll < 0.68f ? BodyPart.Head
+            : roll < 0.82f ? BodyPart.Stomach
+            : roll < 0.91f ? BodyPart.LeftLeg
+            : BodyPart.RightLeg;
+    }
+
+    private bool FacingTargetWithin(float degrees)
+    {
+        Vector3 to = Perception.Target!.GroundPosition - GlobalPosition;
+        to.Y = 0f;
+        Vector3 forward = -GlobalBasis.Z;
+        forward.Y = 0f;
+        return to.LengthSquared() < 0.01f || forward.AngleTo(to) <= Mathf.DegToRad(degrees);
+    }
+
+    private void Grab(IAttackable target)
+    {
+        _grabbing = target;
+        _grabAttackTimer = Type.GrabAttackInterval;
+        target.OnGrabbed(this);
+    }
+
+    private void Release()
+    {
+        if (_grabbing == null)
+            return;
+        _grabbing.OnReleased(this);
+        _grabbing = null;
+    }
+
+    private void CancelAttack()
+    {
+        if (_windupLeft >= 0f && !IsCrawler && _knockdownLeft <= 0f)
+            _visual.Rotation = Vector3.Zero;
+        _windupLeft = -1f;
+    }
+
+    /// <summary>Shoved by a rifle butt: pushed back, staggered, lets go — and maybe knocked down.</summary>
+    public void ApplyShove(Vector3 direction, float strength, bool knockDown)
+    {
+        if (State == ZombieState.Dead)
+            return;
+        CancelAttack();
+        Release();
+        direction.Y = 0f;
+        Velocity += direction.Normalized() * 3.2f * strength;
+        _staggerLeft = Mathf.Max(_staggerLeft, 1.0f * strength);
+        _attackCooldown = Mathf.Max(_attackCooldown, 0.8f);
+        if (knockDown && !IsCrawler)
+            _knockdownLeft = Type.KnockdownSeconds;
+    }
+
+    /// <summary>On the ground after a shove: slides to a stop, then gets back up. Returns true while down.</summary>
+    private bool UpdateKnockdown(float dt, ref Vector3 velocity)
+    {
+        if (_knockdownLeft <= 0f)
+            return false;
+        _knockdownLeft -= dt;
+        float fall = Mathf.Min((Type.KnockdownSeconds - _knockdownLeft) * 4f, 1f);
+        float rise = Mathf.Clamp(_knockdownLeft * 2f, 0f, 1f); // Last half second: getting up.
+        _visual.Rotation = new Vector3(Mathf.DegToRad(80f) * Mathf.Min(fall, rise), 0f, 0f);
+        Vector3 horizontal = new Vector3(velocity.X, 0f, velocity.Z).MoveToward(Vector3.Zero, 6f * dt);
+        velocity.X = horizontal.X;
+        velocity.Z = horizontal.Z;
+        Velocity = velocity;
+        MoveAndSlide();
+        if (_knockdownLeft <= 0f)
+            _visual.Rotation = Vector3.Zero;
+        UpdateDebugLabel();
+        return true;
+    }
+
     private void OnDied()
     {
+        CancelAttack();
+        Release();
+        _knockdownLeft = 0f;
         State = ZombieState.Dead;
         _hasDestination = false;
         Perception.Enabled = false;
@@ -357,7 +544,7 @@ public partial class Zombie : CharacterBody3D
     {
         if (_debugLabel == null || !_debugLabel.Visible)
             return;
-        _debugLabel.Text = $"{State}{(IsCrawler ? " (crawler)" : "")}{(Health.IsDying ? " BLEEDING OUT" : "")}\n"
+        _debugLabel.Text = $"{State}{(IsCrawler ? " (crawler)" : "")}{(Health.IsDying ? " BLEEDING OUT" : "")}{(IsGrabbing ? " GRABBING" : "")}{(IsKnockedDown ? " DOWN" : "")}{(_windupLeft >= 0f ? " LUNGE" : "")}\n"
             + $"aware {Perception.Awareness:0.0}  {CurrentSpeed():0.0} m/s\n"
             + $"head {Mathf.Ceil(Health.Hp(BodyPart.Head))}  chest {Mathf.Ceil(Health.Hp(BodyPart.Chest))}";
     }
