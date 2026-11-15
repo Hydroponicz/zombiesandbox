@@ -39,6 +39,8 @@ public partial class WeaponHolder : Node3D
     public float Breathlessness { get; set; }
     /// <summary>World transform of the eye: origin at the eye, -Z where the owner aims.</summary>
     public Transform3D AimPivot { get; set; } = Transform3D.Identity;
+    /// <summary>Stance recoil multiplier (crouch/prone brace the weapon).</summary>
+    public float RecoilStanceMultiplier { get; set; } = 1f;
     /// <summary>The trigger is being pulled.</summary>
     public bool TriggerHeld { get; set; }
 
@@ -60,6 +62,11 @@ public partial class WeaponHolder : Node3D
     public float SwayDegrees => _swayAmplitude;
     public FireMode FireMode { get; private set; } = FireMode.Auto;
     public int ShotsFired { get; private set; }
+    /// <summary>Current recoil offset of the point of aim in degrees (X = up, Y = sideways). Springs back to zero.</summary>
+    public Vector2 RecoilDegrees => _recoil;
+    /// <summary>Shots in the current burst.</summary>
+    public int BurstShots { get; private set; }
+    public float CameraRecoilFraction => Weapon?.Data.CameraRecoilFraction ?? 0f;
 
     private CharacterStats _stats = null!;
     private CharacterSkills _skills = null!;
@@ -68,7 +75,14 @@ public partial class WeaponHolder : Node3D
     private float _zeroAngle;
     private float _fireCooldown;
     private bool _triggerWasHeld;
+    private bool _pendingPull;
     private AudioStreamPlayer3D _shotAudio = null!;
+    private Vector2 _recoil;
+    private Vector2 _recoilVelocity;
+    private float _kickback;
+    private float _kickbackVelocity;
+    private float _sinceLastShot = 10f;
+    private readonly RandomNumberGenerator _rng = new();
     private float _lowerBlend;
     private float _readyTime;
     private float _breathLeft;
@@ -116,6 +130,12 @@ public partial class WeaponHolder : Node3D
         FireMode = data.SupportsAuto ? FireMode.Auto : FireMode.Semi;
     }
 
+    /// <summary>
+    /// Register a trigger press. Latched until the next frame, so a click shorter than one
+    /// frame still fires (TriggerHeld alone could miss it).
+    /// </summary>
+    public void PullTrigger() => _pendingPull = true;
+
     public void CycleFireMode()
     {
         if (Weapon == null || !(Weapon.Data.SupportsSemi && Weapon.Data.SupportsAuto))
@@ -151,6 +171,7 @@ public partial class WeaponHolder : Node3D
 
         UpdateBreath(dt);
         UpdateSway(dt, data);
+        UpdateRecoil(dt, data);
 
         // Pose: hip ↔ aimed, then toward lowered when sprinting or jammed against a wall.
         Transform3D hip = WeaponData.Pose(data.HipPosition, data.HipRotationDegrees);
@@ -160,11 +181,16 @@ public partial class WeaponHolder : Node3D
         float lowerAmount = Mathf.Max(Mathf.SmoothStep(0f, 1f, _lowerBlend), wallBlock);
         Transform3D local = ready.InterpolateWith(lowered, lowerAmount);
 
-        Transform3D sway = new(Basis.FromEuler(new Vector3(SwayPitch(), SwayYaw(), 0f)), Vector3.Zero);
+        // Sway plus the part of the recoil the camera doesn't already show.
+        Vector2 gunRecoil = _recoil * (1f - data.CameraRecoilFraction);
+        Transform3D sway = new(Basis.FromEuler(new Vector3(
+            SwayPitch() + Mathf.DegToRad(gunRecoil.X),
+            SwayYaw() + Mathf.DegToRad(gunRecoil.Y),
+            0f)), Vector3.Zero);
         Transform3D aim = AimPivot * sway;
 
         UpdateWallPullBack(dt, aim, ready);
-        local.Origin += Vector3.Back * WallPullBack;
+        local.Origin += Vector3.Back * (WallPullBack + _kickback);
 
         GlobalTransform = aim * local;
         CanFire = raised && _lowerBlend <= 0f && wallBlock <= 0f;
@@ -174,7 +200,8 @@ public partial class WeaponHolder : Node3D
 
     private void UpdateTrigger(float dt, WeaponData data)
     {
-        bool pulled = TriggerHeld && !_triggerWasHeld;
+        bool pulled = (TriggerHeld && !_triggerWasHeld) || _pendingPull;
+        _pendingPull = false;
         _triggerWasHeld = TriggerHeld;
         float interval = 60f / data.FireRateRpm;
 
@@ -195,6 +222,11 @@ public partial class WeaponHolder : Node3D
         }
         else
         {
+            if (pulled && _fireCooldown <= 0f && !TriggerHeld)
+            {
+                Shoot(data); // A click shorter than a frame still fires one round.
+                _fireCooldown = interval;
+            }
             while (TriggerHeld && _fireCooldown <= 0f)
             {
                 Shoot(data);
@@ -223,6 +255,54 @@ public partial class WeaponHolder : Node3D
         ShotsFired++;
         _shotAudio.GlobalPosition = muzzle.Origin;
         _shotAudio.Play();
+        ApplyRecoil(data);
+    }
+
+    /// <summary>
+    /// Kick the gun: an impulse into a critically damped spring, so it snaps up and settles all
+    /// the way back to the point of aim. In full auto the impulses overlap, so the gun climbs and
+    /// then bounces around a raised point; vertical kick also eases after the first few shots.
+    /// </summary>
+    private void ApplyRecoil(WeaponData data)
+    {
+        BurstShots = _sinceLastShot > Config.BurstResetTime ? 1 : BurstShots + 1;
+        _sinceLastShot = 0f;
+
+        float easing = Mathf.Clamp((BurstShots - Config.BurstClimbShots) / 4f, 0f, 1f);
+        float climb = Mathf.Lerp(1f, Config.SustainedFireVerticalMultiplier, easing);
+        float widen = 1f + 0.3f * Mathf.Min(BurstShots / 5f, 1f);
+        float multiplier = Mathf.Lerp(Config.HipRecoilMultiplier, 1f, AdsBlend) * RecoilStanceMultiplier * _stats.RecoilMultiplier;
+
+        var kick = new Vector2(
+            data.VerticalRecoilDegrees * climb * _rng.RandfRange(0.85f, 1.15f),
+            data.HorizontalRecoilDegrees * widen * _rng.RandfRange(-1f, 1f)) * multiplier;
+
+        // For a critically damped spring, an impulse of kick·ω·e peaks at exactly `kick`.
+        float omega = Mathf.Sqrt(data.RecoilRecoveryStiffness);
+        _recoilVelocity += kick * omega * Mathf.E;
+        _kickbackVelocity += data.KickbackMeters * multiplier * KickbackOmega * Mathf.E;
+    }
+
+    private const float KickbackOmega = 25f;
+
+    private void UpdateRecoil(float dt, WeaponData data)
+    {
+        _sinceLastShot += dt;
+        float k = data.RecoilRecoveryStiffness;
+        float c = 2f * Mathf.Sqrt(k);
+        const float kk = KickbackOmega * KickbackOmega;
+        const float ck = 2f * KickbackOmega;
+
+        // Small fixed steps keep the springs stable at any frame rate.
+        int steps = Mathf.Max(1, Mathf.CeilToInt(dt / (1f / 240f)));
+        float h = dt / steps;
+        for (int i = 0; i < steps; i++)
+        {
+            _recoilVelocity += (-k * _recoil - c * _recoilVelocity) * h;
+            _recoil += _recoilVelocity * h;
+            _kickbackVelocity += (-kk * _kickback - ck * _kickbackVelocity) * h;
+            _kickback += _kickbackVelocity * h;
+        }
     }
 
     private void UpdateBreath(float dt)

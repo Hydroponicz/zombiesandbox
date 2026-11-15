@@ -18,6 +18,10 @@ public partial class StatsConfig : Resource
     /// <summary>Sway multiplier at Aiming 10 (level 0 = 1.0).</summary>
     [Export] public float AimSwayMultiplierAtLevel10 { get; set; } = 0.6f;
 
+    [ExportGroup("Strength → weapon handling")]
+    /// <summary>Recoil multiplier at Strength 10 (level 0 = 1.0).</summary>
+    [Export] public float RecoilMultiplierAtLevel10 { get; set; } = 0.7f;
+
     [ExportGroup("Fitness → movement (level 0 = 1.0)")]
     [Export] public float SprintSpeedMultiplierAtLevel10 { get; set; } = 1.08f;
     [Export] public float AccelerationMultiplierAtLevel10 { get; set; } = 1.10f;

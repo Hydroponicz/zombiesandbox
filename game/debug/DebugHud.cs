@@ -44,17 +44,17 @@ public partial class DebugHud : CanvasLayer
         _text.AppendLine(skills.IsMaxLevel(SkillId.Fitness)
             ? $"Fitness: Lv {skills.GetLevel(SkillId.Fitness)} (max)"
             : $"Fitness: Lv {skills.GetLevel(SkillId.Fitness)}   XP {skills.GetXp(SkillId.Fitness):0.0} / {skills.XpForNextLevel(SkillId.Fitness):0}");
-        _text.AppendLine($"Aiming: Lv {skills.GetLevel(SkillId.Aiming)}");
+        _text.AppendLine($"Aiming: Lv {skills.GetLevel(SkillId.Aiming)}    Strength: Lv {skills.GetLevel(SkillId.Strength)}");
         Combat.WeaponHolder w = _player.Weapons;
         string breath = w.IsGasping ? "GASPING" : (w.IsHoldingBreath ? "HOLDING" : "normal");
         _text.AppendLine($"Weapon: ADS {w.AdsBlend:0.00}{(w.IsAiming ? " (aiming)" : "")}    Can fire: {(w.CanFire ? "yes" : "NO")}    Sway: {w.SwayDegrees:0.00}°    Breath: {breath} {w.BreathFraction:P0}    Wall: {w.WallPullBack:0.00} m{(_player.IsPeeking ? "    PEEKING" : "")}");
         Combat.Ballistics ballistics = Combat.Ballistics.Instance;
         string assist = rig.AimAssistTarget != null ? "    Aim assist: ON TARGET" : "";
-        _text.AppendLine($"Fire mode: {w.FireMode}    Shots: {w.ShotsFired}    In flight: {ballistics.BulletsInFlight}    Trails: {(ballistics.ShowTrails ? "on" : "off")}{assist}");
+        _text.AppendLine($"Fire mode: {w.FireMode}    Shots: {w.ShotsFired}    In flight: {ballistics.BulletsInFlight}    Trails: {(ballistics.ShowTrails ? "on" : "off")}    Recoil: {w.RecoilDegrees.X:+0.00;-0.00;0.00}° up {w.RecoilDegrees.Y:+0.00;-0.00;0.00}° side (burst {w.BurstShots}){assist}");
         if (ballistics.LastImpact is { } hit)
             _text.AppendLine($"Last hit: {hit.Distance:0.0} m   {hit.Speed:0} m/s   {hit.FlightTime * 1000f:0} ms   {Mathf.Round(hit.DropFromSightLine * 1000f) / 10f:+0.0;-0.0;0.0} cm vs sight line{(hit.HitTarget ? "   TARGET" : "")}");
         _text.AppendLine();
-        _text.AppendLine("[DEV] F3/F4 = Fitness +/-   F5/F6 = Aiming +/-   F7 = bullet trails    Esc = release mouse, click = recapture");
+        _text.AppendLine("[DEV] F3/F4 = Fitness +/-   F5/F6 = Aiming +/-   F8/F9 = Strength +/-   F7 = bullet trails    Esc = release mouse, click = recapture");
         _info.Text = _text.ToString();
     }
 }

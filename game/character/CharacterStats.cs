@@ -16,6 +16,7 @@ public partial class CharacterStats : Node
 
     private float Fitness => _skills.GetLevelFraction(SkillId.Fitness);
     private float Aiming => _skills.GetLevelFraction(SkillId.Aiming);
+    private float Strength => _skills.GetLevelFraction(SkillId.Strength);
 
     public float MaxStamina => Mathf.Lerp(Config.MaxStaminaAtLevel0, Config.MaxStaminaAtLevel10, Fitness);
 
@@ -26,6 +27,8 @@ public partial class CharacterStats : Node
     public float AccelerationMultiplier => Mathf.Lerp(1f, Config.AccelerationMultiplierAtLevel10, Fitness);
 
     public float HoldBreathSeconds => Mathf.Lerp(Config.HoldBreathSecondsAtLevel0, Config.HoldBreathSecondsAtLevel10, Aiming);
+
+    public float RecoilMultiplier => Mathf.Lerp(1f, Config.RecoilMultiplierAtLevel10, Strength);
 
     public float AimSwayMultiplier => Mathf.Lerp(1f, Config.AimSwayMultiplierAtLevel10, Aiming);
 }

@@ -38,6 +38,8 @@ public static class InputActions
     public const string DebugAimingUp = "debug_aiming_up";
     public const string DebugAimingDown = "debug_aiming_down";
     public const string DebugBulletTrails = "debug_bullet_trails";
+    public const string DebugStrengthUp = "debug_strength_up";
+    public const string DebugStrengthDown = "debug_strength_down";
 
     /// <summary>InputMap events with this device id match any connected device.</summary>
     private const int AllDevices = -1;
@@ -78,6 +80,8 @@ public static class InputActions
             Bind(DebugAimingUp, 0.5f, KeyEvent(Key.F5));
             Bind(DebugAimingDown, 0.5f, KeyEvent(Key.F6));
             Bind(DebugBulletTrails, 0.5f, KeyEvent(Key.F7));
+            Bind(DebugStrengthUp, 0.5f, KeyEvent(Key.F8));
+            Bind(DebugStrengthDown, 0.5f, KeyEvent(Key.F9));
         }
     }
 

@@ -20,6 +20,18 @@ public partial class WeaponData : Resource
     /// <summary>Distance (m) at which the bullet crosses the sight line.</summary>
     [Export] public float ZeroDistance { get; set; } = 100f;
 
+    [ExportGroup("Recoil")]
+    /// <summary>Upward kick per shot while aiming (degrees).</summary>
+    [Export] public float VerticalRecoilDegrees { get; set; } = 0.8f;
+    /// <summary>Maximum random sideways kick per shot while aiming (degrees).</summary>
+    [Export] public float HorizontalRecoilDegrees { get; set; } = 0.18f;
+    /// <summary>How hard the gun springs back to the point of aim. Higher = snappier return.</summary>
+    [Export] public float RecoilRecoveryStiffness { get; set; } = 400f;
+    /// <summary>Fraction of the kick the camera follows (the rest is the gun moving in view).</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float CameraRecoilFraction { get; set; } = 0.3f;
+    /// <summary>How far the gun shoves back into the shoulder per shot (m).</summary>
+    [Export] public float KickbackMeters { get; set; } = 0.025f;
+
     [ExportGroup("Aiming")]
     /// <summary>Seconds to go from hip to fully aimed.</summary>
     [Export] public float AdsTime { get; set; } = 0.3f;

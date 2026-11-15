@@ -155,6 +155,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             _triggerHeld = e.IsPressed();
             if (_triggerHeld)
             {
+                Weapons.PullTrigger();
                 // Pulling the trigger ends a sprint; press sprint again to resume.
                 _sprintToggled = false;
                 _sprintHeld = false;
@@ -203,6 +204,14 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugFitnessDown))
         {
             Skills.SetLevel(SkillId.Fitness, Skills.GetLevel(SkillId.Fitness) - 1);
+        }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugStrengthUp))
+        {
+            Skills.SetLevel(SkillId.Strength, Skills.GetLevel(SkillId.Strength) + 1);
+        }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugStrengthDown))
+        {
+            Skills.SetLevel(SkillId.Strength, Skills.GetLevel(SkillId.Strength) - 1);
         }
         else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugAimingUp))
         {
@@ -307,6 +316,12 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         Weapons.Lowered = IsSprinting;
         Weapons.MoveFraction = Mathf.Clamp(HorizontalSpeed / Config.RunSpeed, 0f, 1f);
         Weapons.Breathlessness = 1f - Stamina.Fraction;
+        Weapons.RecoilStanceMultiplier = Stance switch
+        {
+            Stance.Crouch => Weapons.Config.CrouchRecoilMultiplier,
+            Stance.Prone => Weapons.Config.ProneRecoilMultiplier,
+            _ => 1f,
+        };
         Weapons.StanceSwayMultiplier = Stance switch
         {
             Stance.Crouch => Weapons.Config.CrouchSwayMultiplier,

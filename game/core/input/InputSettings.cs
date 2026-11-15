@@ -76,6 +76,10 @@ public partial class InputSettings : Resource
     /// <summary>Aiming while crouched behind low cover rises up to aim over it.</summary>
     [Export] public bool PeekOverCover { get; set; } = true;
 
+    [ExportGroup("Comfort")]
+    /// <summary>Per-shot camera shake. 0 = off, 1 = full.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float CameraShake { get; set; } = 1f;
+
     [ExportGroup("General")]
     [Export] public bool InvertY { get; set; }
 

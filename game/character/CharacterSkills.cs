@@ -8,7 +8,7 @@ namespace ZombieSandbox.Character;
 public enum SkillId
 {
     Fitness,
-    Strength, // Defined now; has no effect until inventory (build step 6).
+    Strength, // Recoil control now; carry capacity with inventory (build step 6).
     Aiming, // Hold-breath time and weapon sway. Earns XP from hits (gunplay piece 2).
 }
 

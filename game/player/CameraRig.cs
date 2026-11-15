@@ -41,6 +41,10 @@ public partial class CameraRig : Node3D
     private AimAssistTarget? _assistTarget;
     private Vector2 _assistLastAngles;
     private float _assistSlowdown = 1f;
+    private int _lastShotCount;
+    private float _shake;
+    private Vector3 _shakeDirection;
+    private readonly RandomNumberGenerator _shakeRng = new();
     /// <summary>The target aim assist is currently helping with (null if none).</summary>
     public AimAssistTarget? AimAssistTarget => _assistTarget;
 
@@ -111,7 +115,13 @@ public partial class CameraRig : Node3D
 
         GlobalPosition = _player.GetGlobalTransformInterpolated().Origin;
         Rotation = new Vector3(0f, Yaw, 0f);
-        _pitchPivot.Rotation = new Vector3(Pitch, 0f, 0f);
+
+        // The camera shows part of the weapon's recoil kick (it springs back on its own).
+        Vector2 cameraKick = _player.Weapons.RecoilDegrees * _player.Weapons.CameraRecoilFraction;
+        float kickPitch = Mathf.DegToRad(cameraKick.X);
+        float kickYaw = Mathf.DegToRad(cameraKick.Y);
+        _pitchPivot.Rotation = new Vector3(Pitch + kickPitch, kickYaw, 0f);
+        UpdateCameraShake(dt);
 
         float eye = _player.EyeHeight;
         float lean = _player.Lean;
@@ -132,15 +142,16 @@ public partial class CameraRig : Node3D
         if (IsViewFirstPerson)
         {
             _pitchPivot.Position = KeepFirstPersonCameraOutOfWalls(new Vector3(leanOffset, eye, -Config.FirstPersonForwardOffset), eye);
-            _pitchPivot.Rotation = new Vector3(Pitch, 0f, -lean * Mathf.DegToRad(Config.FirstPersonLeanRoll));
+            _pitchPivot.Rotation = new Vector3(Pitch + kickPitch, kickYaw, -lean * Mathf.DegToRad(Config.FirstPersonLeanRoll));
             _arm.Position = Vector3.Zero;
             _arm.SpringLength = 0f;
             float adsFov = weapons.Weapon?.Data.AdsFieldOfView ?? Config.FieldOfView;
             _camera.Fov = Mathf.Lerp(Config.FieldOfView, adsFov, ads);
             ShowAimDot = false;
 
-            // First person: the weapon is aimed exactly where the camera looks.
-            weapons.AimPivot = _camera.GlobalTransform;
+            // First person: the weapon is aimed exactly where the camera looks (without the
+            // cosmetic shake, which lives on the camera node itself and must never move shots).
+            weapons.AimPivot = _pitchPivot.GlobalTransform;
         }
         else
         {
@@ -193,6 +204,25 @@ public partial class CameraRig : Node3D
         float[] fractions = GetWorld3D().DirectSpaceState.CastMotion(_fpCollisionQuery);
         float safe = fractions.Length > 0 ? fractions[0] : 1f;
         return fromLocal.Lerp(wantedLocal, safe);
+    }
+
+    /// <summary>A quick, decaying jolt per shot. Scaled (or disabled) by the Camera Shake setting.</summary>
+    private void UpdateCameraShake(float dt)
+    {
+        int shots = _player.Weapons.ShotsFired;
+        if (shots != _lastShotCount)
+        {
+            _lastShotCount = shots;
+            _shake = Mathf.Min(_shake + 1f, 1.5f);
+            _shakeDirection = new Vector3(_shakeRng.RandfRange(0.4f, 1f), _shakeRng.RandfRange(-1f, 1f), _shakeRng.RandfRange(-1f, 1f));
+        }
+
+        _shake *= Mathf.Exp(-20f * dt);
+        float amount = _shake * GameInput.Instance.Settings.CameraShake;
+        _camera.Rotation = new Vector3(
+            Mathf.DegToRad(Config.ShakePitchDegrees * _shakeDirection.X * amount),
+            Mathf.DegToRad(Config.ShakeYawDegrees * _shakeDirection.Y * amount),
+            Mathf.DegToRad(Config.ShakeRollDegrees * _shakeDirection.Z * amount));
     }
 
     private void ApplyGamepadLook(float dt)

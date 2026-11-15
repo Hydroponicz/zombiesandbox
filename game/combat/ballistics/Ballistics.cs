@@ -21,7 +21,7 @@ public readonly record struct Shot(
     uint CollisionMask);
 
 /// <summary>What the last bullet did (shown on the debug overlay).</summary>
-public readonly record struct ImpactReport(float Distance, float Speed, float FlightTime, float DropFromSightLine, bool HitTarget);
+public readonly record struct ImpactReport(Vector3 Position, float Distance, float Speed, float FlightTime, float DropFromSightLine, bool HitTarget);
 
 /// <summary>
 /// Autoload. Simulates every bullet in flight: gravity, air drag, and a ray test along each step's
@@ -228,7 +228,7 @@ public partial class Ballistics : Node3D
 
         shot.Shooter?.OnShotLanded(distance, hitTarget);
 
-        LastImpact = new ImpactReport(distance, velocity.Length(), time, DropFromSightLine(shot, position), hitTarget);
+        LastImpact = new ImpactReport(position, distance, velocity.Length(), time, DropFromSightLine(shot, position), hitTarget);
 
         PlaceHole(position, normal, collider as Node3D);
         PlayPuff(position, normal);
