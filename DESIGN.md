@@ -107,7 +107,7 @@ Every feature must serve at least one pillar.
 If the gamepad crouch is set to *Hold*, tap/hold on one button no longer works, so
 prone moves to D-pad down.
 
-### 2. Gunplay (in design)
+### 2. Gunplay (core done — attachments after inventory)
 
 #### Locked decisions
 - **Ballistics:** simulated projectiles. Bullets have travel time and drop with distance (no hitscan).
@@ -128,7 +128,7 @@ prone moves to D-pad down.
 3. **Recoil.**
 4. **Magazines & reloading.**
 5. **Malfunctions.**
-6. **Attachments** (probably after inventory exists).
+6. **Attachments** — moved to after inventory (step 6).
 
 #### Piece 1: holding & aiming (done)
 - Rifle is always held ready; it lowers while sprinting and comes back up ≈0.25 s after sprint ends
@@ -216,7 +216,7 @@ prone moves to D-pad down.
   items on the floor would otherwise be nearly impossible to point at without a crosshair.
 - **Developer keys:** Ctrl+7/8 Reloading −/+, Ctrl+R refill ammo.
 
-#### Piece 5: malfunctions (implemented on `preview` — in testing)
+#### Piece 5: malfunctions (done)
 - **Weapon condition** 0–100% per weapon. Each shot wears it a little (≈0.01% → ~10,000 rounds
   from new to ruined; the Maintenance skill halves wear at level 10). Repairs come later.
 - **Jam chance per shot** from condition (tunable): ≈1/5000 at 100%, 1/2000 at 80%, 1/1200 at 70%,
@@ -273,7 +273,7 @@ Each step is refined until solid before moving on. All work happens in graybox t
 
 0. ✅ Project skeleton, conventions, this document
 1. ✅ Player controller + first/third person camera + stats component + leg stamina
-2. Gunplay core (weapons usable by any character). Includes, because they need aiming down sights:
+2. ✅ Gunplay core (weapons usable by any character). Includes, because they need aiming down sights:
    - **Gamepad auto-lean:** aiming down sights beside a corner/cover edge leans around it (CoD-style).
    - **Peek over cover:** aiming while crouched behind waist-high cover raises you to aim over it (gamepad and keyboard).
 3. Health & damage — body parts, bleeding, fractures (shared by everyone)
