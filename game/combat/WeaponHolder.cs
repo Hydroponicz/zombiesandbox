@@ -72,8 +72,8 @@ public partial class WeaponHolder : Node3D
 
     private CharacterStats _stats = null!;
     private CharacterSkills _skills = null!;
-    private Rid _ownerBody;
-    private uint _collisionMask;
+    private Array<Rid> _ownerExclude = new();
+    private uint _bulletMask;
     private float _zeroAngle;
     private float _fireCooldown;
     private bool _triggerWasHeld;
@@ -95,17 +95,23 @@ public partial class WeaponHolder : Node3D
     private float _swayAmplitude;
     private readonly PhysicsRayQueryParameters3D _wallRay = new();
 
-    public void Initialize(CharacterStats stats, CharacterSkills skills, MagazinePouch? pouch, Rid owner, uint collisionMask)
+    /// <param name="ownerExclude">The owner's body and hitboxes (bullets and wall checks ignore them).</param>
+    /// <param name="worldMask">What the weapon bumps into (walls).</param>
+    /// <param name="bulletMask">What bullets can hit (world + hitboxes).</param>
+    public void Initialize(CharacterStats stats, CharacterSkills skills, MagazinePouch? pouch, Array<Rid> ownerExclude, uint worldMask, uint bulletMask)
     {
         _stats = stats;
         _skills = skills;
         Pouch = pouch;
-        _ownerBody = owner;
-        _collisionMask = collisionMask;
+        _ownerExclude = ownerExclude;
+        _bulletMask = bulletMask;
         _breathLeft = stats.HoldBreathSeconds;
-        _wallRay.Exclude = new Array<Rid> { owner };
-        _wallRay.CollisionMask = collisionMask;
+        _wallRay.Exclude = ownerExclude;
+        _wallRay.CollisionMask = worldMask;
     }
+
+    /// <summary>Extra sway from injuries (fractured arms, pain). Set by the owner.</summary>
+    public float InjurySwayMultiplier { get; set; } = 1f;
 
     public override void _Ready()
     {
@@ -281,8 +287,8 @@ public partial class WeaponHolder : Node3D
             SightOrigin: sightEye.Origin,
             SightDirection: -sightEye.Basis.Z,
             Shooter: this,
-            ShooterBody: _ownerBody,
-            CollisionMask: _collisionMask));
+            Exclude: _ownerExclude,
+            CollisionMask: _bulletMask));
 
         ShotsFired++;
         ApplyWear(data);
@@ -403,7 +409,8 @@ public partial class WeaponHolder : Node3D
             * (1f + Config.MovingSwayGain * MoveFraction)
             * (1f + Config.BreathlessSwayGain * Breathlessness * Breathlessness)
             * _stats.AimSwayMultiplier
-            * data.SwayMultiplier;
+            * data.SwayMultiplier
+            * InjurySwayMultiplier;
         if (IsHoldingBreath)
             amplitude *= Config.HoldBreathSwayMultiplier;
         else if (IsGasping)

@@ -12,6 +12,7 @@ public enum SkillId
     Aiming, // Hold-breath time and weapon sway. Earns XP from hits (gunplay piece 2).
     Reloading, // Reload and magazine-check speed, magazine-check precision.
     Maintenance, // Jam clearing and inspection speed, slower weapon wear; repairs later.
+    Medical, // Health estimates on the body diagram; healing with medical items later.
 }
 
 /// <summary>

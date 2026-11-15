@@ -40,8 +40,8 @@ public partial class AimDot : Control
             Transform3D muzzle = weapons.Weapon.Muzzle.GlobalTransform;
             _ray.From = muzzle.Origin;
             _ray.To = muzzle.Origin - muzzle.Basis.Z.Normalized() * MaxRange;
-            _ray.CollisionMask = _player.CollisionMask;
-            _ray.Exclude ??= new Array<Rid> { _player.GetRid() };
+            _ray.CollisionMask = _player.CollisionMask | ZombieSandbox.Health.HitboxRig.HitboxLayer;
+            _ray.Exclude = _player.SelfExclude;
             Dictionary hit = _player.GetWorld3D().DirectSpaceState.IntersectRay(_ray);
             Vector3 point = hit.Count > 0 ? hit["position"].AsVector3() : _ray.To;
 

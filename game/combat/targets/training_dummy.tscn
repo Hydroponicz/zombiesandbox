@@ -1,0 +1,51 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://game/combat/targets/TrainingDummy.cs" id="1_dummy"]
+[ext_resource type="Script" path="res://game/health/BodyHealth.cs" id="2_health"]
+[ext_resource type="Resource" path="res://game/health/health_config.tres" id="3_cfg"]
+[ext_resource type="PackedScene" path="res://game/health/body_hitboxes.tscn" id="4_hitboxes"]
+[ext_resource type="Script" path="res://game/combat/targets/AimAssistTarget.cs" id="5_assist"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_dummy"]
+albedo_color = Color(0.78, 0.66, 0.48, 1)
+roughness = 0.9
+
+[sub_resource type="CapsuleMesh" id="Mesh_body"]
+material = SubResource("Mat_dummy")
+radius = 0.2
+height = 1.8
+
+[sub_resource type="SphereMesh" id="Mesh_head"]
+material = SubResource("Mat_dummy")
+radius = 0.12
+height = 0.24
+
+[node name="TrainingDummy" type="Node3D"]
+script = ExtResource("1_dummy")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+Config = ExtResource("3_cfg")
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+mesh = SubResource("Mesh_body")
+
+[node name="Head" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.62, 0)
+mesh = SubResource("Mesh_head")
+
+[node name="Hitboxes" parent="Visual" instance=ExtResource("4_hitboxes")]
+
+[node name="AimAssistTarget" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
+script = ExtResource("5_assist")
+Radius = 0.35
+
+[node name="Readout" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, 0)
+billboard = 1
+font_size = 28
+outline_size = 8

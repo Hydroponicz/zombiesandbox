@@ -5,6 +5,7 @@ using ZombieSandbox.Combat;
 using ZombieSandbox.Core;
 using ZombieSandbox.Core.Input;
 using ZombieSandbox.Core.Interaction;
+using ZombieSandbox.Health;
 
 namespace ZombieSandbox.Player;
 
@@ -35,6 +36,13 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     public CameraRig CameraRig { get; private set; } = null!;
     public WeaponHolder Weapons { get; private set; } = null!;
     public MagazinePouch Pouch { get; private set; } = null!;
+    public BodyHealth Health { get; private set; } = null!;
+    public HitboxRig Hitboxes { get; private set; } = null!;
+    /// <summary>The player's own body and hitboxes: own bullets and aiming rays ignore them.</summary>
+    public Array<Rid> SelfExclude { get; } = new();
+    public bool IsDead => Health.IsDead;
+    /// <summary>The health screen (body diagram) is open.</summary>
+    public bool HealthScreenOpen { get; private set; }
     /// <summary>The usable thing the player is looking at, within reach (null if none).</summary>
     public IInteractable? InteractTarget { get; private set; }
 
@@ -61,6 +69,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     private float _gravity;
     private bool _wasOnFloor = true;
     private bool _inJump;
+    private float _airPeakY;
     private float _jumpBufferLeft;
     private float _landingRecoveryLeft;
 
@@ -123,10 +132,16 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         Stamina = GetNode<Stamina>("Stamina");
         Weapons = GetNode<WeaponHolder>("WeaponHolder");
         Pouch = GetNode<MagazinePouch>("MagazinePouch");
+        Health = GetNode<BodyHealth>("Health");
+        Hitboxes = GetNode<HitboxRig>("Hitboxes");
+
+        SelfExclude.Add(GetRid());
+        Hitboxes.AddRidsTo(SelfExclude);
 
         Stats.Initialize(Skills);
         Stamina.Initialize(Stats, Skills);
-        Weapons.Initialize(Stats, Skills, Pouch, GetRid(), CollisionMask);
+        Health.Initialize(Skills);
+        Weapons.Initialize(Stats, Skills, Pouch, SelfExclude, worldMask: CollisionMask, bulletMask: CollisionMask | HitboxRig.HitboxLayer);
         Weapons.GiveSpareMagazines(StartingSpareMagazines);
 
         _gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle() * Config.GravityMultiplier;
@@ -168,6 +183,17 @@ public partial class PlayerController : CharacterBody3D, IPersistent
 
         InputSettings settings = GameInput.Instance.Settings;
         InputDevice device = GameInput.DeviceOf(e);
+
+        if (HandleHealthDebugInput(e))
+            return;
+        if (IsDead)
+            return; // The death screen handles restarting.
+
+        if (e.IsActionPressed(InputActions.HealthScreen))
+        {
+            HealthScreenOpen = !HealthScreenOpen;
+            return;
+        }
 
         // Gamepad X is both interact and reload: interacting wins when looking at something usable.
         if (e.IsActionPressed(InputActions.Interact, exactMatch: true) && InteractTarget != null)
@@ -324,7 +350,14 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         UpdateInteractTarget();
         UpdateStance(dt);
 
-        Vector2 input = Input.GetVector(InputActions.MoveLeft, InputActions.MoveRight, InputActions.MoveForward, InputActions.MoveBack);
+        Vector2 input = IsDead
+            ? Vector2.Zero
+            : Input.GetVector(InputActions.MoveLeft, InputActions.MoveRight, InputActions.MoveForward, InputActions.MoveBack);
+        if (IsDead)
+        {
+            WantedStance = Stance.Prone;
+            _sprintHeld = _sprintToggled = _triggerHeld = _aimHeld = _aimToggled = false;
+        }
         UpdateSprint(input);
         UpdateLean(dt);
 
@@ -342,6 +375,15 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             velocity.X *= keep;
             velocity.Z *= keep;
             _landingRecoveryLeft = Mathf.Lerp(Config.LandingRecoveryRested, Config.LandingRecoveryFatigued, JumpFatigue);
+        }
+        // Fall damage: the drop from the highest point reached while airborne.
+        if (!onFloor)
+            _airPeakY = Mathf.Max(_airPeakY, GlobalPosition.Y);
+        else
+        {
+            if (!_wasOnFloor)
+                Health.ApplyFall(_airPeakY - GlobalPosition.Y);
+            _airPeakY = GlobalPosition.Y;
         }
         _wasOnFloor = onFloor;
 
@@ -402,6 +444,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             _breathHeld = false;
 
         Weapons.WantsAim = WantsAim;
+        Weapons.InjurySwayMultiplier = Health.SwayMultiplier;
         Weapons.TriggerHeld = _triggerHeld;
         Weapons.WantsHoldBreath = _breathHeld || _breathToggled;
         Weapons.Lowered = IsSprinting;
@@ -680,7 +723,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         if (_sprintToggled && (forward < Config.SprintCancelForward || Stamina.IsExhausted))
             _sprintToggled = false;
 
-        bool wantsSprint = (_sprintHeld || _sprintToggled) && !WantsAim && !_triggerHeld;
+        bool wantsSprint = (_sprintHeld || _sprintToggled) && !WantsAim && !_triggerHeld && Health.CanSprint;
         IsSprinting = wantsSprint
             && Stance == Stance.Stand
             && !Stamina.IsExhausted
@@ -724,7 +767,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         if (Mathf.Abs(Lean) > 0.1f || WantsAim)
             speedFraction = Mathf.Min(speedFraction, walkFraction);
 
-        return stanceSpeed * speedFraction;
+        return stanceSpeed * speedFraction * Health.SpeedMultiplier;
     }
 
     // ---------- Lean ----------
@@ -946,6 +989,44 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         _body.Scale = new Vector3(1f, CurrentHeight / Config.StandHeight, 1f);
         float tilt = Mathf.Atan2(Lean * Config.LeanOffset, EyeHeight);
         _body.Rotation = new Vector3(0f, 0f, -tilt);
+        Hitboxes.SetHeightFraction(CurrentHeight / Config.StandHeight);
+        Hitboxes.Rotation = _body.Rotation;
+    }
+
+    /// <summary>Developer keys for health testing. Works even when dead (Ctrl+G revives).</summary>
+    private bool HandleHealthDebugInput(InputEvent e)
+    {
+        if (!OS.IsDebugBuild())
+            return false;
+        if (e.IsActionPressed(InputActions.DebugHealAll))
+        {
+            Health.HealAll();
+            return true;
+        }
+        if (IsDead)
+            return false;
+        if (e.IsActionPressed(InputActions.DebugDamageSelf))
+        {
+            BodyPart part = BodyParts.All[(int)(GD.Randi() % BodyParts.Count)];
+            Health.ApplyBulletHit(part, 25f);
+            return true;
+        }
+        if (e.IsActionPressed(InputActions.DebugBreakLeg))
+        {
+            Health.Fracture(GD.Randf() < 0.5f ? BodyPart.LeftLeg : BodyPart.RightLeg);
+            return true;
+        }
+        if (e.IsActionPressed(InputActions.DebugMedicalUp))
+        {
+            Skills.SetLevel(SkillId.Medical, Skills.GetLevel(SkillId.Medical) + 1);
+            return true;
+        }
+        if (e.IsActionPressed(InputActions.DebugMedicalDown))
+        {
+            Skills.SetLevel(SkillId.Medical, Skills.GetLevel(SkillId.Medical) - 1);
+            return true;
+        }
+        return false;
     }
 
     // ---------- Persistence ----------

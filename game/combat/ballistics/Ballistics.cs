@@ -17,7 +17,8 @@ public readonly record struct Shot(
     Vector3 SightOrigin,
     Vector3 SightDirection,
     WeaponHolder? Shooter,
-    Rid ShooterBody,
+    /// <summary>The shooter's own body and hitboxes: bullets pass through them.</summary>
+    Array<Rid> Exclude,
     uint CollisionMask);
 
 /// <summary>What the last bullet did (shown on the debug overlay).</summary>
@@ -205,10 +206,7 @@ public partial class Ballistics : Node3D
 
     private bool CastSegment(in Shot shot, Vector3 from, Vector3 to, out Dictionary hit)
     {
-        _exclude.Clear();
-        if (shot.ShooterBody.IsValid)
-            _exclude.Add(shot.ShooterBody);
-        _ray.Exclude = _exclude;
+        _ray.Exclude = shot.Exclude ?? _exclude;
         _ray.From = from;
         _ray.To = to;
         _ray.CollisionMask = shot.CollisionMask;

@@ -1,10 +1,12 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Shader" path="res://assets/materials/dev/dev_grid.gdshader" id="1_grid"]
 [ext_resource type="PackedScene" path="res://game/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://game/debug/debug_hud.tscn" id="3_hud"]
 
 [ext_resource type="PackedScene" path="res://game/combat/targets/shooting_target.tscn" id="4_target"]
+
+[ext_resource type="PackedScene" path="res://game/combat/targets/training_dummy.tscn" id="5_dummy"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
 shader = ExtResource("1_grid")
@@ -196,6 +198,42 @@ use_collision = true
 size = Vector3(10, 0.02, 0.15)
 material = SubResource("ShaderMaterial_grid")
 
+[node name="Tower_Ramp1" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.906183, -0.422885, 0, 0.422885, 0.906183, -30, 1.650, 1.250)
+use_collision = true
+size = Vector3(3, 0.2, 8.276)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="Tower_Platform_3_5m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 3.25, -5.5)
+use_collision = true
+size = Vector3(6, 0.5, 6)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="Tower_Ramp2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.906183, -0.422885, 0, 0.422885, 0.906183, -30, 5.150, -12.250)
+use_collision = true
+size = Vector3(3, 0.2, 8.276)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="Tower_Platform_7m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 6.75, -19)
+use_collision = true
+size = Vector3(6, 0.5, 6)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="Tower_Ramp3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.906721, -0.421731, 0, 0.421731, 0.906721, -30, 8.900, -26.300)
+use_collision = true
+size = Vector3(3, 0.2, 9.485)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="Tower_Platform_11m" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 10.75, -33.6)
+use_collision = true
+size = Vector3(6, 0.5, 6)
+material = SubResource("ShaderMaterial_grid")
+
 [node name="Signs" type="Node3D" parent="."]
 
 [node name="CrouchSign" type="Label3D" parent="Signs"]
@@ -297,6 +335,33 @@ MoveDistance = 6.0
 
 [node name="CoverTarget_15m" parent="Targets" instance=ExtResource("4_target")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -22)
+
+[node name="FallSign_3_5" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.5, 4.6, -5.5)
+billboard = 1
+text = "3.5 m DROP"
+font_size = 56
+outline_size = 12
+
+[node name="FallSign_7" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.5, 8.1, -19)
+billboard = 1
+text = "7 m DROP"
+font_size = 56
+outline_size = 12
+
+[node name="FallSign_11" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.5, 12.1, -33.6)
+billboard = 1
+text = "11 m DROP"
+font_size = 56
+outline_size = 12
+
+[node name="Dummy_1" parent="Targets" instance=ExtResource("5_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0, -15)
+
+[node name="Dummy_2" parent="Targets" instance=ExtResource("5_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0, -35)
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)

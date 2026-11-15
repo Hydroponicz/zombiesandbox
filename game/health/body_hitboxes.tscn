@@ -1,0 +1,98 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://game/health/HitboxRig.cs" id="1_rig"]
+[ext_resource type="Script" path="res://game/health/Hitbox.cs" id="2_hitbox"]
+
+[sub_resource type="BoxShape3D" id="Box_Head"]
+size = Vector3(0.2, 0.24, 0.22)
+
+[sub_resource type="BoxShape3D" id="Box_Chest"]
+size = Vector3(0.38, 0.32, 0.24)
+
+[sub_resource type="BoxShape3D" id="Box_Stomach"]
+size = Vector3(0.34, 0.24, 0.22)
+
+[sub_resource type="BoxShape3D" id="Box_LeftArm"]
+size = Vector3(0.1, 0.6, 0.12)
+
+[sub_resource type="BoxShape3D" id="Box_RightArm"]
+size = Vector3(0.1, 0.6, 0.12)
+
+[sub_resource type="BoxShape3D" id="Box_LeftLeg"]
+size = Vector3(0.15, 0.9, 0.17)
+
+[sub_resource type="BoxShape3D" id="Box_RightLeg"]
+size = Vector3(0.15, 0.9, 0.17)
+
+[node name="Hitboxes" type="Node3D"]
+script = ExtResource("1_rig")
+
+[node name="Head" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.62, 0)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hitbox")
+Part = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Head"]
+shape = SubResource("Box_Head")
+
+[node name="Chest" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.32, 0)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hitbox")
+Part = 1
+
+[node name="Shape" type="CollisionShape3D" parent="Chest"]
+shape = SubResource("Box_Chest")
+
+[node name="Stomach" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.04, 0)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hitbox")
+Part = 2
+
+[node name="Shape" type="CollisionShape3D" parent="Stomach"]
+shape = SubResource("Box_Stomach")
+
+[node name="LeftArm" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 1.2, 0)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hitbox")
+Part = 3
+
+[node name="Shape" type="CollisionShape3D" parent="LeftArm"]
+shape = SubResource("Box_LeftArm")
+
+[node name="RightArm" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 1.2, 0)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hitbox")
+Part = 4
+
+[node name="Shape" type="CollisionShape3D" parent="RightArm"]
+shape = SubResource("Box_RightArm")
+
+[node name="LeftLeg" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 0.46, 0)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hitbox")
+Part = 5
+
+[node name="Shape" type="CollisionShape3D" parent="LeftLeg"]
+shape = SubResource("Box_LeftLeg")
+
+[node name="RightLeg" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0.46, 0)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hitbox")
+Part = 6
+
+[node name="Shape" type="CollisionShape3D" parent="RightLeg"]
+shape = SubResource("Box_RightLeg")

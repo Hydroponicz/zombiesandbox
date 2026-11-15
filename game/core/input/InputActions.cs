@@ -36,6 +36,8 @@ public static class InputActions
     /// <summary>Gamepad shares X with reload: it interacts when looking at something usable.</summary>
     public const string Interact = "interact";
     public const string ReleaseMouse = "release_mouse";
+    /// <summary>Toggle the body diagram.</summary>
+    public const string HealthScreen = "health_screen";
 
     // Developer-only (debug builds).
     public const string DebugFitnessUp = "debug_fitness_up";
@@ -50,6 +52,11 @@ public static class InputActions
     public const string DebugMaintenanceDown = "debug_maintenance_down";
     public const string DebugCycleCondition = "debug_cycle_condition";
     public const string DebugForceJam = "debug_force_jam";
+    public const string DebugHealAll = "debug_heal_all";
+    public const string DebugDamageSelf = "debug_damage_self";
+    public const string DebugBreakLeg = "debug_break_leg";
+    public const string DebugMedicalUp = "debug_medical_up";
+    public const string DebugMedicalDown = "debug_medical_down";
     public const string DebugReloadingUp = "debug_reloading_up";
     public const string DebugReloadingDown = "debug_reloading_down";
 
@@ -86,6 +93,7 @@ public static class InputActions
         Bind(Reload, 0.5f, KeyEvent(Key.R), Button(JoyButton.X));
         Bind(CheckMagazine, 0.5f, KeyEvent(Key.T), Button(JoyButton.DpadRight));
         Bind(Interact, 0.5f, KeyEvent(Key.F), Button(JoyButton.X));
+        Bind(HealthScreen, 0.5f, KeyEvent(Key.H), Button(JoyButton.Back));
         Bind(ReleaseMouse, 0.5f, KeyEvent(Key.Escape));
 
         if (OS.IsDebugBuild())
@@ -105,6 +113,11 @@ public static class InputActions
             Bind(DebugMaintenanceUp, 0.5f, CtrlKeyEvent(Key.Key0));
             Bind(DebugCycleCondition, 0.5f, CtrlKeyEvent(Key.K));
             Bind(DebugForceJam, 0.5f, CtrlKeyEvent(Key.J));
+            Bind(DebugHealAll, 0.5f, CtrlKeyEvent(Key.G));
+            Bind(DebugDamageSelf, 0.5f, CtrlKeyEvent(Key.H));
+            Bind(DebugBreakLeg, 0.5f, CtrlKeyEvent(Key.N));
+            Bind(DebugMedicalDown, 0.5f, CtrlKeyEvent(Key.Minus));
+            Bind(DebugMedicalUp, 0.5f, CtrlKeyEvent(Key.Equal));
         }
     }
 

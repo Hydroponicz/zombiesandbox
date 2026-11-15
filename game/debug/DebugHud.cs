@@ -57,13 +57,31 @@ public partial class DebugHud : CanvasLayer
         string jam = w.IsJammed ? $"JAMMED: {w.Malfunction}{(w.MalfunctionKnown ? " (known)" : " (unknown)")}" : "no jam";
         string action = w.IsHandlingMalfunction ? $"    {w.MalfunctionActionName} {w.MalfunctionActionProgress:P0}" : "";
         _text.AppendLine($"Condition (dev only): {w.Weapon?.Condition:0.00}%    Heat: {w.Heat:0.0}    {jam}{action}");
+        var hp = new System.Text.StringBuilder();
+        ZombieSandbox.Health.BodyHealth h = _player.Health;
+        foreach (ZombieSandbox.Health.BodyPart part in ZombieSandbox.Health.BodyParts.All)
+        {
+            string shortName = part switch
+            {
+                ZombieSandbox.Health.BodyPart.LeftArm => "LA",
+                ZombieSandbox.Health.BodyPart.RightArm => "RA",
+                ZombieSandbox.Health.BodyPart.LeftLeg => "LL",
+                ZombieSandbox.Health.BodyPart.RightLeg => "RL",
+                _ => part.ToString()[..1],
+            };
+            hp.Append(shortName).Append(' ').Append(Mathf.Ceil(h.Hp(part)).ToString("0"));
+            if (h.Bleeding(part) != ZombieSandbox.Health.BleedLevel.None) hp.Append(h.Bleeding(part) == ZombieSandbox.Health.BleedLevel.Heavy ? "!!" : "!");
+            if (h.IsFractured(part)) hp.Append('X');
+            hp.Append("  ");
+        }
+        _text.AppendLine($"Health (dev only): {hp}   pain {h.Pain:0.00}   danger {h.Danger:0.00}   Medical Lv {skills.GetLevel(SkillId.Medical)}{(h.IsDead ? "   DEAD" : "")}");
         Combat.Ballistics ballistics = Combat.Ballistics.Instance;
         string assist = rig.AimAssistTarget != null ? "    Aim assist: ON TARGET" : "";
         _text.AppendLine($"Fire mode: {w.FireMode}    Shots: {w.ShotsFired}    In flight: {ballistics.BulletsInFlight}    Trails: {(ballistics.ShowTrails ? "on" : "off")}    Recoil: {w.RecoilDegrees.X:+0.00;-0.00;0.00}° up {w.RecoilDegrees.Y:+0.00;-0.00;0.00}° side (burst {w.BurstShots}){assist}");
         if (ballistics.LastImpact is { } hit)
             _text.AppendLine($"Last hit: {hit.Distance:0.0} m   {hit.Speed:0} m/s   {hit.FlightTime * 1000f:0} ms   {Mathf.Round(hit.DropFromSightLine * 1000f) / 10f:+0.0;-0.0;0.0} cm vs sight line{(hit.HitTarget ? "   TARGET" : "")}");
         _text.AppendLine();
-        _text.AppendLine("[DEV] Ctrl+1/2 = Fitness -/+   Ctrl+3/4 = Aiming -/+   Ctrl+5/6 = Strength -/+   Ctrl+7/8 = Reloading -/+   Ctrl+9/0 = Maintenance -/+   Ctrl+K = condition   Ctrl+J = jam next shot   Ctrl+R = refill ammo   Ctrl+T = bullet trails    Esc = release mouse, click = recapture");
+        _text.AppendLine("[DEV] Ctrl+1/2 = Fitness -/+   Ctrl+3/4 = Aiming -/+   Ctrl+5/6 = Strength -/+   Ctrl+7/8 = Reloading -/+   Ctrl+9/0 = Maintenance -/+   Ctrl+K = condition   Ctrl+J = jam next shot   Ctrl+R = refill ammo   Ctrl+H = hurt self   Ctrl+N = break leg   Ctrl+G = heal   Ctrl+-/= = Medical -/+   H = health screen   Ctrl+T = bullet trails    Esc = release mouse, click = recapture");
         _info.Text = _text.ToString();
     }
 }

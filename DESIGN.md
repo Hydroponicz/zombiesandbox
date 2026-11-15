@@ -102,6 +102,7 @@ Every feature must serve at least one pillar.
 | Reload: tactical / fast | R / double-tap R | Tap X / hold X |
 | Check magazine / inspect weapon | Tap T / hold T | Tap / hold D-pad right |
 | Clear a jam: tap-rack / inspect & clear | Tap R / hold R | Tap X / hold X |
+| Health screen (body diagram) | H | View / Back |
 | Interact (pick up) | F | X (when looking at an item) |
 
 If the gamepad crouch is set to *Hold*, tap/hold on one button no longer works, so
@@ -238,6 +239,40 @@ prone moves to D-pad down.
   ×1.0 → ×0.5; repairs later. XP from clearing jams and inspecting.
 - Developer keys: Ctrl+9/0 Maintenance −/+, Ctrl+K cycle condition (100/70/40/15/0%), Ctrl+J jam next shot.
 
+### 3. Health & damage (in progress)
+Shared by player, zombies and NPCs (one Health component).
+
+#### Piece 1: body, damage, feedback (implemented on `preview` — in testing)
+- **Body parts** (max HP): head 35, chest 85, stomach 70, arms 60 each, legs 65 each.
+  - Head or chest at 0 = death. Other parts at 0 are **destroyed**: further damage to them spreads
+    to the rest of the body (×0.7).
+- **Hits land on body-part hitboxes.** Bullets do the ammo's damage (5.56 ≈ 55, less as the bullet
+  slows down): ≈2 chest hits or 1 head hit kills.
+- **Bleeding:** hits can cause light (≈0.5 HP/s) or heavy (≈2 HP/s) bleeding on that part.
+- **Fractures** (bullets to limbs, falls): broken leg = limp, no sprint; broken arm = much more sway.
+  Destroyed legs: very slow; destroyed arms: huge sway.
+- **Pain** builds with damage, fractures and destroyed parts, fades over time: shakier aim, screen effects.
+- **Fall damage** from drops over ≈3 m (legs first, fracture chance grows with height; ≈10 m+ is
+  usually lethal).
+- **Wound types** (design now): scratch, laceration, bullet wound, bite. Bites and infection are
+  switched on with zombies (step 4).
+- **Armor** (helmets, plates) is inventory (step 6); the damage pipeline already has a place for it.
+- **Health screen:** a key (H / gamepad View) toggles a **body diagram** any time. It shows bleeding and
+  fractures, and an **estimate** of each part's health based on the **Medical** skill:
+  low = rough words ("hurt", "badly hurt"), mid = finer words, high = approximate HP, 10 = exact.
+- **No HUD health bar.** Instead: hit flash, red vignette that grows as health drops, pulsing edges
+  while bleeding, blur/desaturation with pain, heartbeat and hurt sounds (placeholder until real audio).
+- **Medical skill** (new): estimate precision now; healing speed/effectiveness with items (piece 2).
+  XP from taking damage now, from using medical items later.
+- **Death:** "You died" screen and restart (permadeath: a new character).
+- Verified: 2 chest / 1 head hit kills at 15 m; own bullets never hit you; heavy bleed ≈2 HP/s;
+  falls: 3.5 m scrape, 7 m legs nearly destroyed (often broken), 11 m+ usually fatal.
+- Training dummies on the range (respawn after 4 s) and a fall-test tower (3.5 / 7 / 11 m).
+- Developer keys: Ctrl+H hurt self, Ctrl+N break a leg, Ctrl+G heal all (also revives),
+  Ctrl+− / Ctrl+= Medical −/+.
+
+#### Piece 2: healing & medical items (with inventory, step 6)
+
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level
   needs more XP than the last. Exact curves live in a tunable resource.
@@ -246,6 +281,7 @@ prone moves to D-pad down.
   Earns XP from sprinting and jumping, with more XP when stamina is low.
 - **Strength**: reduces weapon recoil (gunplay piece 3, ×1.25 at level 0 → ×0.7 at level 10); carry capacity comes
   with inventory (step 6).
+- **Medical** (step 3): health estimates on the body diagram; healing with items later.
 - **Maintenance** (step 2): jam clearing and inspection speed, slower weapon wear; repairs later.
 - **Reloading** (step 2): reload and magazine-check speed, magazine-check precision.
 - **Aiming** (step 2): hold-breath duration (4 s → 10 s) and less weapon sway. Earns XP from hits (piece 2).
@@ -276,7 +312,7 @@ Each step is refined until solid before moving on. All work happens in graybox t
 2. ✅ Gunplay core (weapons usable by any character). Includes, because they need aiming down sights:
    - **Gamepad auto-lean:** aiming down sights beside a corner/cover edge leans around it (CoD-style).
    - **Peek over cover:** aiming while crouched behind waist-high cover raises you to aim over it (gamepad and keyboard).
-3. Health & damage — body parts, bleeding, fractures (shared by everyone)
+3. 🧪 Health & damage — body parts, bleeding, fractures (shared by everyone)
 4. AI foundation — perception (sight/hearing) + navigation, zombie as first user
 5. Human NPCs — factions, disposition (hostile/neutral/friendly), combat with the same guns
 6. Inventory & loot

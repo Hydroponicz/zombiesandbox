@@ -16,6 +16,9 @@ public static class PlaceholderSounds
     private static AudioStreamWav? _magOut;
     private static AudioStreamWav? _magIn;
     private static AudioStreamWav? _charge;
+    private static AudioStreamWav? _heartbeat;
+    private static AudioStreamWav? _hurt;
+    private static AudioStreamWav? _boneCrack;
 
     /// <summary>Sharp crack plus a low thump with a short noisy tail.</summary>
     public static AudioStreamWav Gunshot => _gunshot ??= Generate(0.35f, seed: 1, (t, noise) =>
@@ -47,6 +50,23 @@ public static class PlaceholderSounds
         return noise * (MathF.Exp(-t * 70f) * 0.5f + MathF.Exp(-second * 70f) * 0.7f)
             + MathF.Sin(2f * MathF.PI * 700f * t) * MathF.Exp(-second * 50f) * 0.4f;
     });
+
+    /// <summary>Lub-dub: two low thumps.</summary>
+    public static AudioStreamWav Heartbeat => _heartbeat ??= Generate(0.45f, seed: 7, (t, noise) =>
+    {
+        float second = t > 0.2f ? t - 0.2f : 10f;
+        float thump = MathF.Sin(2f * MathF.PI * 50f * t) * MathF.Exp(-t * 25f)
+            + 0.7f * MathF.Sin(2f * MathF.PI * 45f * t) * MathF.Exp(-second * 25f);
+        return thump * 0.9f;
+    });
+
+    /// <summary>Dull body hit.</summary>
+    public static AudioStreamWav Hurt => _hurt ??= Generate(0.18f, seed: 8, (t, noise) =>
+        noise * MathF.Exp(-t * 35f) * 0.4f + MathF.Sin(2f * MathF.PI * 90f * t) * MathF.Exp(-t * 20f) * 0.8f);
+
+    /// <summary>Sharp crack for a broken bone.</summary>
+    public static AudioStreamWav BoneCrack => _boneCrack ??= Generate(0.15f, seed: 9, (t, noise) =>
+        noise * MathF.Exp(-t * 90f) * 0.9f + MathF.Sin(2f * MathF.PI * 1300f * t) * MathF.Exp(-t * 70f) * 0.3f);
 
     private static AudioStreamWav Generate(float seconds, int seed, Func<float, float, float> sample)
     {

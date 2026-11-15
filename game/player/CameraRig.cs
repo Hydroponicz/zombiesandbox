@@ -64,7 +64,6 @@ public partial class CameraRig : Node3D
             Shape = new SphereShape3D { Radius = Config.FirstPersonCollisionRadius },
             Exclude = new Array<Rid> { _player.GetRid() },
         };
-        _convergenceRay.Exclude = new Array<Rid> { _player.GetRid() };
         _assistRay.Exclude = new Array<Rid> { _player.GetRid() };
         Yaw = _player.GlobalRotation.Y;
 
@@ -179,7 +178,8 @@ public partial class CameraRig : Node3D
         float startAlong = Mathf.Max((eyeWorld - cam.Origin).Dot(forward), 0f);
         _convergenceRay.From = cam.Origin + forward * startAlong;
         _convergenceRay.To = cam.Origin + forward * 1000f;
-        _convergenceRay.CollisionMask = _player.CollisionMask;
+        _convergenceRay.CollisionMask = _player.CollisionMask | ZombieSandbox.Health.HitboxRig.HitboxLayer;
+        _convergenceRay.Exclude = _player.SelfExclude;
         Dictionary hit = GetWorld3D().DirectSpaceState.IntersectRay(_convergenceRay);
         Vector3 point = hit.Count > 0 ? hit["position"].AsVector3() : _convergenceRay.To;
 
