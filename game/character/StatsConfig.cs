@@ -18,6 +18,12 @@ public partial class StatsConfig : Resource
     /// <summary>Sway multiplier at Aiming 10 (level 0 = 1.0).</summary>
     [Export] public float AimSwayMultiplierAtLevel10 { get; set; } = 0.6f;
 
+    [ExportGroup("Maintenance → weapon care")]
+    /// <summary>Jam clearing / inspection time multiplier at Maintenance 10 (level 0 = 1.0).</summary>
+    [Export] public float MaintenanceTimeMultiplierAtLevel10 { get; set; } = 0.5f;
+    /// <summary>Weapon wear multiplier at Maintenance 10 (level 0 = 1.0).</summary>
+    [Export] public float WearMultiplierAtLevel10 { get; set; } = 0.5f;
+
     [ExportGroup("Reloading → weapon handling")]
     /// <summary>Reload and magazine-check time multiplier at Reloading 10 (level 0 = 1.0).</summary>
     [Export] public float ReloadTimeMultiplierAtLevel10 { get; set; } = 0.5f;

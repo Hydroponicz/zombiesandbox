@@ -41,6 +41,20 @@ public partial class WeaponHandlingConfig : Resource
     /// <summary>A pause longer than this (s) starts a new burst.</summary>
     [Export] public float BurstResetTime { get; set; } = 0.25f;
 
+    [ExportGroup("Heat & malfunctions")]
+    /// <summary>Heat added per shot; heat cools off over time.</summary>
+    [Export] public float HeatPerShot { get; set; } = 1f;
+    [Export] public float HeatCoolingPerSecond { get; set; } = 2f;
+    /// <summary>Heat can't build past this (≈ a few magazines of sustained full auto).</summary>
+    [Export] public float MaxHeat { get; set; } = 60f;
+    /// <summary>Wear multiplier at maximum heat (sustained fire wears the gun faster).</summary>
+    [Export] public float WearAtMaxHeatMultiplier { get; set; } = 1.5f;
+    /// <summary>Jam chance multiplier = 1 + heat / this (capped at JamHeatMaxMultiplier).</summary>
+    [Export] public float JamHeatScale { get; set; } = 30f;
+    [Export] public float JamHeatMaxMultiplier { get; set; } = 2f;
+    [Export] public float MaintenanceXpPerClear { get; set; } = 3f;
+    [Export] public float MaintenanceXpPerInspect { get; set; } = 0.5f;
+
     [ExportGroup("Reloading XP")]
     [Export] public float ReloadingXpPerReload { get; set; } = 2f;
     [Export] public float ReloadingXpPerMagazineCheck { get; set; } = 0.5f;

@@ -10,6 +10,8 @@ namespace ZombieSandbox.Combat;
 public partial class Weapon : Node3D
 {
     [Export] public WeaponData Data { get; set; } = null!;
+    /// <summary>This weapon's condition in percent. Wears with use; low condition jams more.</summary>
+    [Export(PropertyHint.Range, "0,100,0.1")] public float Condition { get; set; } = 100f;
 
     public Marker3D Muzzle { get; private set; } = null!;
     public Marker3D SightEye { get; private set; } = null!;

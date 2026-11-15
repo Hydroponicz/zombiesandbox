@@ -100,7 +100,8 @@ Every feature must serve at least one pillar.
 | Fire | Left mouse | Right trigger |
 | Fire mode (semi / auto) | B | D-pad left |
 | Reload: tactical / fast | R / double-tap R | Tap X / hold X |
-| Check magazine | T | D-pad right |
+| Check magazine / inspect weapon | Tap T / hold T | Tap / hold D-pad right |
+| Clear a jam: tap-rack / inspect & clear | Tap R / hold R | Tap X / hold X |
 | Interact (pick up) | F | X (when looking at an item) |
 
 If the gamepad crouch is set to *Hold*, tap/hold on one button no longer works, so
@@ -215,6 +216,28 @@ prone moves to D-pad down.
   items on the floor would otherwise be nearly impossible to point at without a crosshair.
 - **Developer keys:** Ctrl+7/8 Reloading −/+, Ctrl+R refill ammo.
 
+#### Piece 5: malfunctions (implemented on `preview` — in testing)
+- **Weapon condition** 0–100% per weapon. Each shot wears it a little (≈0.01% → ~10,000 rounds
+  from new to ruined; the Maintenance skill halves wear at level 10). Repairs come later.
+- **Jam chance per shot** from condition (tunable): ≈1/5000 at 100%, 1/2000 at 80%, 1/1200 at 70%,
+  1/100 at 30%, 1/25 at 0%. **Heat** from sustained fire raises it (up to ≈×2 after long full auto)
+  and wears the gun up to ×1.5 faster. Heat is capped and cools off when you stop.
+- **Malfunctions:** misfire (dud: click, no shot), failure to eject (stuck casing), failure to feed,
+  double feed (rarest; more likely in poor condition). No on-screen warning: the gun clicks or stops.
+- **Jams start unknown.** Ways to deal with one:
+  1. **Inspect** (hold T / hold D-pad right, ≈1.2 s): tells you the jam type and the weapon's
+     condition ("good condition", "badly worn"...). Then reload does the right fix.
+  2. **Tap-rack** (tap R / tap X, ≈1.2 s): clears misfires, failures to eject and failures to feed,
+     but **not** a double feed ("Still jammed" — now you know to inspect).
+  3. **Inspect & clear combo** (hold R / hold X while jammed): inspects, then does the correct fix
+     automatically. One button, slower than a correct tap-rack. The controller-friendly path.
+  - Double-feed fix ≈4 s (magazine out, rack several times, magazine back in); loses a round.
+  - Tap T still checks the magazine; holding it inspects the weapon instead.
+  - While the gun isn't jammed, R/X work exactly as before (tap = tactical, double-tap/hold = fast).
+- **Maintenance skill** (new): clearing and inspection ×1.0 at level 0 → ×0.5 at level 10, weapon wear
+  ×1.0 → ×0.5; repairs later. XP from clearing jams and inspecting.
+- Developer keys: Ctrl+9/0 Maintenance −/+, Ctrl+K cycle condition (100/70/40/15/0%), Ctrl+J jam next shot.
+
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level
   needs more XP than the last. Exact curves live in a tunable resource.
@@ -223,6 +246,7 @@ prone moves to D-pad down.
   Earns XP from sprinting and jumping, with more XP when stamina is low.
 - **Strength**: reduces weapon recoil (gunplay piece 3, ×1.25 at level 0 → ×0.7 at level 10); carry capacity comes
   with inventory (step 6).
+- **Maintenance** (step 2): jam clearing and inspection speed, slower weapon wear; repairs later.
 - **Reloading** (step 2): reload and magazine-check speed, magazine-check precision.
 - **Aiming** (step 2): hold-breath duration (4 s → 10 s) and less weapon sway. Earns XP from hits (piece 2).
 - Weapon and other skills are added in the step that introduces them.

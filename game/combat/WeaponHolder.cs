@@ -174,6 +174,7 @@ public partial class WeaponHolder : Node3D
 
         UpdateReload(dt);
         UpdateMagazineCheck(dt);
+        UpdateMalfunctionHandling(dt);
         _busyBlend = Mathf.MoveToward(_busyBlend, IsBusy ? 1f : 0f, dt / Config.ReloadPoseBlendTime);
 
         IsAiming = WantsAim && raised && wallBlock < 0.5f && !IsBusy;
@@ -225,8 +226,8 @@ public partial class WeaponHolder : Node3D
         if (!CanFire || data.Ammo == null)
             return;
 
-        // Empty chamber: the trigger just clicks (once per pull, not continuously in full auto).
-        if (!Chambered)
+        // Jammed or empty chamber: the trigger just clicks (once per pull, not continuously in full auto).
+        if (IsJammed || !Chambered)
         {
             if (pulled)
                 PlayHandling(PlaceholderSounds.DryClick);
@@ -248,7 +249,7 @@ public partial class WeaponHolder : Node3D
                 Shoot(data); // A click shorter than a frame still fires one round.
                 _fireCooldown = interval;
             }
-            while (TriggerHeld && _fireCooldown <= 0f && Chambered)
+            while (TriggerHeld && _fireCooldown <= 0f && Chambered && !IsJammed)
             {
                 Shoot(data);
                 _fireCooldown += interval;
@@ -258,6 +259,16 @@ public partial class WeaponHolder : Node3D
 
     private void Shoot(WeaponData data)
     {
+        Malfunction malfunction = RollMalfunction(data);
+        if (malfunction == Malfunction.Misfire)
+        {
+            // A dud: the hammer falls, nothing happens. The bad round stays in the chamber.
+            Malfunction = malfunction;
+            MalfunctionKnown = false;
+            PlayHandling(PlaceholderSounds.DryClick);
+            return;
+        }
+
         Transform3D muzzle = Weapon!.Muzzle.GlobalTransform;
         Vector3 direction = (muzzle.Basis * new Vector3(0f, Mathf.Sin(_zeroAngle), -Mathf.Cos(_zeroAngle))).Normalized();
         Transform3D sightEye = Weapon.SightEye.GlobalTransform;
@@ -274,7 +285,20 @@ public partial class WeaponHolder : Node3D
             CollisionMask: _collisionMask));
 
         ShotsFired++;
-        CycleAfterShot();
+        ApplyWear(data);
+        if (malfunction == Malfunction.None)
+        {
+            CycleAfterShot();
+        }
+        else
+        {
+            // The shot went off but the action didn't cycle properly: nothing new is chambered.
+            Malfunction = malfunction;
+            MalfunctionKnown = false;
+            Chambered = false;
+            if (malfunction == Malfunction.DoubleFeed && Magazine is { IsEmpty: false })
+                Magazine.Rounds--; // The mangled round is lost.
+        }
         _shotAudio.GlobalPosition = muzzle.Origin;
         _shotAudio.Play();
         ApplyRecoil(data);

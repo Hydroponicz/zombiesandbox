@@ -46,6 +46,10 @@ public static class InputActions
     public const string DebugStrengthUp = "debug_strength_up";
     public const string DebugStrengthDown = "debug_strength_down";
     public const string DebugRefillAmmo = "debug_refill_ammo";
+    public const string DebugMaintenanceUp = "debug_maintenance_up";
+    public const string DebugMaintenanceDown = "debug_maintenance_down";
+    public const string DebugCycleCondition = "debug_cycle_condition";
+    public const string DebugForceJam = "debug_force_jam";
     public const string DebugReloadingUp = "debug_reloading_up";
     public const string DebugReloadingDown = "debug_reloading_down";
 
@@ -97,6 +101,10 @@ public static class InputActions
             Bind(DebugReloadingUp, 0.5f, CtrlKeyEvent(Key.Key8));
             Bind(DebugBulletTrails, 0.5f, CtrlKeyEvent(Key.T));
             Bind(DebugRefillAmmo, 0.5f, CtrlKeyEvent(Key.R));
+            Bind(DebugMaintenanceDown, 0.5f, CtrlKeyEvent(Key.Key9));
+            Bind(DebugMaintenanceUp, 0.5f, CtrlKeyEvent(Key.Key0));
+            Bind(DebugCycleCondition, 0.5f, CtrlKeyEvent(Key.K));
+            Bind(DebugForceJam, 0.5f, CtrlKeyEvent(Key.J));
         }
     }
 

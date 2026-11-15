@@ -70,6 +70,11 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     private bool _triggerHeld;
     private ulong _lastReloadPressMs;
     private bool _padReloadHeld;
+    private bool _jamButtonHeld;
+    private float _jamButtonHeldTime;
+    private bool _checkButtonHeld;
+    private float _checkButtonHeldTime;
+    private const float HoldSeconds = 0.35f;
     private float _padReloadHeldTime;
     private bool _padFastReloadSent;
     private readonly PhysicsRayQueryParameters3D _interactRay = new();
@@ -177,10 +182,22 @@ public partial class PlayerController : CharacterBody3D, IPersistent
             return;
         }
 
-        if (e.IsActionPressed(InputActions.CheckMagazine, exactMatch: true))
+        if (e.IsAction(InputActions.CheckMagazine, exactMatch: true))
         {
-            StopSprintForHands();
-            Weapons.RequestMagazineCheck();
+            // Tap = check the magazine, hold = inspect the weapon (decided in UpdateHoldButtons).
+            if (e.IsEcho())
+                return;
+            if (e.IsPressed())
+            {
+                _checkButtonHeld = true;
+                _checkButtonHeldTime = 0f;
+                StopSprintForHands();
+            }
+            else if (_checkButtonHeld)
+            {
+                _checkButtonHeld = false;
+                Weapons.RequestMagazineCheck();
+            }
             return;
         }
 
@@ -256,6 +273,22 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         {
             Skills.SetLevel(SkillId.Strength, Skills.GetLevel(SkillId.Strength) - 1);
         }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugMaintenanceUp))
+        {
+            Skills.SetLevel(SkillId.Maintenance, Skills.GetLevel(SkillId.Maintenance) + 1);
+        }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugMaintenanceDown))
+        {
+            Skills.SetLevel(SkillId.Maintenance, Skills.GetLevel(SkillId.Maintenance) - 1);
+        }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugCycleCondition))
+        {
+            Weapons.DebugCycleCondition();
+        }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugForceJam))
+        {
+            Weapons.DebugForceJam();
+        }
         else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugRefillAmmo))
         {
             Weapons.DebugRefill(StartingSpareMagazines);
@@ -287,6 +320,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
 
         UpdatePadCrouchHold(dt);
         UpdatePadReloadHold(dt);
+        UpdateHoldButtons(dt);
         UpdateInteractTarget();
         UpdateStance(dt);
 
@@ -435,6 +469,25 @@ public partial class PlayerController : CharacterBody3D, IPersistent
 
     private void HandleReloadInput(InputEvent e, InputDevice device)
     {
+        // Jammed: the reload button deals with the jam instead. Tap = tap-rack, hold = inspect & clear.
+        if (Weapons.IsJammed || _jamButtonHeld)
+        {
+            if (e.IsEcho())
+                return;
+            if (e.IsPressed())
+            {
+                _jamButtonHeld = true;
+                _jamButtonHeldTime = 0f;
+                StopSprintForHands();
+            }
+            else if (_jamButtonHeld)
+            {
+                _jamButtonHeld = false;
+                Weapons.RequestClearMalfunction(inspectFirst: false);
+            }
+            return;
+        }
+
         if (device == InputDevice.Gamepad)
         {
             // Tap = tactical. Holding past 0.3 s turns it into a fast reload (see UpdatePadReloadHold).
@@ -456,6 +509,29 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         _lastReloadPressMs = now;
         StopSprintForHands();
         Weapons.RequestReload(fast: doubleTap);
+    }
+
+    private void UpdateHoldButtons(float dt)
+    {
+        if (_jamButtonHeld)
+        {
+            _jamButtonHeldTime += dt;
+            if (_jamButtonHeldTime >= HoldSeconds)
+            {
+                _jamButtonHeld = false;
+                Weapons.RequestClearMalfunction(inspectFirst: true);
+            }
+        }
+
+        if (_checkButtonHeld)
+        {
+            _checkButtonHeldTime += dt;
+            if (_checkButtonHeldTime >= HoldSeconds)
+            {
+                _checkButtonHeld = false;
+                Weapons.RequestInspect();
+            }
+        }
     }
 
     private void UpdatePadReloadHold(float dt)

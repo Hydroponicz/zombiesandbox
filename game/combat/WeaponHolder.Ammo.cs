@@ -33,7 +33,7 @@ public partial class WeaponHolder
     public float ReloadProgress => _reloadDuration > 0f ? _reloadTime / _reloadDuration : 0f;
     public bool IsCheckingMagazine { get; private set; }
     /// <summary>Hands are busy (reloading or checking the magazine): can't aim or fire.</summary>
-    public bool IsBusy => Reloading != ReloadKind.None || IsCheckingMagazine;
+    public bool IsBusy => Reloading != ReloadKind.None || IsCheckingMagazine || IsHandlingMalfunction;
 
     /// <summary>Short text for the player (magazine check result, "no magazines", ...).</summary>
     public event Action<string>? Message;

@@ -34,6 +34,22 @@ public partial class WeaponData : Resource
     [Export] public Vector3 ReloadPosition { get; set; } = new(0.06f, -0.24f, -0.3f);
     [Export] public Vector3 ReloadRotationDegrees { get; set; } = new(-8f, 18f, 38f);
 
+    [ExportGroup("Condition & malfunctions (times at Maintenance skill 0)")]
+    /// <summary>Condition lost per shot, in percent (before the Maintenance skill and heat).</summary>
+    [Export] public float WearPerShot { get; set; } = 0.01f;
+    /// <summary>Average rounds between jams at a given condition. Interpolated between these points.</summary>
+    [Export] public float RoundsPerJamAt100 { get; set; } = 5000f;
+    [Export] public float RoundsPerJamAt80 { get; set; } = 2000f;
+    [Export] public float RoundsPerJamAt70 { get; set; } = 1200f;
+    [Export] public float RoundsPerJamAt30 { get; set; } = 100f;
+    [Export] public float RoundsPerJamAt0 { get; set; } = 25f;
+    /// <summary>Look the weapon over: learn its condition and what kind of jam it has (s).</summary>
+    [Export] public float InspectTime { get; set; } = 1.2f;
+    /// <summary>Rack the charging handle to clear a simple jam (s).</summary>
+    [Export] public float TapRackTime { get; set; } = 1.2f;
+    /// <summary>Magazine out, rack several times, magazine back in (s).</summary>
+    [Export] public float DoubleFeedFixTime { get; set; } = 4f;
+
     [ExportGroup("Recoil")]
     /// <summary>Upward kick per shot while aiming (degrees).</summary>
     [Export] public float VerticalRecoilDegrees { get; set; } = 0.9f;

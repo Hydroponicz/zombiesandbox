@@ -44,7 +44,7 @@ public partial class DebugHud : CanvasLayer
         _text.AppendLine(skills.IsMaxLevel(SkillId.Fitness)
             ? $"Fitness: Lv {skills.GetLevel(SkillId.Fitness)} (max)"
             : $"Fitness: Lv {skills.GetLevel(SkillId.Fitness)}   XP {skills.GetXp(SkillId.Fitness):0.0} / {skills.XpForNextLevel(SkillId.Fitness):0}");
-        _text.AppendLine($"Aiming: Lv {skills.GetLevel(SkillId.Aiming)}    Strength: Lv {skills.GetLevel(SkillId.Strength)}    Reloading: Lv {skills.GetLevel(SkillId.Reloading)}");
+        _text.AppendLine($"Aiming: Lv {skills.GetLevel(SkillId.Aiming)}    Strength: Lv {skills.GetLevel(SkillId.Strength)}    Reloading: Lv {skills.GetLevel(SkillId.Reloading)}    Maintenance: Lv {skills.GetLevel(SkillId.Maintenance)}");
         Combat.WeaponHolder w = _player.Weapons;
         string breath = w.IsGasping ? "GASPING" : (w.IsHoldingBreath ? "HOLDING" : "normal");
         _text.AppendLine($"Weapon: ADS {w.AdsBlend:0.00}{(w.IsAiming ? " (aiming)" : "")}    Can fire: {(w.CanFire ? "yes" : "NO")}    Sway: {w.SwayDegrees:0.00}°    Breath: {breath} {w.BreathFraction:P0}    Wall: {w.WallPullBack:0.00} m{(_player.IsPeeking ? "    PEEKING" : "")}");
@@ -54,13 +54,16 @@ public partial class DebugHud : CanvasLayer
             pouch.Append(m.Rounds).Append(' ');
         string busy = w.Reloading != Combat.ReloadKind.None ? $"    RELOADING ({w.Reloading}) {w.ReloadProgress:P0}" : (w.IsCheckingMagazine ? "    CHECKING MAG" : "");
         _text.AppendLine($"Ammo (dev only): mag {mag}{(w.Chambered ? " +1" : " (chamber empty)")}    pouch [ {pouch}]{busy}");
+        string jam = w.IsJammed ? $"JAMMED: {w.Malfunction}{(w.MalfunctionKnown ? " (known)" : " (unknown)")}" : "no jam";
+        string action = w.IsHandlingMalfunction ? $"    {w.MalfunctionActionName} {w.MalfunctionActionProgress:P0}" : "";
+        _text.AppendLine($"Condition (dev only): {w.Weapon?.Condition:0.00}%    Heat: {w.Heat:0.0}    {jam}{action}");
         Combat.Ballistics ballistics = Combat.Ballistics.Instance;
         string assist = rig.AimAssistTarget != null ? "    Aim assist: ON TARGET" : "";
         _text.AppendLine($"Fire mode: {w.FireMode}    Shots: {w.ShotsFired}    In flight: {ballistics.BulletsInFlight}    Trails: {(ballistics.ShowTrails ? "on" : "off")}    Recoil: {w.RecoilDegrees.X:+0.00;-0.00;0.00}° up {w.RecoilDegrees.Y:+0.00;-0.00;0.00}° side (burst {w.BurstShots}){assist}");
         if (ballistics.LastImpact is { } hit)
             _text.AppendLine($"Last hit: {hit.Distance:0.0} m   {hit.Speed:0} m/s   {hit.FlightTime * 1000f:0} ms   {Mathf.Round(hit.DropFromSightLine * 1000f) / 10f:+0.0;-0.0;0.0} cm vs sight line{(hit.HitTarget ? "   TARGET" : "")}");
         _text.AppendLine();
-        _text.AppendLine("[DEV] Ctrl+1/2 = Fitness -/+   Ctrl+3/4 = Aiming -/+   Ctrl+5/6 = Strength -/+   Ctrl+7/8 = Reloading -/+   Ctrl+R = refill ammo   Ctrl+T = bullet trails    Esc = release mouse, click = recapture");
+        _text.AppendLine("[DEV] Ctrl+1/2 = Fitness -/+   Ctrl+3/4 = Aiming -/+   Ctrl+5/6 = Strength -/+   Ctrl+7/8 = Reloading -/+   Ctrl+9/0 = Maintenance -/+   Ctrl+K = condition   Ctrl+J = jam next shot   Ctrl+R = refill ammo   Ctrl+T = bullet trails    Esc = release mouse, click = recapture");
         _info.Text = _text.ToString();
     }
 }
