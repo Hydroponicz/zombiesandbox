@@ -169,7 +169,7 @@ prone moves to D-pad down.
   0.4 s flight). At 300 m you must hold over and hold your breath, like the real thing.
 - Pulling the trigger ends a sprint; press sprint again to resume.
 
-#### Piece 3: recoil (implemented on `preview` — in testing)
+#### Piece 3: recoil (done)
 - **Tarkov-style:** each shot kicks the gun (mostly up, random sideways within limits) and it
   returns **all the way** to the point of aim on its own. The player never pulls down.
 - **Gun kicks more than the view:** the camera follows ≈30% of the kick, so you see the rifle jump;
