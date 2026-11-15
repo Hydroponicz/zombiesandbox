@@ -64,6 +64,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent
     private bool _sprintHeld;
     private bool _sprintToggled;
     private bool _triggerHeld;
+    private bool _aimInputDown; // Physical state of the aim button/trigger (edge detection).
     private bool _aimHeld;
     private bool _aimToggled;
     private bool _breathHeld;
@@ -152,8 +153,9 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         }
         else if (e.IsAction(InputActions.Fire))
         {
-            _triggerHeld = e.IsPressed();
-            if (_triggerHeld)
+            bool wasHeld = _triggerHeld;
+            _triggerHeld = ReadPressed(e, wasHeld);
+            if (_triggerHeld && !wasHeld)
             {
                 Weapons.PullTrigger();
                 // Pulling the trigger ends a sprint; press sprint again to resume.
@@ -352,9 +354,29 @@ public partial class PlayerController : CharacterBody3D, IPersistent
         }
     }
 
+    /// <summary>
+    /// Pressed state for buttons and analog triggers. A trigger sends a stream of position events,
+    /// so callers must only react when this changes (an edge), never to every event. Hysteresis
+    /// (press past 55%, release below 30%) stops a half-squeezed trigger from flickering.
+    /// </summary>
+    private static bool ReadPressed(InputEvent e, bool wasPressed)
+    {
+        if (e is InputEventJoypadMotion motion)
+        {
+            float amount = Mathf.Abs(motion.AxisValue);
+            return wasPressed ? amount > 0.3f : amount > 0.55f;
+        }
+        return e.IsPressed();
+    }
+
     private void HandleAimInput(InputEvent e, PressMode mode)
     {
-        if (e.IsPressed())
+        bool wasDown = _aimInputDown;
+        _aimInputDown = ReadPressed(e, wasDown);
+        if (_aimInputDown == wasDown)
+            return; // Only react to presses and releases, not every trigger movement.
+
+        if (_aimInputDown)
         {
             _sprintToggled = false; // Aiming stops a sprint.
             if (mode == PressMode.Hold)
