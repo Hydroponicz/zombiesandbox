@@ -28,6 +28,10 @@ public partial class ZombieType : Resource
     [Export] public float WanderRadius { get; set; } = 10f;
     /// <summary>Seconds spent searching around where the target was last seen.</summary>
     [Export] public float SearchSeconds { get; set; } = 20f;
+    /// <summary>After reaching the last known position, guess where the target went from how it was moving.</summary>
+    [Export] public bool PredictsMovement { get; set; } = true;
+    /// <summary>Furthest the guess reaches beyond the last known position (m).</summary>
+    [Export] public float MaxPredictionDistance { get; set; } = 15f;
     /// <summary>Seconds spent looking around at the source of a sound.</summary>
     [Export] public float InvestigateSeconds { get; set; } = 8f;
     /// <summary>Getting shot slows it down briefly.</summary>

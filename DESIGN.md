@@ -295,7 +295,10 @@ Shared by player, zombies and NPCs (one Health component).
   you're close.
 - **Navigation:** zombies path around obstacles (Godot navigation; per-chunk nav data later).
 - **Zombie behavior:** wander → investigate sounds → chase what they see → lose you → search the last
-  known position → wander. Shamblers ≈1.0–1.6 m/s with variety (stats from a zombie type resource,
+  known position → **educated guess:** continue along the direction and speed you were moving for as
+  long as you've been gone → sweep ahead in that direction → wander. New sounds are fresh leads;
+  sounds heard while it could see you are old news. (`PredictsMovement` on the zombie type, so
+  dumber types can skip the guess.) Shamblers ≈1.0–1.6 m/s with variety (stats from a zombie type resource,
   so runners can be added later). Graybox body, Meshy model later.
 - **Killing zombies:** destroying the **head** (brain) kills instantly. Zombie chest/stomach have lots
   of HP; a destroyed chest means it staggers and collapses from **blood loss** (≈3 rifle hits).

@@ -28,6 +28,11 @@ public partial class Perception : Node3D
     /// <summary>0..1 how close to noticing the target in view.</summary>
     public float Awareness { get; private set; }
     public Vector3 LastSeenPosition { get; private set; }
+    /// <summary>How the target was moving when last seen (horizontal, m/s): used to guess where it went.</summary>
+    public Vector3 LastSeenVelocity { get; private set; }
+    /// <summary>Time (seconds since startup) the target was last seen.</summary>
+    public double LastSeenTime { get; private set; }
+    private bool _sawLastUpdate;
 
     /// <summary>Most recent sound heard (estimated position).</summary>
     public Vector3 HeardPosition { get; private set; }
@@ -114,12 +119,22 @@ public partial class Perception : Node3D
             {
                 Target = best;
                 CanSeeTarget = true;
-                LastSeenPosition = best.GroundPosition;
+                Vector3 position = best.GroundPosition;
+                if (_sawLastUpdate && dt > 0f)
+                {
+                    Vector3 velocity = (position - LastSeenPosition) / dt;
+                    velocity.Y = 0f;
+                    LastSeenVelocity = LastSeenVelocity.Lerp(velocity, 0.5f);
+                }
+                LastSeenPosition = position;
+                LastSeenTime = Time.GetTicksMsec() / 1000.0;
+                _sawLastUpdate = true;
             }
         }
         else
         {
             CanSeeTarget = false;
+            _sawLastUpdate = false;
             Awareness = Mathf.Max(0f, Awareness - dt * 0.5f);
         }
     }

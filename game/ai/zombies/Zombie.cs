@@ -50,6 +50,9 @@ public partial class Zombie : CharacterBody3D
     private bool _hasDestination;
     private bool _navReady => RuntimeNavigationBaker.MapReady;
     private float _noPathTime;
+    private enum SearchPhase { GoingToLastSeen, GoingToGuess, Sweeping }
+    private SearchPhase _searchPhase;
+    private Vector3 _searchDirection;
     private float _deathTime;
 
     public override void _Ready()
@@ -144,6 +147,8 @@ public partial class Zombie : CharacterBody3D
 
         if (Perception.CanSeeTarget && Perception.Target != null)
         {
+            // Sounds heard while it can see you are old news: don't chase them once it loses sight.
+            _lastHeardCount = Perception.HeardCount;
             State = ZombieState.Chase;
             if (_repathTimer <= 0f)
             {
@@ -158,6 +163,9 @@ public partial class Zombie : CharacterBody3D
             // Lost sight: head for where it was last seen, then search around.
             State = ZombieState.Search;
             _stateTimer = Type.SearchSeconds;
+            _searchPhase = SearchPhase.GoingToLastSeen;
+            Vector3 velocity = Perception.LastSeenVelocity;
+            _searchDirection = velocity.LengthSquared() > 0.09f ? velocity.Normalized() : Vector3.Zero;
             SetDestination(Perception.LastSeenPosition);
             return;
         }
@@ -177,11 +185,13 @@ public partial class Zombie : CharacterBody3D
             case ZombieState.Search:
                 if (ReachedDestination())
                 {
+                    if (State == ZombieState.Search && AdvanceSearch())
+                        break;
                     _stateTimer -= dt;
-                    // Searching: shuffle around the area.
+                    // Searching: sweep the area, favoring the way the target was heading.
                     if (State == ZombieState.Search && _idleTimer <= 0f)
                     {
-                        WanderTo(Type.WanderRadius * 0.5f);
+                        SweepAhead();
                         _idleTimer = _rng.RandfRange(2f, 4f);
                     }
                     _idleTimer -= dt;
@@ -202,6 +212,40 @@ public partial class Zombie : CharacterBody3D
                 }
                 break;
         }
+    }
+
+    /// <summary>
+    /// At the last known position: make an educated guess. The target kept moving the way it was
+    /// going for as long as it's been out of sight, so head there (snapped onto walkable ground).
+    /// Returns true if a new leg of the search started.
+    /// </summary>
+    private bool AdvanceSearch()
+    {
+        if (_searchPhase != SearchPhase.GoingToLastSeen)
+            return false;
+        _searchPhase = SearchPhase.Sweeping;
+        if (!Type.PredictsMovement || _searchDirection == Vector3.Zero)
+            return false;
+
+        float seenSpeed = Mathf.Max(Perception.LastSeenVelocity.Length(), 1.5f);
+        float elapsed = (float)(Time.GetTicksMsec() / 1000.0 - Perception.LastSeenTime);
+        float distance = Mathf.Clamp(seenSpeed * elapsed, 3f, Type.MaxPredictionDistance);
+        SetDestination(Perception.LastSeenPosition + _searchDirection * distance);
+        _searchPhase = SearchPhase.GoingToGuess;
+        return true;
+    }
+
+    private void SweepAhead()
+    {
+        if (_searchDirection == Vector3.Zero)
+        {
+            WanderTo(Type.WanderRadius * 0.5f);
+            return;
+        }
+        float baseAngle = Mathf.Atan2(_searchDirection.Z, _searchDirection.X);
+        float angle = baseAngle + _rng.RandfRange(-0.9f, 0.9f); // ±50° around the heading.
+        float distance = _rng.RandfRange(3f, 7f);
+        SetDestination(GlobalPosition + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * distance);
     }
 
     private float CurrentSpeed()
