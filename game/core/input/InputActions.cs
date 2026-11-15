@@ -75,13 +75,14 @@ public static class InputActions
 
         if (OS.IsDebugBuild())
         {
-            Bind(DebugFitnessUp, 0.5f, KeyEvent(Key.F3));
-            Bind(DebugFitnessDown, 0.5f, KeyEvent(Key.F4));
-            Bind(DebugAimingUp, 0.5f, KeyEvent(Key.F5));
-            Bind(DebugAimingDown, 0.5f, KeyEvent(Key.F6));
-            Bind(DebugBulletTrails, 0.5f, KeyEvent(Key.F7));
-            Bind(DebugStrengthUp, 0.5f, KeyEvent(Key.F8));
-            Bind(DebugStrengthDown, 0.5f, KeyEvent(Key.F9));
+            // Ctrl + number keys: the F-row is taken by Godot editor shortcuts (F8 stops the game, F7 pauses it).
+            Bind(DebugFitnessDown, 0.5f, CtrlKeyEvent(Key.Key1));
+            Bind(DebugFitnessUp, 0.5f, CtrlKeyEvent(Key.Key2));
+            Bind(DebugAimingDown, 0.5f, CtrlKeyEvent(Key.Key3));
+            Bind(DebugAimingUp, 0.5f, CtrlKeyEvent(Key.Key4));
+            Bind(DebugStrengthDown, 0.5f, CtrlKeyEvent(Key.Key5));
+            Bind(DebugStrengthUp, 0.5f, CtrlKeyEvent(Key.Key6));
+            Bind(DebugBulletTrails, 0.5f, CtrlKeyEvent(Key.T));
         }
     }
 
@@ -98,6 +99,8 @@ public static class InputActions
 
     // Physical keycodes keep WASD in the same place on non-QWERTY keyboards.
     private static InputEventKey KeyEvent(Key key) => new() { PhysicalKeycode = key, Device = AllDevices };
+
+    private static InputEventKey CtrlKeyEvent(Key key) => new() { PhysicalKeycode = key, CtrlPressed = true, Device = AllDevices };
 
     private static InputEventMouseButton MouseButtonEvent(MouseButton button) => new() { ButtonIndex = button, Device = AllDevices };
 

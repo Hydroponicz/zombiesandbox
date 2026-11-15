@@ -263,7 +263,7 @@ outline_size = 12
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 2.6, 4)
 billboard = 1
 text = "FIRING RANGE  —  targets left to right: 25, 50, 100, 200, 300 m
-B = fire mode    F7 = bullet trails"
+B = fire mode    Ctrl+T = bullet trails"
 font_size = 40
 outline_size = 10
 

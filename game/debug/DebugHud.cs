@@ -54,7 +54,7 @@ public partial class DebugHud : CanvasLayer
         if (ballistics.LastImpact is { } hit)
             _text.AppendLine($"Last hit: {hit.Distance:0.0} m   {hit.Speed:0} m/s   {hit.FlightTime * 1000f:0} ms   {Mathf.Round(hit.DropFromSightLine * 1000f) / 10f:+0.0;-0.0;0.0} cm vs sight line{(hit.HitTarget ? "   TARGET" : "")}");
         _text.AppendLine();
-        _text.AppendLine("[DEV] F3/F4 = Fitness +/-   F5/F6 = Aiming +/-   F8/F9 = Strength +/-   F7 = bullet trails    Esc = release mouse, click = recapture");
+        _text.AppendLine("[DEV] Ctrl+1/2 = Fitness -/+   Ctrl+3/4 = Aiming -/+   Ctrl+5/6 = Strength -/+   Ctrl+T = bullet trails    Esc = release mouse, click = recapture");
         _info.Text = _text.ToString();
     }
 }
