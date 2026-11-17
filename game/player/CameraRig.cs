@@ -227,6 +227,8 @@ public partial class CameraRig : Node3D
 
     private void ApplyGamepadLook(float dt)
     {
+        if (_player.InventoryOpen)
+            return; // The d-pad and buttons drive the inventory cursor; no looking around.
         Vector2 stick = Input.GetVector(InputActions.LookLeft, InputActions.LookRight, InputActions.LookUp, InputActions.LookDown);
         float magnitude = stick.Length();
         if (magnitude < 0.0001f)

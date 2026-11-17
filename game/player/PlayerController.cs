@@ -7,6 +7,7 @@ using ZombieSandbox.Core;
 using ZombieSandbox.Core.Input;
 using ZombieSandbox.Core.Interaction;
 using ZombieSandbox.Health;
+using ZombieSandbox.Inventory;
 
 namespace ZombieSandbox.Player;
 
@@ -36,7 +37,11 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
     public Stamina Stamina { get; private set; } = null!;
     public CameraRig CameraRig { get; private set; } = null!;
     public WeaponHolder Weapons { get; private set; } = null!;
-    public MagazinePouch Pouch { get; private set; } = null!;
+    public CharacterInventory Inventory { get; private set; } = null!;
+    /// <summary>Inventory screen open: you can only walk (the game keeps running).</summary>
+    public bool InventoryOpen { get; private set; }
+    /// <summary>Short text for the HUD ("No room").</summary>
+    public event System.Action<string>? Message;
     public BodyHealth Health { get; private set; } = null!;
     public Infection Infection { get; private set; } = null!;
     Infection? IAttackable.Infection => Infection;
@@ -91,6 +96,9 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
     private bool _jamButtonHeld;
     private float _jamButtonHeldTime;
     private bool _checkButtonHeld;
+    // Gamepad View: tap = inventory, hold = health screen.
+    private bool _viewButtonHeld;
+    private float _viewButtonHeldTime;
     private float _checkButtonHeldTime;
     private const float HoldSeconds = 0.35f;
     private float _padReloadHeldTime;
@@ -140,7 +148,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         Stats = GetNode<CharacterStats>("Stats");
         Stamina = GetNode<Stamina>("Stamina");
         Weapons = GetNode<WeaponHolder>("WeaponHolder");
-        Pouch = GetNode<MagazinePouch>("MagazinePouch");
+        Inventory = GetNode<CharacterInventory>("Inventory");
         Health = GetNode<BodyHealth>("Health");
         Infection = GetNode<Infection>("Infection");
         _shoveAudio = new AudioStreamPlayer { Stream = ZombieSandbox.Core.Audio.PlaceholderSounds.ShoveThud };
@@ -154,8 +162,19 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         Stamina.Initialize(Stats, Skills);
         Health.Initialize(Skills);
         // Bullets hit the world and body hit zones, never the invisible movement colliders around characters.
-        Weapons.Initialize(Stats, Skills, Pouch, SelfExclude, worldMask: CollisionMask, bulletMask: 1u | HitboxRig.HitboxLayer);
+        Weapons.Initialize(Stats, Skills, Inventory, SelfExclude, worldMask: CollisionMask, bulletMask: 1u | HitboxRig.HitboxLayer);
+        Inventory.Initialize(Skills);
+        Inventory.MagazineData = Weapons.Weapon?.Data.MagazineItemData;
+        // The gun in your hands counts too (with its loaded magazine).
+        Inventory.ExtraWeight = () => Weapons.Weapon == null ? 0f
+            : Weapons.Weapon.Data.MassKg * 2.2046f + (Weapons.Magazine?.Rounds ?? 0) * (Inventory.MagazineData?.WeightPerRoundLb ?? 0f)
+              + (Weapons.Magazine != null ? Inventory.MagazineData?.WeightLb ?? 0f : 0f);
         Weapons.GiveSpareMagazines(StartingSpareMagazines);
+        WorldItem.NoRoom += user =>
+        {
+            if (user == this)
+                Message?.Invoke("No room");
+        };
 
         _gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle() * Config.GravityMultiplier;
 
@@ -246,6 +265,19 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
             return;
         if (IsDead)
             return; // The death screen handles restarting.
+
+        if (e.IsAction(InputActions.Inventory))
+        {
+            HandleInventoryButton(e, device);
+            return;
+        }
+        if (InventoryOpen)
+        {
+            // Only walking (polled) and the health screen work while the inventory is open.
+            if (e.IsActionPressed(InputActions.HealthScreen))
+                HealthScreenOpen = !HealthScreenOpen;
+            return;
+        }
 
         if (e.IsActionPressed(InputActions.Shove))
         {
@@ -467,6 +499,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
 
         // Jumping always works on the ground; stamina and fatigue only change how high.
         _jumpBufferLeft = Mathf.Max(_jumpBufferLeft - dt, 0f);
+        if (InventoryOpen || Inventory.IsHeavilyOverloaded)
+            _jumpBufferLeft = 0f; // Can't jump with your hands in your bag or under a crushing load.
         if (_jumpBufferLeft > 0f && onFloor && Stance == Stance.Stand)
         {
             _jumpBufferLeft = 0f;
@@ -502,7 +536,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
             MoveAndSlide();
 
         if (IsSprinting && IsOnFloor() && HorizontalSpeed > Config.WalkSpeed)
-            Stamina.Drain(Stamina.Config.SprintDrainPerSecond * dt);
+            Stamina.Drain(Stamina.Config.SprintDrainPerSecond * Inventory.SprintDrainMultiplier * dt);
+        TrainStrengthFromLoad(dt);
         Stamina.Tick(dt);
         EmitFootsteps(dt);
 
@@ -640,6 +675,16 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
             }
         }
 
+        if (_viewButtonHeld)
+        {
+            _viewButtonHeldTime += dt;
+            if (_viewButtonHeldTime >= HoldSeconds)
+            {
+                _viewButtonHeld = false;
+                HealthScreenOpen = !HealthScreenOpen;
+            }
+        }
+
         if (_checkButtonHeld)
         {
             _checkButtonHeldTime += dt;
@@ -649,6 +694,55 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
                 Weapons.RequestInspect();
             }
         }
+    }
+
+    // ---------- Inventory ----------
+
+    /// <summary>Keyboard Tab toggles the inventory; gamepad View: tap = inventory, hold = health screen.</summary>
+    private void HandleInventoryButton(InputEvent e, InputDevice device)
+    {
+        if (device == InputDevice.Gamepad)
+        {
+            if (e.IsPressed())
+            {
+                _viewButtonHeld = true;
+                _viewButtonHeldTime = 0f;
+            }
+            else if (_viewButtonHeld)
+            {
+                _viewButtonHeld = false;
+                SetInventoryOpen(!InventoryOpen);
+            }
+            return;
+        }
+        if (e.IsPressed())
+            SetInventoryOpen(!InventoryOpen);
+    }
+
+    public void SetInventoryOpen(bool open)
+    {
+        if (open == InventoryOpen || (open && IsDead))
+            return;
+        InventoryOpen = open;
+        if (open)
+        {
+            _sprintHeld = _sprintToggled = _triggerHeld = _aimHeld = _aimToggled = false;
+            _jumpBufferLeft = 0f;
+            Input.MouseMode = Input.MouseModeEnum.Visible;
+        }
+        else
+        {
+            Input.MouseMode = Input.MouseModeEnum.Captured;
+        }
+    }
+
+    /// <summary>Moving while over the carry limit slowly builds Strength.</summary>
+    private void TrainStrengthFromLoad(float dt)
+    {
+        if (!Inventory.IsOverweight || HorizontalSpeed < 0.3f)
+            return;
+        float load = Mathf.Min((Inventory.LoadRatio - 1f) / (Inventory.Carry.HeavyRatio - 1f), 1f);
+        Skills.AddXp(SkillId.Strength, Inventory.Carry.StrengthXpPerSecond * load * dt);
     }
 
     private void UpdatePadReloadHold(float dt)
@@ -797,7 +891,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         if (_sprintToggled && (forward < Config.SprintCancelForward || Stamina.IsExhausted))
             _sprintToggled = false;
 
-        bool wantsSprint = (_sprintHeld || _sprintToggled) && !WantsAim && !_triggerHeld && Health.CanSprint && _grabbedBy.Count == 0;
+        bool wantsSprint = (_sprintHeld || _sprintToggled) && !WantsAim && !_triggerHeld && Health.CanSprint && _grabbedBy.Count == 0
+            && !InventoryOpen && !Inventory.IsHeavilyOverloaded;
         IsSprinting = wantsSprint
             && Stance == Stance.Stand
             && !Stamina.IsExhausted
@@ -812,7 +907,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
             return 0f;
 
         if (IsSprinting)
-            return Config.SprintSpeed * Stats.SprintSpeedMultiplier;
+            return Config.SprintSpeed * Stats.SprintSpeedMultiplier * Inventory.SpeedMultiplier;
 
         float stanceSpeed = Stance switch
         {
@@ -838,12 +933,13 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         }
 
         // You can only walk while leaning or aiming.
-        if (Mathf.Abs(Lean) > 0.1f || WantsAim)
+        // Walking only: leaning, aiming, in the inventory, or heavily overloaded.
+        if (Mathf.Abs(Lean) > 0.1f || WantsAim || InventoryOpen || Inventory.IsHeavilyOverloaded)
             speedFraction = Mathf.Min(speedFraction, walkFraction);
 
         // Held by a zombie: barely able to move (≈0.7 m/s), less with more of them. Shove them off.
         float grabbed = _grabbedBy.Count == 0 ? 1f : Mathf.Max(0.08f, 0.2f - 0.06f * (_grabbedBy.Count - 1));
-        return stanceSpeed * speedFraction * Health.SpeedMultiplier * grabbed;
+        return stanceSpeed * speedFraction * Health.SpeedMultiplier * grabbed * Inventory.SpeedMultiplier;
     }
 
     // ---------- Lean ----------

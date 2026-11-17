@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=29 format=3]
 
 [ext_resource type="Shader" path="res://assets/materials/dev/dev_grid.gdshader" id="1_grid"]
 [ext_resource type="PackedScene" path="res://game/player/player.tscn" id="2_player"]
@@ -18,6 +18,15 @@
 [ext_resource type="Resource" path="res://game/ai/survivors/settler.tres" id="13_settler"]
 [ext_resource type="Resource" path="res://game/ai/factions/drifters.tres" id="14_drifters"]
 [ext_resource type="Resource" path="res://game/ai/factions/settlers.tres" id="15_settlers"]
+[ext_resource type="Script" path="res://game/inventory/WorldItem.cs" id="30_worlditem"]
+[ext_resource type="Resource" path="res://game/inventory/items/backpack_daypack.tres" id="31_backpack_daypack"]
+[ext_resource type="Resource" path="res://game/inventory/items/backpack_hiking.tres" id="32_backpack_hiking"]
+[ext_resource type="Resource" path="res://game/inventory/items/car_battery.tres" id="33_car_battery"]
+[ext_resource type="Resource" path="res://game/inventory/items/toolbox.tres" id="34_toolbox"]
+[ext_resource type="Resource" path="res://game/inventory/items/canned_beans.tres" id="35_canned_beans"]
+[ext_resource type="Resource" path="res://game/inventory/items/water_bottle.tres" id="36_water_bottle"]
+[ext_resource type="Resource" path="res://game/inventory/items/duct_tape.tres" id="37_duct_tape"]
+[ext_resource type="Resource" path="res://game/inventory/items/nails.tres" id="38_nails"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_main"]
 cell_height = 0.1
@@ -491,6 +500,13 @@ text = "SETTLERS (friendly)"
 font_size = 64
 outline_size = 12
 
+[node name="LootSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 5)
+billboard = 1
+text = "LOOT: press F to pick up, Tab for the inventory (car battery = 38 lb)"
+font_size = 48
+outline_size = 10
+
 [node name="Survivors" type="Node3D" parent="."]
 
 [node name="Bandit_1" parent="Survivors" instance=ExtResource("11_survivor")]
@@ -531,6 +547,60 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.5, 0.05, 10)
 Type = ExtResource("13_settler")
 GroupId = "settlers"
 Faction = ExtResource("15_settlers")
+
+[node name="Loot" type="Node3D" parent="."]
+
+[node name="daypack" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0.3, 2.5)
+script = ExtResource("30_worlditem")
+Data = ExtResource("31_backpack_daypack")
+
+[node name="hiking" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.3, 2.5)
+script = ExtResource("30_worlditem")
+Data = ExtResource("32_backpack_hiking")
+
+[node name="battery" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 1)
+script = ExtResource("30_worlditem")
+Data = ExtResource("33_car_battery")
+
+[node name="toolbox" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.3, 3)
+script = ExtResource("30_worlditem")
+Data = ExtResource("34_toolbox")
+
+[node name="beans" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.3, 3.5)
+script = ExtResource("30_worlditem")
+Data = ExtResource("35_canned_beans")
+
+[node name="beans2" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0.3, 3.6)
+script = ExtResource("30_worlditem")
+Data = ExtResource("35_canned_beans")
+
+[node name="water" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.3, 3.5)
+script = ExtResource("30_worlditem")
+Data = ExtResource("36_water_bottle")
+
+[node name="tape" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.3, 4.2)
+script = ExtResource("30_worlditem")
+Data = ExtResource("37_duct_tape")
+
+[node name="nails" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0.3, 4.2)
+script = ExtResource("30_worlditem")
+Data = ExtResource("38_nails")
+Count = 15
+
+[node name="nails2" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.3, 4.4)
+script = ExtResource("30_worlditem")
+Data = ExtResource("38_nails")
+Count = 10
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)

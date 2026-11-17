@@ -50,6 +50,7 @@ public partial class PlayerHud : Control
         if (!_subscribed && _player.Weapons != null)
         {
             _player.Weapons.Message += ShowMessage;
+            _player.Message += ShowMessage;
             _subscribed = true;
         }
 
@@ -82,5 +83,6 @@ public partial class PlayerHud : Control
     {
         if (_subscribed)
             _player.Weapons.Message -= ShowMessage;
+            _player.Message -= ShowMessage;
     }
 }

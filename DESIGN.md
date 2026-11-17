@@ -102,7 +102,8 @@ Every feature must serve at least one pillar.
 | Reload: tactical / fast | R / double-tap R | Tap X / hold X |
 | Check magazine / inspect weapon | Tap T / hold T | Tap / hold D-pad right |
 | Clear a jam: tap-rack / inspect & clear | Tap R / hold R | Tap X / hold X |
-| Health screen (body diagram) | H | View / Back |
+| Health screen (body diagram) | H | Hold View / Back |
+| Inventory | Tab | Tap View / Back |
 | Interact (pick up) | F | X (when looking at an item) |
 
 If the gamepad crouch is set to *Hold*, tap/hold on one button no longer works, so
@@ -257,7 +258,7 @@ Shared by player, zombies and NPCs (one Health component).
 - **Wound types** (design now): scratch, laceration, bullet wound, bite. Bites and infection are
   switched on with zombies (step 4).
 - **Armor** (helmets, plates) is inventory (step 6); the damage pipeline already has a place for it.
-- **Health screen:** a key (H / gamepad View) toggles a **body diagram** any time. It shows bleeding and
+- **Health screen:** a key (H / gamepad hold View) toggles a **body diagram** any time. It shows bleeding and
   fractures, and an **estimate** of each part's health based on the **Medical** skill:
   low = rough words ("hurt", "badly hurt"), mid = finer words, high = approximate HP, 10 = exact.
 - **No HUD health bar.** Instead: hit flash, red vignette that grows as health drops, pulsing edges
@@ -395,33 +396,40 @@ jams), perception, navigation. Zombies attack them too.
 - Developer: the overlay lists each faction's attitude; Ctrl+Y resets all factions to their starting attitude.
 - Dialogue, trading and recruiting come with steps 6 and 10.
 
-### 6. Inventory & loot (spec agreed — piece A details to confirm)
+### 6. Inventory & loot (in progress)
 Tarkov-style grid inventory. Pieces, in order: **A** items & grid inventory → **B** looting & searching →
 **C** ammo & magazines as items → **D** medical items + hotbar/quick-use wheel → **E** armor.
 Weapon attachments come after survival stats (step 7).
 
-#### Piece A: items & grid inventory (proposed)
-- **Items** are data resources: name, grid size (w×h), weight (kg), stack size, category. Every item in
-  the world has a stable unique id (persistent). Until real art, items draw as coloured boxes with a short name.
-- **Gear slots:** weapon, headwear, body armor, chest rig, backpack, plus fixed **pockets** (4 × 1×1).
-  Storage comes from what you wear: the chest rig and backpack each have their own grid(s).
-  The current 6-slot magazine pouch becomes a starting chest rig; reloading pulls magazines from the
-  rig and pockets only (not the backpack), like Tarkov.
-- **Inventory screen** (keyboard **Tab**, gamepad **Y**): the game keeps running while it's open (you
-  can only walk), so checking your bag near zombies is a risk.
-  - Mouse: drag & drop, **R** rotates while dragging, **Ctrl+click** quick-moves to the other side,
-    drag outside the grids (or **Delete**) to drop on the ground.
-  - Gamepad: a cursor moves cell by cell across the grids (d-pad / left stick); **A** pick up / place,
-    **X** rotate, **RB/LB** switch panels, **B** cancel / close, **Y** close.
-- **World items:** anything dropped lies on the ground as a pickup (**F** / gamepad **X** to pick up
-  into the first free spot).
-- **Weight** (Strength raises every limit):
-  - under the **carry limit** (≈25 kg at Strength 3, +2.5 kg per level): no effect;
-  - **over** it: slower, sprint drains stamina faster, the more the worse;
-  - **heavily overloaded** (≈1.6× the limit): can only walk slowly — no sprinting or jumping;
-  - **immobile** (≈2.2× the limit): can't move at all until you drop something.
-  - Moving while over the limit slowly trains Strength.
-- Test range: a few loose items, a backpack and a chest rig to pick up and wear.
+#### Piece A: items & grid inventory (implemented on preview — in testing)
+- **Items** are data resources: name, grid size (w×h), weight (**pounds**), stack size, category. Every item
+  in the world has a stable unique id (persistent). Until real art, items draw as coloured boxes with a short name.
+- **Gear slots:** headwear, body armor, chest rig, backpack, plus fixed **pockets** (4 × 1×1). The weapon in
+  your hands is shown (not movable yet). Storage comes from what you wear: the chest rig and backpack each
+  have their own grid(s). **Later:** clothing slots (top, bottoms) whose pockets add grids too
+  (e.g. a hoodie gives a 2×3) — the grid system already supports any item giving grids.
+- The old magazine pouch is now the starting **basic chest rig** (four 1×2 mag pouches + two 1×1).
+  Reloads pull magazines from the rig and pockets only — never the backpack — like Tarkov.
+  NPCs still use a simple pouch.
+- **Inventory screen** (keyboard **Tab**, gamepad **tap View**; **hold View** = health screen): three panels
+  (equipment, storage, ground within 2.5 m). The game keeps running; you can only walk.
+  - Mouse: drag & drop, **R** rotates while dragging, **Ctrl+click** quick-moves (ground → inventory, wearing
+    gear if its slot is free; inventory → ground), **Delete** or dragging off the grids drops it.
+    Dropping onto a stack of the same thing tops it up.
+  - Gamepad: the **d-pad** moves a cell cursor (the left stick still walks); **A** pick up / place,
+    **X** rotate (empty-handed: quick-move), **LB/RB** jump between panels, **B** put back / close.
+- **World items:** anything dropped lies on the ground as a pickup (**F** / gamepad **X** picks it up into the
+  first free spot: rig, pockets, backpack; "No room" otherwise).
+- **Weight** (pounds; Strength raises every limit):
+  - **carry limit** 23 lb at Strength 0 → 65 lb at Strength 10 (≈35.6 lb at the starting Strength 3);
+  - **over** it: slower and sprinting drains stamina faster, the more the worse;
+  - **heavily overloaded** (≥1.6× the limit): walk only, no sprinting or jumping, barely moving near the top;
+  - **immobile** (≥2.2× the limit): can't move until you drop something.
+  - Moving while over the limit slowly trains Strength. Numbers in `carry_config.tres`.
+- Test range: loot in front of the spawn (daypack, hiking backpack, food, water, tape, nails, toolbox, a
+  38 lb car battery).
+- Dev notes (test): starting load 14.9 lb (rifle 7.5 lb + rig + 4 full mags); rifle + toolbox + battery
+  ≈ 67 lb = heavily overloaded, walking ≈0.56 m/s; ≈97 lb = can't move.
 
 #### Piece B: looting & searching
 - Containers (crates, cabinets) and dead NPCs are searched **Tarkov-style**: items appear one at a time,
@@ -484,7 +492,7 @@ Each step is refined until solid before moving on. All work happens in graybox t
 3. ✅ Health & damage — body parts, bleeding, fractures (shared by everyone)
 4. ✅ AI foundation — perception (sight/hearing) + navigation, zombie as first user
 5. ✅ Human NPCs — factions, disposition (hostile/neutral/friendly), combat with the same guns
-6. Inventory & loot
+6. 🧪 Inventory & loot (piece A in testing)
 7. Survival stats (hunger, thirst, fatigue)
 8. World chunking/streaming + first real town generated from OpenStreetMap data
 9. Full save/load of the persistent world

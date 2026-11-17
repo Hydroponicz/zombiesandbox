@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "backpack_daypack"
+DisplayName = "Daypack"
+ShortName = "Daypack"
+Size = Vector2i(3, 3)
+WeightLb = 1.5
+MaxStack = 1
+Category = 5
+Color = Color(0.25, 0.32, 0.45, 1)
+Slot = 4
+Grids = Array[Vector2i]([Vector2i(4, 4)])

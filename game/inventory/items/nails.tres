@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "nails"
+DisplayName = "Nails"
+ShortName = "Nails"
+Size = Vector2i(1, 1)
+WeightLb = 0.1
+MaxStack = 20
+Category = 0
+Color = Color(0.5, 0.5, 0.55, 1)
+Slot = 0
+Grids = Array[Vector2i]([])

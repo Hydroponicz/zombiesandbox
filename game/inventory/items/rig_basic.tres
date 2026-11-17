@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "rig_basic"
+DisplayName = "Basic chest rig"
+ShortName = "Rig"
+Size = Vector2i(2, 2)
+WeightLb = 1.6
+MaxStack = 1
+Category = 5
+Color = Color(0.3, 0.35, 0.22, 1)
+Slot = 3
+Grids = Array[Vector2i]([Vector2i(1, 2), Vector2i(1, 2), Vector2i(1, 2), Vector2i(1, 2), Vector2i(1, 1), Vector2i(1, 1)])

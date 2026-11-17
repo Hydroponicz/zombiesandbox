@@ -34,10 +34,10 @@ public partial class DebugHud : CanvasLayer
 
     public override void _Process(double delta)
     {
+        _player ??= GetTree().GetFirstNodeInGroup(PlayerController.Group) as PlayerController;
+        Visible = OS.IsDebugBuild() && !(_player?.InventoryOpen ?? false); // Out of the inventory screen's way.
         if (!Visible)
             return;
-
-        _player ??= GetTree().GetFirstNodeInGroup(PlayerController.Group) as PlayerController;
         if (_player == null)
             return;
 
@@ -63,10 +63,12 @@ public partial class DebugHud : CanvasLayer
         Line($"Weapon: ADS {w.AdsBlend:0.00}{(w.IsAiming ? " (aiming)" : "")}    Can fire: {(w.CanFire ? "yes" : "NO")}    Sway: {w.SwayDegrees:0.00}°    Breath: {breath} {w.BreathFraction:P0}    Wall: {w.WallPullBack:0.00} m{(_player.IsPeeking ? "    PEEKING" : "")}");
         string mag = w.Magazine != null ? $"{w.Magazine.Rounds}/{w.Magazine.Capacity}" : "none";
         var pouch = new System.Text.StringBuilder();
-        foreach (Combat.MagazineItem m in _player.Pouch.Magazines)
+        foreach (Combat.MagazineItem m in _player.Inventory.Magazines)
             pouch.Append(m.Rounds).Append(' ');
         string busy = w.Reloading != Combat.ReloadKind.None ? $"    RELOADING ({w.Reloading}) {w.ReloadProgress:P0}" : (w.IsCheckingMagazine ? "    CHECKING MAG" : "");
-        Line($"Ammo (dev only): mag {mag}{(w.Chambered ? " +1" : " (chamber empty)")}    pouch [ {pouch}]{busy}");
+        Line($"Ammo (dev only): mag {mag}{(w.Chambered ? " +1" : " (chamber empty)")}    rig+pockets [ {pouch}]{busy}");
+        ZombieSandbox.Inventory.CharacterInventory inv = _player.Inventory;
+        Line($"Carry: {inv.WeightLb:0.0} / {inv.CarryLimitLb:0.0} lb (x{inv.LoadRatio:0.00})   speed x{inv.SpeedMultiplier:0.00}{(inv.IsImmobile ? "   IMMOBILE" : inv.IsHeavilyOverloaded ? "   HEAVY" : inv.IsOverweight ? "   OVER" : "")}");
         string jam = w.IsJammed ? $"JAMMED: {w.Malfunction}{(w.MalfunctionKnown ? " (known)" : " (unknown)")}" : "no jam";
         string action = w.IsHandlingMalfunction ? $"    {w.MalfunctionActionName} {w.MalfunctionActionProgress:P0}" : "";
         Line($"Condition (dev only): {w.Weapon?.Condition:0.00}%    Heat: {w.Heat:0.0}    {jam}{action}");
@@ -102,7 +104,7 @@ public partial class DebugHud : CanvasLayer
         Line("[DEV] Skills -/+:  Ctrl+1/2 Fitness   Ctrl+3/4 Aiming   Ctrl+5/6 Strength   Ctrl+7/8 Reloading   Ctrl+9/0 Maintenance   Ctrl+-/= Medical");
         Line("[DEV] Weapon:  Ctrl+R refill ammo   Ctrl+K condition   Ctrl+J jam next shot   Ctrl+T bullet trails");
         Line($"[DEV] Health:  Ctrl+H hurt self   Ctrl+N break leg   Ctrl+U infect self   Ctrl+G heal (+cure)      World:  Ctrl+Z spawn zombie   Ctrl+L remove zombies   Ctrl+P time speed   Ctrl+O +3 h   Ctrl+M NPCs ignore you   Ctrl+Y reset factions{(ZombieSandbox.AI.Survivor.DebugIgnorePlayer ? " (ON)" : "")}");
-        Line("[DEV] Ctrl+I hide this overlay      G shove   H health screen   Esc release mouse (click to recapture)");
+        Line("[DEV] Ctrl+I hide this overlay      G shove   H health screen   Tab inventory   Esc release mouse (click to recapture)");
         _info.Text = _text.ToString();
     }
 }

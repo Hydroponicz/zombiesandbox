@@ -23,6 +23,8 @@ public partial class WeaponData : Resource
     [ExportGroup("Magazines & reloading (times at Reloading skill 0)")]
     [Export] public int MagazineCapacity { get; set; } = 30;
     [Export] public PackedScene? DroppedMagazineScene { get; set; }
+    /// <summary>The magazine as an inventory item (size, weight).</summary>
+    [Export] public ZombieSandbox.Inventory.ItemData? MagazineItemData { get; set; }
     /// <summary>Old mag back into the pouch, new mag in (s).</summary>
     [Export] public float TacticalReloadTime { get; set; } = 4.2f;
     /// <summary>Old mag dropped on the ground, new mag in (s).</summary>

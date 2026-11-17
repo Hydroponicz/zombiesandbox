@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "toolbox"
+DisplayName = "Toolbox"
+ShortName = "Toolbox"
+Size = Vector2i(3, 2)
+WeightLb = 9.0
+MaxStack = 1
+Category = 0
+Color = Color(0.75, 0.15, 0.12, 1)
+Slot = 0
+Grids = Array[Vector2i]([])

@@ -103,7 +103,7 @@ public partial class WeaponHolder : Node3D
     /// <param name="ownerExclude">The owner's body and hitboxes (bullets and wall checks ignore them).</param>
     /// <param name="worldMask">What the weapon bumps into (walls).</param>
     /// <param name="bulletMask">What bullets can hit (world + hitboxes).</param>
-    public void Initialize(CharacterStats stats, CharacterSkills skills, MagazinePouch? pouch, Array<Rid> ownerExclude, uint worldMask, uint bulletMask)
+    public void Initialize(CharacterStats stats, CharacterSkills skills, IMagazineStorage? pouch, Array<Rid> ownerExclude, uint worldMask, uint bulletMask)
     {
         _stats = stats;
         _skills = skills;

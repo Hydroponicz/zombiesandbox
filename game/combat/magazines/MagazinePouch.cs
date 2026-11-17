@@ -6,10 +6,9 @@ using ZombieSandbox.Core;
 namespace ZombieSandbox.Combat;
 
 /// <summary>
-/// Temporary home for a character's spare magazines until the inventory exists (build step 6),
-/// where it becomes part of the chest rig / belt.
+/// A simple magazine pouch for NPCs (the player's magazines live in the inventory's chest rig and pockets).
 /// </summary>
-public partial class MagazinePouch : Node, ISaveState
+public partial class MagazinePouch : Node, ISaveState, IMagazineStorage
 {
     [Export] public int Slots { get; set; } = 6;
 

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "water_bottle"
+DisplayName = "Water bottle"
+ShortName = "Water"
+Size = Vector2i(1, 2)
+WeightLb = 2.2
+MaxStack = 1
+Category = 4
+Color = Color(0.4, 0.65, 0.85, 1)
+Slot = 0
+Grids = Array[Vector2i]([])

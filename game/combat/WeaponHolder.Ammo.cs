@@ -28,7 +28,7 @@ public partial class WeaponHolder
     public MagazineItem? Magazine { get; private set; }
     /// <summary>A round is in the chamber, ready to fire.</summary>
     public bool Chambered { get; private set; }
-    public MagazinePouch? Pouch { get; private set; }
+    public IMagazineStorage? Pouch { get; private set; }
 
     public ReloadKind Reloading { get; private set; } = ReloadKind.None;
     public float ReloadProgress => _reloadDuration > 0f ? _reloadTime / _reloadDuration : 0f;

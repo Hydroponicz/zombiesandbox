@@ -38,8 +38,26 @@ public static class InputActions
     /// <summary>Rifle-butt shove.</summary>
     public const string Shove = "shove";
     public const string ReleaseMouse = "release_mouse";
-    /// <summary>Toggle the body diagram.</summary>
+    /// <summary>Toggle the body diagram (keyboard). Gamepad: hold View.</summary>
     public const string HealthScreen = "health_screen";
+    /// <summary>Keyboard: toggle the inventory. Gamepad View: tap = inventory, hold = health screen.</summary>
+    public const string Inventory = "inventory";
+
+    // Inventory screen (only while it's open). The d-pad moves a cell cursor; the left stick still walks.
+    public const string InvUp = "inv_up";
+    public const string InvDown = "inv_down";
+    public const string InvLeft = "inv_left";
+    public const string InvRight = "inv_right";
+    /// <summary>Gamepad: pick up / place.</summary>
+    public const string InvSelect = "inv_select";
+    /// <summary>Rotate the held item; gamepad with nothing held: quick-move.</summary>
+    public const string InvRotate = "inv_rotate";
+    /// <summary>Drop the item under the cursor on the ground.</summary>
+    public const string InvDrop = "inv_drop";
+    /// <summary>Put the held item back / close.</summary>
+    public const string InvCancel = "inv_cancel";
+    public const string InvPrevPanel = "inv_prev_panel";
+    public const string InvNextPanel = "inv_next_panel";
 
     // Developer-only (debug builds).
     public const string DebugFitnessUp = "debug_fitness_up";
@@ -104,7 +122,18 @@ public static class InputActions
         Bind(CheckMagazine, 0.5f, KeyEvent(Key.T), Button(JoyButton.DpadRight));
         Bind(Interact, 0.5f, KeyEvent(Key.F), Button(JoyButton.X));
         Bind(Shove, 0.5f, KeyEvent(Key.G), Button(JoyButton.RightShoulder));
-        Bind(HealthScreen, 0.5f, KeyEvent(Key.H), Button(JoyButton.Back));
+        Bind(HealthScreen, 0.5f, KeyEvent(Key.H));
+        Bind(Inventory, 0.5f, KeyEvent(Key.Tab), Button(JoyButton.Back));
+        Bind(InvUp, 0.5f, KeyEvent(Key.Up), Button(JoyButton.DpadUp));
+        Bind(InvDown, 0.5f, KeyEvent(Key.Down), Button(JoyButton.DpadDown));
+        Bind(InvLeft, 0.5f, KeyEvent(Key.Left), Button(JoyButton.DpadLeft));
+        Bind(InvRight, 0.5f, KeyEvent(Key.Right), Button(JoyButton.DpadRight));
+        Bind(InvSelect, 0.5f, Button(JoyButton.A));
+        Bind(InvRotate, 0.5f, KeyEvent(Key.R), Button(JoyButton.X));
+        Bind(InvDrop, 0.5f, KeyEvent(Key.Delete));
+        Bind(InvCancel, 0.5f, KeyEvent(Key.Escape), Button(JoyButton.B), Button(JoyButton.Y));
+        Bind(InvPrevPanel, 0.5f, Button(JoyButton.LeftShoulder));
+        Bind(InvNextPanel, 0.5f, Button(JoyButton.RightShoulder));
         Bind(ReleaseMouse, 0.5f, KeyEvent(Key.Escape));
 
         if (OS.IsDebugBuild())

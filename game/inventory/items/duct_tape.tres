@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "duct_tape"
+DisplayName = "Duct tape"
+ShortName = "Tape"
+Size = Vector2i(1, 1)
+WeightLb = 0.4
+MaxStack = 1
+Category = 0
+Color = Color(0.6, 0.6, 0.62, 1)
+Slot = 0
+Grids = Array[Vector2i]([])
