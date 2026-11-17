@@ -324,7 +324,7 @@ Shared by player, zombies and NPCs (one Health component).
   ≈48–72 game h ("You succumbed to the infection"). Fever also adds sway, pain and lowers stamina.
 - Developer keys: Ctrl+U infect self, Ctrl+G heal also cures; Ctrl+P speeds time up to watch it.
 
-### 5. Human NPCs (in progress)
+### 5. Human NPCs (done)
 Survivors reuse everything: body-part health and hitboxes, the same weapons (sway, recoil, reloads,
 jams), perception, navigation. Zombies attack them too.
 
@@ -364,7 +364,7 @@ jams), perception, navigation. Zombies attack them too.
   ≈10–12 s by three bandits (first tuning pass killed in ≈5 s: too deadly). Cover search only accepts *low* cover while fighting (full cover can't shoot back);
   cover heights are measured from the real ground, not the navmesh.
 
-#### Piece B: factions & attitude (implemented on preview — in testing)
+#### Piece B: factions & attitude (done)
 - **Factions** (a resource each: name, starting attitude, armband colour). Every NPC belongs to a group
   (2–4, or solo) and a faction. Attitude toward the player is **per faction**: Hostile / Neutral / Friendly.
   Anger one group and everyone in that faction treats you the same way.
@@ -436,7 +436,7 @@ Each step is refined until solid before moving on. All work happens in graybox t
    - **Peek over cover:** aiming while crouched behind waist-high cover raises you to aim over it (gamepad and keyboard).
 3. ✅ Health & damage — body parts, bleeding, fractures (shared by everyone)
 4. ✅ AI foundation — perception (sight/hearing) + navigation, zombie as first user
-5. 🧪 Human NPCs — factions, disposition (hostile/neutral/friendly), combat with the same guns
+5. ✅ Human NPCs — factions, disposition (hostile/neutral/friendly), combat with the same guns
 6. Inventory & loot
 7. Survival stats (hunger, thirst, fatigue)
 8. World chunking/streaming + first real town generated from OpenStreetMap data
