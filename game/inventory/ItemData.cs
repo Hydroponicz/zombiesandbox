@@ -21,6 +21,10 @@ public enum GearSlot
     BodyArmor,
     ChestRig,
     Backpack,
+    /// <summary>Hoodie, jacket, shirt: its pockets are storage.</summary>
+    Top,
+    /// <summary>Jeans, cargo pants: their pockets are storage.</summary>
+    Bottoms,
 }
 
 /// <summary>

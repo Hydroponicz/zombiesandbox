@@ -19,7 +19,10 @@ public partial class WorldItem : RigidBody3D, IInteractable
 
     public Item? Item { get; set; }
 
-    public string InteractPrompt => $"Pick up {Item?.Data.DisplayName}{(Item is { Count: > 1 } ? $" ({Item.Count})" : "")}";
+    public string InteractPrompt => _wouldWear
+        ? $"Wear {Item?.Data.DisplayName}"
+        : $"Pick up {Item?.Data.DisplayName}{(Item is { Count: > 1 } ? $" ({Item.Count})" : "")}";
+    private bool _wouldWear;
 
     public override void _Ready()
     {
@@ -49,13 +52,20 @@ public partial class WorldItem : RigidBody3D, IInteractable
         });
     }
 
-    public bool CanInteract(Node user) => Item != null && user.GetNodeOrNull<CharacterInventory>("Inventory") != null;
+    public bool CanInteract(Node user)
+    {
+        if (Item == null || user.GetNodeOrNull<CharacterInventory>("Inventory") is not { } inventory)
+            return false;
+        _wouldWear = inventory.CanEquip(Item);
+        return true;
+    }
 
     public void Interact(Node user)
     {
         if (Item == null || user.GetNodeOrNull<CharacterInventory>("Inventory") is not { } inventory)
             return;
-        if (inventory.TryAddAnywhere(Item))
+        // Gear you aren't wearing yet goes straight on; anything else into the first free spot.
+        if (inventory.Equip(Item) || inventory.TryAddAnywhere(Item))
         {
             Item = null;
             QueueFree();

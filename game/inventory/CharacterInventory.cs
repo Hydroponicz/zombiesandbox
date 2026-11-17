@@ -16,6 +16,7 @@ namespace ZombieSandbox.Inventory;
 public partial class CharacterInventory : Node, ISaveState, IMagazineStorage
 {
     public const int PocketCount = 4;
+    private static readonly GearSlot[] ReachableSlots = { GearSlot.ChestRig, GearSlot.Top, GearSlot.Bottoms };
 
     [Export] public CarryConfig Carry { get; set; } = null!;
     [Export] public ItemData? StartingRig { get; set; }
@@ -32,6 +33,8 @@ public partial class CharacterInventory : Node, ISaveState, IMagazineStorage
         [GearSlot.BodyArmor] = null,
         [GearSlot.ChestRig] = null,
         [GearSlot.Backpack] = null,
+        [GearSlot.Top] = null,
+        [GearSlot.Bottoms] = null,
     };
     public List<ItemGrid> Pockets { get; } = new();
 
@@ -89,12 +92,14 @@ public partial class CharacterInventory : Node, ISaveState, IMagazineStorage
 
     // ---------- Grids ----------
 
-    /// <summary>Chest rig grids, then pockets: what your hands reach in a fight.</summary>
+    /// <summary>Chest rig, clothing pockets, then fixed pockets: what your hands reach in a fight.</summary>
     public IEnumerable<ItemGrid> ReachableGrids()
     {
-        if (Equipped(GearSlot.ChestRig) is { } rig)
+        foreach (GearSlot slot in ReachableSlots)
         {
-            foreach (ItemGrid grid in rig.Grids)
+            if (Equipped(slot) is not { } worn)
+                continue;
+            foreach (ItemGrid grid in worn.Grids)
                 yield return grid;
         }
         foreach (ItemGrid pocket in Pockets)
@@ -299,7 +304,7 @@ public partial class CharacterInventory : Node, ISaveState, IMagazineStorage
 
     public void LoadState(Godot.Collections.Dictionary state)
     {
-        foreach (GearSlot slot in new[] { GearSlot.Headwear, GearSlot.BodyArmor, GearSlot.ChestRig, GearSlot.Backpack })
+        foreach (GearSlot slot in new List<GearSlot>(_equipped.Keys))
             _equipped[slot] = null;
         foreach ((Variant key, Variant value) in state["gear"].AsGodotDictionary())
         {

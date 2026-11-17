@@ -28,7 +28,13 @@ public partial class GameInput : Node
         InputActions.RegisterDefaults(Settings.StickDeadzone);
     }
 
-    public override void _Input(InputEvent e)
+    public override void _Input(InputEvent e) => Observe(e);
+
+    /// <summary>
+    /// Notes which device an event came from. Screens that consume input before it reaches this
+    /// autoload (the inventory) call it themselves so device switching still works.
+    /// </summary>
+    public void Observe(InputEvent e)
     {
         InputDevice? device = e switch
         {

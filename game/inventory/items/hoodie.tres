@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "hoodie"
+DisplayName = "Hoodie"
+ShortName = "Hoodie"
+Size = Vector2i(2, 2)
+WeightLb = 1.3
+Category = 5
+Color = Color(0.35, 0.36, 0.4, 1)
+Slot = 5
+Grids = Array[Vector2i]([Vector2i(2, 3)])

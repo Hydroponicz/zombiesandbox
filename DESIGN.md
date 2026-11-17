@@ -404,10 +404,10 @@ Weapon attachments come after survival stats (step 7).
 #### Piece A: items & grid inventory (implemented on preview — in testing)
 - **Items** are data resources: name, grid size (w×h), weight (**pounds**), stack size, category. Every item
   in the world has a stable unique id (persistent). Until real art, items draw as coloured boxes with a short name.
-- **Gear slots:** headwear, body armor, chest rig, backpack, plus fixed **pockets** (4 × 1×1). The weapon in
-  your hands is shown (not movable yet). Storage comes from what you wear: the chest rig and backpack each
-  have their own grid(s). **Later:** clothing slots (top, bottoms) whose pockets add grids too
-  (e.g. a hoodie gives a 2×3) — the grid system already supports any item giving grids.
+- **Gear slots:** headwear, body armor, **top**, **bottoms**, chest rig, backpack, plus fixed **pockets**
+  (4 × 1×1). The weapon in your hands is shown (not movable yet). Storage comes from what you wear: rigs,
+  backpacks and clothing pockets each give their own grids (hoodie: one 2×3 pocket; cargo pants: four 1×2).
+  Clothing pockets count as within reach for reloads, like the rig and pockets.
 - The old magazine pouch is now the starting **basic chest rig** (four 1×2 mag pouches + two 1×1).
   Reloads pull magazines from the rig and pockets only — never the backpack — like Tarkov.
   NPCs still use a simple pouch.
@@ -418,16 +418,20 @@ Weapon attachments come after survival stats (step 7).
     Dropping onto a stack of the same thing tops it up.
   - Gamepad: the **d-pad** moves a cell cursor (the left stick still walks); **A** pick up / place,
     **X** rotate (empty-handed: quick-move), **LB/RB** jump between panels, **B** put back / close.
-- **World items:** anything dropped lies on the ground as a pickup (**F** / gamepad **X** picks it up into the
-  first free spot: rig, pockets, backpack; "No room" otherwise).
+- **World items:** anything dropped lies on the ground as a pickup. **F** / gamepad **X** on gear or clothing
+  whose slot is free **wears it**; anything else goes into the first free spot (rig, clothing, pockets,
+  backpack); "No room" otherwise.
+- **Placing:** dropping an item where it doesn't fit as held shifts and/or turns it to fit around the cell
+  under the cursor (a sideways magazine dropped on a rig pouch stands up). The gamepad cursor outlines the
+  whole item under it, and the mouse pointer hides while you use a controller.
 - **Weight** (pounds; Strength raises every limit):
   - **carry limit** 23 lb at Strength 0 → 65 lb at Strength 10 (≈35.6 lb at the starting Strength 3);
   - **over** it: slower and sprinting drains stamina faster, the more the worse;
   - **heavily overloaded** (≥1.6× the limit): walk only, no sprinting or jumping, barely moving near the top;
   - **immobile** (≥2.2× the limit): can't move until you drop something.
   - Moving while over the limit slowly trains Strength. Numbers in `carry_config.tres`.
-- Test range: loot in front of the spawn (daypack, hiking backpack, food, water, tape, nails, toolbox, a
-  38 lb car battery).
+- Test range: loot in front of the spawn (daypack, hiking backpack, hoodie, cargo pants, food, water, tape,
+  nails, toolbox, a 38 lb car battery).
 - Dev notes (test): starting load 14.9 lb (rifle 7.5 lb + rig + 4 full mags); rifle + toolbox + battery
   ≈ 67 lb = heavily overloaded, walking ≈0.56 m/s; ≈97 lb = can't move.
 
@@ -442,7 +446,9 @@ Weapon attachments come after survival stats (step 7).
 
 #### Piece D: medical items + quick use
 - Bandage, tourniquet, splint, painkillers, disinfectant (finishes step 3 healing; trains Medical).
-- **Hotbar:** keys **4–0** use whatever is bound to them (only items in the rig/pockets can be bound).
+- **Hotbar:** keys **4–0** use whatever is bound to them. Drag an item onto a hotbar slot to bind it; items
+  can be bound from **anywhere in the inventory, backpack included** (e.g. a water bottle to drink from).
+  (Drinking/eating do something once thirst and hunger exist, step 7.)
 - **Gamepad quick-use wheel:** hold **LB**, pick with the right stick, release to use.
 
 #### Piece E: armor

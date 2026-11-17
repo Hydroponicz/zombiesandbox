@@ -81,8 +81,9 @@ public partial class PlayerHud : Control
 
     public override void _ExitTree()
     {
-        if (_subscribed)
-            _player.Weapons.Message -= ShowMessage;
-            _player.Message -= ShowMessage;
+        if (!_subscribed)
+            return;
+        _player.Weapons.Message -= ShowMessage;
+        _player.Message -= ShowMessage;
     }
 }

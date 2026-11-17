@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3]
+[gd_scene load_steps=31 format=3]
 
 [ext_resource type="Shader" path="res://assets/materials/dev/dev_grid.gdshader" id="1_grid"]
 [ext_resource type="PackedScene" path="res://game/player/player.tscn" id="2_player"]
@@ -19,6 +19,8 @@
 [ext_resource type="Resource" path="res://game/ai/factions/drifters.tres" id="14_drifters"]
 [ext_resource type="Resource" path="res://game/ai/factions/settlers.tres" id="15_settlers"]
 [ext_resource type="Script" path="res://game/inventory/WorldItem.cs" id="30_worlditem"]
+[ext_resource type="Resource" path="res://game/inventory/items/hoodie.tres" id="40_hoodie"]
+[ext_resource type="Resource" path="res://game/inventory/items/cargo_pants.tres" id="41_cargo"]
 [ext_resource type="Resource" path="res://game/inventory/items/backpack_daypack.tres" id="31_backpack_daypack"]
 [ext_resource type="Resource" path="res://game/inventory/items/backpack_hiking.tres" id="32_backpack_hiking"]
 [ext_resource type="Resource" path="res://game/inventory/items/car_battery.tres" id="33_car_battery"]
@@ -601,6 +603,16 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.3, 4.4)
 script = ExtResource("30_worlditem")
 Data = ExtResource("38_nails")
 Count = 10
+
+[node name="hoodie" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0.3, 4)
+script = ExtResource("30_worlditem")
+Data = ExtResource("40_hoodie")
+
+[node name="cargo_pants" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0.3, 4.5)
+script = ExtResource("30_worlditem")
+Data = ExtResource("41_cargo")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)

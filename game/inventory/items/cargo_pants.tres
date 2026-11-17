@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "cargo_pants"
+DisplayName = "Cargo pants"
+ShortName = "Cargos"
+Size = Vector2i(2, 2)
+WeightLb = 1.6
+Category = 5
+Color = Color(0.42, 0.38, 0.27, 1)
+Slot = 6
+Grids = Array[Vector2i]([Vector2i(1, 2), Vector2i(1, 2), Vector2i(1, 2), Vector2i(1, 2)])

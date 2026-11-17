@@ -94,6 +94,10 @@ public partial class InventoryScreen : Control
         Visible = open;
         if (!open)
             return;
+        // Mouse pointer only when using the mouse.
+        Input.MouseModeEnum wanted = UsingGamepad ? Input.MouseModeEnum.Hidden : Input.MouseModeEnum.Visible;
+        if (Input.MouseMode != wanted)
+            Input.MouseMode = wanted;
 
         _groundRefresh -= (float)delta;
         if (_groundRefresh <= 0f && (_held == null || _originKind != AreaKind.Ground))
@@ -173,68 +177,88 @@ public partial class InventoryScreen : Control
 
     private void Layout()
     {
-        _areas.Clear();
-        _titles.Clear();
-        _panels.Clear();
         Vector2 view = GetViewportRect().Size;
-        _cell = Mathf.Clamp(Mathf.Min(view.Y / 20f, view.X / 30f), 30f, 60f);
-        float gap = _cell * 0.3f;
-        float top = view.Y * 0.12f;
-        float panelWidth = Mathf.Min(view.X * 0.3f, _cell * 9f);
-        float left = (view.X - panelWidth * 3f - gap * 4f) * 0.5f + gap;
-
-        // Panel 0: gear slots.
-        var gearPanel = new Rect2(left, top, panelWidth, view.Y * 0.76f);
-        _panels.Add(gearPanel);
-        _titles.Add(("EQUIPMENT", gearPanel.Position + new Vector2(gap, gap + 14f)));
-        Vector2 cursor = gearPanel.Position + new Vector2(gap, gap * 2f + 24f);
-        float slotSize = _cell * 2f;
-        GearSlot[] slots = { GearSlot.Headwear, GearSlot.BodyArmor, GearSlot.ChestRig, GearSlot.Backpack };
-        for (int i = 0; i < slots.Length; i++)
-        {
-            Vector2 at = cursor + new Vector2(i % 2 * (slotSize + gap * 3f), i / 2 * (slotSize + gap + 22f) + 18f);
-            _titles.Add((SlotName(slots[i]), at - new Vector2(0f, 6f)));
-            _areas.Add(new Area { Kind = AreaKind.Slot, Slot = slots[i], Rect = new Rect2(at, new Vector2(slotSize, slotSize)), Panel = 0 });
-        }
-
-        // The weapon in your hands (shown, not movable yet).
-        Vector2 weaponAt = cursor + new Vector2(0f, 2f * (slotSize + gap + 22f) + 24f);
-        _titles.Add(("Weapon (in hands)", weaponAt - new Vector2(0f, 6f)));
-        _weaponRect = new Rect2(weaponAt, new Vector2(_cell * 5f, _cell * 1.5f));
-
-        // Panel 1: storage (rig, pockets, backpack).
-        var storagePanel = new Rect2(left + panelWidth + gap, top, panelWidth, view.Y * 0.76f);
-        _panels.Add(storagePanel);
-        _titles.Add(("STORAGE", storagePanel.Position + new Vector2(gap, gap + 14f)));
-        float x0 = storagePanel.Position.X + gap;
-        float y = storagePanel.Position.Y + gap * 2f + 24f;
-
-        if (_inventory.Equipped(GearSlot.ChestRig) is { } rig)
-        {
-            _titles.Add((rig.Data.DisplayName, new Vector2(x0, y + 12f)));
-            y += 20f;
-            y = FlowGrids(rig.Grids, x0, y, storagePanel.End.X - gap, gap) + gap;
-        }
-        _titles.Add(("Pockets", new Vector2(x0, y + 12f)));
-        y += 20f;
-        y = FlowGrids(_inventory.Pockets, x0, y, storagePanel.End.X - gap, gap) + gap;
-        if (_inventory.Equipped(GearSlot.Backpack) is { } backpack)
-        {
-            _titles.Add((backpack.Data.DisplayName, new Vector2(x0, y + 12f)));
-            y += 20f;
-            FlowGrids(backpack.Grids, x0, y, storagePanel.End.X - gap, gap);
-        }
-
-        // Panel 2: the ground.
-        var groundPanel = new Rect2(left + (panelWidth + gap) * 2f, top, panelWidth, view.Y * 0.76f);
-        _panels.Add(groundPanel);
-        _titles.Add(("GROUND", groundPanel.Position + new Vector2(gap, gap + 14f)));
-        var groundRect = new Rect2(groundPanel.Position + new Vector2(gap, gap * 2f + 24f), new Vector2(GroundWidth, GroundHeight) * _cell);
-        _areas.Add(new Area { Kind = AreaKind.Ground, Grid = _ground, Rect = groundRect, Panel = 2 });
+        _cell = Mathf.Clamp(Mathf.Min(view.Y / 20f, view.X / 30f), 26f, 60f);
+        // Shrink the cells until everything you carry fits on screen.
+        for (int attempt = 0; attempt < 8 && !LayoutWith(view); attempt++)
+            _cell = Mathf.Max(_cell * 0.92f, 20f);
 
         _cursorArea = Mathf.Clamp(_cursorArea, 0, _areas.Count - 1);
         Area current = _areas[_cursorArea];
         _cursorCell = new Vector2I(Mathf.Clamp(_cursorCell.X, 0, current.Columns - 1), Mathf.Clamp(_cursorCell.Y, 0, current.Rows - 1));
+    }
+
+    /// <summary>Lays everything out at the current cell size; false if the storage panel overflows.</summary>
+    private bool LayoutWith(Vector2 view)
+    {
+        _areas.Clear();
+        _titles.Clear();
+        _panels.Clear();
+        float gap = _cell * 0.3f;
+        float top = view.Y * 0.11f;
+        float panelHeight = view.Y * 0.79f;
+        float panelWidth = Mathf.Min(view.X * 0.3f, _cell * 9f);
+        float left = (view.X - panelWidth * 3f - gap * 4f) * 0.5f + gap;
+
+        // Panel 0: gear slots (two columns) and the weapon in your hands.
+        var gearPanel = new Rect2(left, top, panelWidth, panelHeight);
+        _panels.Add(gearPanel);
+        _titles.Add(("EQUIPMENT", gearPanel.Position + new Vector2(gap, gap + 14f)));
+        Vector2 cursor = gearPanel.Position + new Vector2(gap, gap * 2f + 24f);
+        float slotSize = _cell * 2f;
+        float rowStep = slotSize + gap + 22f;
+        GearSlot[] slots = { GearSlot.Headwear, GearSlot.BodyArmor, GearSlot.Top, GearSlot.Bottoms, GearSlot.ChestRig, GearSlot.Backpack };
+        for (int i = 0; i < slots.Length; i++)
+        {
+            Vector2 at = cursor + new Vector2(i % 2 * (slotSize + gap * 3f), i / 2 * rowStep + 18f);
+            _titles.Add((SlotName(slots[i]), at - new Vector2(0f, 6f)));
+            _areas.Add(new Area { Kind = AreaKind.Slot, Slot = slots[i], Rect = new Rect2(at, new Vector2(slotSize, slotSize)), Panel = 0 });
+        }
+        Vector2 weaponAt = cursor + new Vector2(0f, 3f * rowStep + 24f);
+        _titles.Add(("Weapon (in hands)", weaponAt - new Vector2(0f, 6f)));
+        _weaponRect = new Rect2(weaponAt, new Vector2(_cell * 5f, _cell * 1.5f));
+
+        // Panel 1: storage (rig, clothing pockets, pockets, backpack).
+        var storagePanel = new Rect2(left + panelWidth + gap, top, panelWidth, panelHeight);
+        _panels.Add(storagePanel);
+        _titles.Add(("STORAGE", storagePanel.Position + new Vector2(gap, gap + 14f)));
+        float x0 = storagePanel.Position.X + gap;
+        float right = storagePanel.End.X - gap;
+        float y = storagePanel.Position.Y + gap * 2f + 24f;
+
+        if (_inventory.Equipped(GearSlot.ChestRig) is { } rig)
+            y = Section(rig.Data.DisplayName, rig.Grids, x0, y, right, gap);
+        Item? topWear = _inventory.Equipped(GearSlot.Top);
+        Item? bottoms = _inventory.Equipped(GearSlot.Bottoms);
+        if (topWear != null || bottoms != null)
+        {
+            var clothingGrids = new List<ItemGrid>();
+            if (topWear != null)
+                clothingGrids.AddRange(topWear.Grids);
+            if (bottoms != null)
+                clothingGrids.AddRange(bottoms.Grids);
+            string title = topWear != null && bottoms != null ? $"{topWear.Data.DisplayName} · {bottoms.Data.DisplayName}"
+                : (topWear ?? bottoms)!.Data.DisplayName;
+            y = Section(title, clothingGrids, x0, y, right, gap);
+        }
+        y = Section("Pockets", _inventory.Pockets, x0, y, right, gap);
+        if (_inventory.Equipped(GearSlot.Backpack) is { } backpack)
+            y = Section(backpack.Data.DisplayName, backpack.Grids, x0, y, right, gap);
+        bool fits = y <= storagePanel.End.Y;
+
+        // Panel 2: the ground.
+        var groundPanel = new Rect2(left + (panelWidth + gap) * 2f, top, panelWidth, panelHeight);
+        _panels.Add(groundPanel);
+        _titles.Add(("GROUND", groundPanel.Position + new Vector2(gap, gap + 14f)));
+        var groundRect = new Rect2(groundPanel.Position + new Vector2(gap, gap * 2f + 24f), new Vector2(GroundWidth, GroundHeight) * _cell);
+        _areas.Add(new Area { Kind = AreaKind.Ground, Grid = _ground, Rect = groundRect, Panel = 2 });
+        return fits && groundRect.End.Y <= groundPanel.End.Y;
+    }
+
+    private float Section(string title, List<ItemGrid> grids, float x0, float y, float right, float gap)
+    {
+        _titles.Add((title, new Vector2(x0, y + 12f)));
+        return FlowGrids(grids, x0, y + 20f, right, gap) + gap;
     }
 
     /// <summary>Lays grids left to right, wrapping; returns the bottom.</summary>
@@ -263,6 +287,8 @@ public partial class InventoryScreen : Control
         GearSlot.BodyArmor => "Body armor",
         GearSlot.ChestRig => "Chest rig",
         GearSlot.Backpack => "Backpack",
+        GearSlot.Top => "Top",
+        GearSlot.Bottoms => "Bottoms",
         _ => "",
     };
 
@@ -297,6 +323,9 @@ public partial class InventoryScreen : Control
     {
         if (!Visible)
             return;
+        GameInput.Instance.Observe(e);
+        if (e is InputEventMouseMotion)
+            return; // Nothing else uses it while the pointer is free.
         // These belong to the player (closing the inventory, the health screen); walking is polled.
         if (e.IsAction(InputActions.Inventory) || e.IsAction(InputActions.HealthScreen))
             return;
@@ -468,7 +497,8 @@ public partial class InventoryScreen : Control
                 if (item.Grids.Contains(grid))
                     return false; // Not inside itself.
                 // Onto a stack of the same thing: top it up.
-                if (grid.At(cell.X, cell.Y) is { } target && target.Item.Data == item.Data && item.Data.MaxStack > 1)
+                Vector2I hovered = cell + _grabOffset;
+                if (grid.At(hovered.X, hovered.Y) is { } target && target.Item != item && target.Item.Data == item.Data && item.Data.MaxStack > 1)
                 {
                     FromOrigin(item);
                     Item.MergeInto(item, target.Item);
@@ -478,10 +508,11 @@ public partial class InventoryScreen : Control
                     _inventory.NotifyChanged();
                     return true;
                 }
-                if (!grid.Fits(cell.X, cell.Y, ItemGrid.SizeOf(item, _heldRotated)))
+                if (!ResolveSpot(grid, cell, out Vector2I spot, out bool rotated))
                     return false;
                 FromOrigin(item);
-                grid.TryPlace(item, cell.X, cell.Y, _heldRotated);
+                _heldRotated = rotated;
+                grid.TryPlace(item, spot.X, spot.Y, rotated);
                 _inventory.NotifyChanged();
                 return true;
         }
@@ -654,10 +685,10 @@ public partial class InventoryScreen : Control
     public override void _Draw()
     {
         Vector2 view = GetViewportRect().Size;
-        DrawRect(new Rect2(Vector2.Zero, view), new Color(0f, 0f, 0f, 0.55f));
+        DrawRect(new Rect2(Vector2.Zero, view), new Color(0f, 0f, 0f, 0.6f));
         foreach (Rect2 panel in _panels)
         {
-            DrawRect(panel, new Color(0.05f, 0.05f, 0.06f, 0.85f));
+            DrawRect(panel, new Color(0.05f, 0.05f, 0.06f, 0.96f));
             DrawRect(panel, new Color(1f, 1f, 1f, 0.18f), filled: false, width: 1.5f);
         }
         foreach ((string text, Vector2 position) in _titles)
@@ -753,6 +784,13 @@ public partial class InventoryScreen : Control
         {
             topLeft = CellCenter(_cursorArea, _cursorCell) - new Vector2(_cell, _cell) * 0.5f;
             valid = CanPlaceAt(_cursorArea, _cursorCell);
+            // Show where it would actually land (shifted / turned to fit).
+            if (valid && _areas[_cursorArea].Kind == AreaKind.Grid
+                && ResolveSpot(_areas[_cursorArea].Grid!, _cursorCell, out Vector2I spot, out bool turned))
+            {
+                size = ItemGrid.SizeOf(_held!, turned);
+                topLeft = _areas[_cursorArea].Rect.Position + new Vector2(spot.X, spot.Y) * _cell;
+            }
         }
         else
         {
@@ -761,9 +799,15 @@ public partial class InventoryScreen : Control
             {
                 Vector2I target = _areas[area].Kind == AreaKind.Slot ? Vector2I.Zero : cell - _grabOffset;
                 valid = CanPlaceAt(area, target);
-                if (_areas[area].Kind != AreaKind.Slot)
+                if (_areas[area].Kind == AreaKind.Grid)
                 {
-                    var snap = new Rect2(_areas[area].Rect.Position + new Vector2(target.X, target.Y) * _cell, new Vector2(size.X, size.Y) * _cell);
+                    Vector2I snapSize = size;
+                    if (ResolveSpot(_areas[area].Grid!, target, out Vector2I spot, out bool turned))
+                    {
+                        target = spot;
+                        snapSize = ItemGrid.SizeOf(_held!, turned);
+                    }
+                    var snap = new Rect2(_areas[area].Rect.Position + new Vector2(target.X, target.Y) * _cell, new Vector2(snapSize.X, snapSize.Y) * _cell);
                     DrawRect(snap, valid ? new Color(0.3f, 0.9f, 0.4f, 0.3f) : new Color(1f, 0.25f, 0.2f, 0.3f));
                 }
             }
@@ -772,6 +816,39 @@ public partial class InventoryScreen : Control
         DrawItemBox(_held!, rect.Grow(-2f), 0.8f);
         if (UsingGamepad)
             DrawRect(rect, valid ? new Color(0.3f, 0.9f, 0.4f) : new Color(1f, 0.3f, 0.2f), filled: false, width: 2.5f);
+    }
+
+    /// <summary>
+    /// Where the held item goes in a grid: exactly as dragged if it fits; otherwise shifted and/or turned
+    /// so it still covers the cell under the cursor (drop a sideways magazine on a rig pouch and it stands up).
+    /// </summary>
+    private bool ResolveSpot(ItemGrid grid, Vector2I topLeft, out Vector2I spot, out bool rotated)
+    {
+        Vector2I hovered = topLeft + _grabOffset;
+        for (int pass = 0; pass < 2; pass++)
+        {
+            rotated = pass == 0 ? _heldRotated : !_heldRotated;
+            Vector2I size = ItemGrid.SizeOf(_held!, rotated);
+            if (pass == 1 && size == ItemGrid.SizeOf(_held!, _heldRotated))
+                break; // Square: turning changes nothing.
+            if (pass == 0 && grid.Fits(topLeft.X, topLeft.Y, size))
+            {
+                spot = topLeft;
+                return true;
+            }
+            for (int dy = 0; dy < size.Y; dy++)
+            {
+                for (int dx = 0; dx < size.X; dx++)
+                {
+                    spot = hovered - new Vector2I(dx, dy);
+                    if (grid.Fits(spot.X, spot.Y, size))
+                        return true;
+                }
+            }
+        }
+        spot = topLeft;
+        rotated = _heldRotated;
+        return false;
     }
 
     private bool CanPlaceAt(int areaIndex, Vector2I cell)
@@ -784,8 +861,8 @@ public partial class InventoryScreen : Control
             AreaKind.Slot => _held.Data.Slot == area.Slot && _inventory.Equipped(area.Slot) == null,
             AreaKind.Ground => true,
             _ => !_held.Grids.Contains(area.Grid!)
-                 && (area.Grid!.Fits(cell.X, cell.Y, ItemGrid.SizeOf(_held, _heldRotated))
-                     || (area.Grid.At(cell.X, cell.Y) is { } t && t.Item.Data == _held.Data && _held.Data.MaxStack > 1)),
+                 && ((area.Grid!.At(cell.X + _grabOffset.X, cell.Y + _grabOffset.Y) is { } t && t.Item.Data == _held.Data && _held.Data.MaxStack > 1)
+                     || ResolveSpot(area.Grid, cell, out _, out _)),
         };
     }
 
@@ -795,6 +872,9 @@ public partial class InventoryScreen : Control
         Rect2 rect = area.Kind == AreaKind.Slot
             ? area.Rect
             : new Rect2(area.Rect.Position + new Vector2(_cursorCell.X, _cursorCell.Y) * _cell, new Vector2(_cell, _cell));
+        // Over an item: outline the whole item.
+        if (area.Kind != AreaKind.Slot && area.Grid!.At(_cursorCell.X, _cursorCell.Y) is { } hovered)
+            rect = new Rect2(area.Rect.Position + new Vector2(hovered.X, hovered.Y) * _cell, new Vector2(hovered.Size.X, hovered.Size.Y) * _cell);
         if (_held == null)
         {
             DrawRect(rect.Grow(1f), new Color(1f, 0.85f, 0.3f), filled: false, width: 2.5f);
