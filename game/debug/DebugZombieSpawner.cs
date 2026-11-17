@@ -27,6 +27,11 @@ public partial class DebugZombieSpawner : Node
         }
         else if (e.IsActionPressed(InputActions.DebugSkipHours))
             WorldClock.Instance.AdvanceGameHours(3);
+        else if (e.IsActionPressed(InputActions.DebugClearZombies))
+        {
+            foreach (Node zombie in GetTree().GetNodesInGroup(ZombieSandbox.AI.Zombie.Group))
+                zombie.QueueFree();
+        }
         else if (e.IsActionPressed(InputActions.DebugIgnorePlayer))
             ZombieSandbox.AI.Survivor.DebugIgnorePlayer = !ZombieSandbox.AI.Survivor.DebugIgnorePlayer;
     }

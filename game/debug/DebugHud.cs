@@ -97,7 +97,7 @@ public partial class DebugHud : CanvasLayer
         Line("");
         Line("[DEV] Skills -/+:  Ctrl+1/2 Fitness   Ctrl+3/4 Aiming   Ctrl+5/6 Strength   Ctrl+7/8 Reloading   Ctrl+9/0 Maintenance   Ctrl+-/= Medical");
         Line("[DEV] Weapon:  Ctrl+R refill ammo   Ctrl+K condition   Ctrl+J jam next shot   Ctrl+T bullet trails");
-        Line($"[DEV] Health:  Ctrl+H hurt self   Ctrl+N break leg   Ctrl+U infect self   Ctrl+G heal (+cure)      World:  Ctrl+Z spawn zombie   Ctrl+P time speed   Ctrl+O +3 h   Ctrl+M NPCs ignore you{(ZombieSandbox.AI.Survivor.DebugIgnorePlayer ? " (ON)" : "")}");
+        Line($"[DEV] Health:  Ctrl+H hurt self   Ctrl+N break leg   Ctrl+U infect self   Ctrl+G heal (+cure)      World:  Ctrl+Z spawn zombie   Ctrl+L remove zombies   Ctrl+P time speed   Ctrl+O +3 h   Ctrl+M NPCs ignore you{(ZombieSandbox.AI.Survivor.DebugIgnorePlayer ? " (ON)" : "")}");
         Line("[DEV] Ctrl+I hide this overlay      G shove   H health screen   Esc release mouse (click to recapture)");
         _info.Text = _text.ToString();
     }

@@ -348,6 +348,14 @@ jams), perception, navigation. Zombies attack them too.
   Shot at by someone they can't see, they stay in cover facing the gunfire instead of walking out.
   After losing contact they wait in cover (≈10 s of quiet), then **one** member goes to check while
   the rest keep watch ("Cover me, I'll check it."); gunfire sends the searcher back to cover.
+- **Pushing when they have the upper hand:** the group keeps a rough score: more of them than you,
+  recent hits on you ("He's hit!"), hearing you reload or dry-fire ("He's reloading!"), and your shots
+  not hitting anyone all add; being hurt, pinned down or having lost members takes away. When it's high
+  enough (tunable `PushThreshold`) and you're hiding, **one** bandit flanks your position ("Moving up!")
+  while the others rise and give **covering fire** at your hiding spot. If he finds you he stays on you
+  and shoots rather than going back to cover; if he gets hit or pinned he aborts ("Pinned down!") and the
+  group waits a few seconds before trying again. They don't push while zombies are close.
+- Developer key: Ctrl+L removes all zombies (to test bandits without zombies interrupting).
 - **Shoving** shows a "Get off!" bark until there are animations.
 - **Aim never becomes perfect:** besides the starting error that settles, every shot gets a small
   random hand wobble (bigger at range and when suppressed).

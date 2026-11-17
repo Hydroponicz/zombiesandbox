@@ -13,7 +13,7 @@ public static class SurvivorGroup
 
     private static readonly Dictionary<string, Sighting> Latest = new();
     private static readonly Dictionary<string, (Vector3 Position, double Time)> Shots = new();
-    private static readonly Dictionary<string, Node> Searchers = new();
+    private static readonly Dictionary<string, Node> Movers = new();
 
     private static double Now => Time.GetTicksMsec() / 1000.0;
 
@@ -27,21 +27,51 @@ public static class SurvivorGroup
     public static Vector3? RecentShots(string group, double maxAgeSeconds) =>
         group != "" && Shots.TryGetValue(group, out var s) && Now - s.Time <= maxAgeSeconds ? s.Position : null;
 
-    /// <summary>Only one member at a time goes to look; the rest keep watch. True if this one may go.</summary>
-    public static bool TryStartSearching(string group, Node member)
+    /// <summary>
+    /// Only one member moves up at a time (searching or pushing); the rest watch and cover him.
+    /// True if this one may go.
+    /// </summary>
+    public static bool TryClaimMover(string group, Node member)
     {
         if (group == "")
             return true;
-        if (Searchers.TryGetValue(group, out Node? current) && current != member && GodotObject.IsInstanceValid(current))
+        if (Movers.TryGetValue(group, out Node? current) && current != member && GodotObject.IsInstanceValid(current))
             return false;
-        Searchers[group] = member;
+        Movers[group] = member;
         return true;
     }
 
-    public static void StopSearching(string group, Node member)
+    public static void ReleaseMover(string group, Node member)
     {
-        if (group != "" && Searchers.TryGetValue(group, out Node? current) && current == member)
-            Searchers.Remove(group);
+        if (group != "" && Movers.TryGetValue(group, out Node? current) && current == member)
+            Movers.Remove(group);
+    }
+
+    /// <summary>The member currently moving up (searching or pushing), if any.</summary>
+    public static Node? Mover(string group) =>
+        group != "" && Movers.TryGetValue(group, out Node? current) && GodotObject.IsInstanceValid(current) ? current : null;
+
+    // Shared combat memory, used to judge who has the upper hand.
+    private static readonly Dictionary<string, Combat> CombatMemory = new();
+
+    public sealed class Combat
+    {
+        public double EnemyHitTime = -100.0;
+        public double AllyHitTime = -100.0;
+        public double EnemyReloadTime = -100.0;
+        public double LastPushTime = -100.0;
+        /// <summary>Most members alive at once: how many the group has lost.</summary>
+        public int MostMembers;
+    }
+
+    public static Combat Memory(string group)
+    {
+        if (!CombatMemory.TryGetValue(group, out Combat? memory))
+        {
+            memory = new Combat();
+            CombatMemory[group] = memory;
+        }
+        return memory;
     }
 
     public static void Report(string group, ISenseTarget target, Vector3 position)
@@ -63,6 +93,7 @@ public static class SurvivorGroup
     {
         Latest.Clear();
         Shots.Clear();
-        Searchers.Clear();
+        Movers.Clear();
+        CombatMemory.Clear();
     }
 }

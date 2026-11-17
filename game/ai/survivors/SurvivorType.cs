@@ -45,6 +45,18 @@ public partial class SurvivorType : Resource
     [Export] public float ZombieThreatRange { get; set; } = 20f;
     [Export] public float SearchSeconds { get; set; } = 25f;
 
+    [ExportGroup("Aggression")]
+    /// <summary>
+    /// How much of an upper hand (see DESIGN.md: numbers, landed hits, enemy reloading, enemy missing)
+    /// the group needs before one member pushes the enemy's position. Lower = more aggressive.
+    /// </summary>
+    [Export] public float PushThreshold { get; set; } = 0.6f;
+    /// <summary>Seconds the group waits after a push before the next one.</summary>
+    [Export] public float PushCooldown { get; set; } = 6f;
+    /// <summary>Seconds between covering shots at the enemy's hiding spot while a mate moves.</summary>
+    [Export] public float CoveringFireIntervalMin { get; set; } = 0.9f;
+    [Export] public float CoveringFireIntervalMax { get; set; } = 1.8f;
+
     [ExportGroup("Movement (m/s)")]
     [Export] public float RunSpeed { get; set; } = 3.4f;
     [Export] public float WalkSpeed { get; set; } = 1.8f;

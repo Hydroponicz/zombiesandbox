@@ -170,8 +170,12 @@ public partial class WeaponHolder : Node3D
     }
 
     /// <summary>Called by <see cref="Ballistics"/> when one of this holder's bullets lands.</summary>
+    /// <summary>One of this holder's bullets landed (true = it hit something that takes damage).</summary>
+    public event System.Action<bool>? ShotLanded;
+
     public void OnShotLanded(float distance, bool hitTarget)
     {
+        ShotLanded?.Invoke(hitTarget);
         if (hitTarget && _skills != null)
             _skills.AddXp(SkillId.Aiming, Config.AimingXpPerHit * (1f + Config.AimingXpRangeBonusPer100m * distance / 100f));
     }

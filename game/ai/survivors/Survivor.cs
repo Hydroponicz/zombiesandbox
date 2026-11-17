@@ -19,6 +19,8 @@ public enum SurvivorState
     Retreat,
     /// <summary>Lost the enemy: check where it was last seen.</summary>
     Search,
+    /// <summary>The group has the upper hand: move up on the enemy's position while the others cover.</summary>
+    Push,
     Dead,
 }
 
@@ -73,6 +75,21 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     private double _enemyShotTime = -100.0;
     private Vector3 _enemyShotPosition;
     private bool _enemyShotNew;
+    /// <summary>Last time it knew of a human enemy (seen, heard shooting, or reported by a mate).</summary>
+    private double _humanThreatTime = -100.0;
+    private double _lastSawEnemyTime = -100.0;
+
+    // Pushing (see DESIGN.md step 5): judging the upper hand, flanking, covering fire.
+    /// <summary>How much of an upper hand the group has right now (pushes at Type.PushThreshold).</summary>
+    public float Advantage { get; private set; }
+    private float _advantageTimer;
+    private Vector3 _pushGoal;
+    private bool _pushFinalLeg;
+    private bool _resumePush;
+    private float _sincePushMove;
+    private float _flankSign = 1f;
+    private bool _coveringFire;
+    private SurvivorGroup.Combat _memory = null!;
 
     // Cover.
     private enum CoverKind { None, Low, Full }
@@ -181,6 +198,9 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         Perception.SelfExclude.AddRange(_selfExclude);
 
         _ray.Exclude = _selfExclude;
+        _memory = SurvivorGroup.Memory(GroupId);
+        _flankSign = _rng.Randf() < 0.5f ? -1f : 1f;
+        Weapons.ShotLanded += OnShotLanded;
         Health.Damaged += OnDamaged;
         Health.Died += OnDied;
     }
@@ -195,9 +215,10 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         skills.SetLevel(SkillId.Fitness, Type.Fitness);
     }
 
-    /// <summary>Piece A: zombies, the player and other groups are enemies. Factions come in piece B.</summary>
     /// <summary>Developer toggle (Ctrl+M): survivors ignore the player, to watch them fight zombies.</summary>
     public static bool DebugIgnorePlayer { get; set; }
+
+    /// <summary>Piece A: zombies, the player and other groups are enemies. Factions come in piece B.</summary>
 
     private bool IsEnemy(ISenseTarget target) => target switch
     {
@@ -280,7 +301,11 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             _threatTime = Now;
             _lastHeardCount = Perception.HeardCount;
             if (_target.Team == SenseTeam.Living)
+            {
+                _humanThreatTime = Now;
+                _lastSawEnemyTime = Now;
                 SurvivorGroup.Report(GroupId, _target, _threatPosition);
+            }
         }
         else if (_target != null && !_target.IsAlive)
         {
@@ -316,12 +341,17 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
                     Bark("Fall back!");
                 State = SurvivorState.Retreat;
             }
+            else if (State == SurvivorState.Push && _target!.Team == SenseTeam.Living
+                && GlobalPosition.DistanceTo(_target.GroundPosition) < 20f)
+            {
+                // Pushing and found him: press the attack instead of falling back to cover.
+            }
             else
             {
                 State = SurvivorState.Engage;
             }
         }
-        else if (_enemyShotNew && State is SurvivorState.Engage or SurvivorState.Retreat or SurvivorState.Search or SurvivorState.Alert)
+        else if (_enemyShotNew && State is SurvivorState.Engage or SurvivorState.Retreat or SurvivorState.Search or SurvivorState.Alert or SurvivorState.Push)
         {
             // Shot at by someone it can't see: stay in (or get back to) cover facing the shots,
             // rather than walking out to look for them.
@@ -331,7 +361,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             if (State == SurvivorState.Search)
             {
                 Bark("Over there!");
-                SurvivorGroup.StopSearching(GroupId, this);
+                SurvivorGroup.ReleaseMover(GroupId, this);
                 BecomeAlert();
             }
             else if (State == SurvivorState.Alert)
@@ -351,7 +381,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             double quietFor = Mathf.Min(Now - _threatTime, Now - _enemyShotTime);
             if (State == SurvivorState.Engage && Now - _threatTime > 6.0 && quietFor > 10.0)
             {
-                if (SurvivorGroup.TryStartSearching(GroupId, this))
+                if (SurvivorGroup.TryClaimMover(GroupId, this))
                 {
                     State = SurvivorState.Search;
                     _stateTimer = Type.SearchSeconds;
@@ -372,6 +402,8 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             Vector3? shots = SurvivorGroup.RecentShots(GroupId, 3.0);
             if (shared is { } s && s.Target.IsAlive && Now - _threatTime > 1.0)
             {
+                if (s.Target.Team == SenseTeam.Living)
+                    _humanThreatTime = Now;
                 if (State == SurvivorState.Idle)
                     Bark("Where?");
                 _threatPosition = s.Position;
@@ -380,6 +412,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             }
             else if (shots is { } shotPosition && Now - _threatTime > 1.0)
             {
+                _humanThreatTime = Now;
                 _threatPosition = shotPosition;
                 _threatTime = Now;
                 BecomeAlert();
@@ -394,8 +427,12 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         }
 
         _enemyShotNew = false;
-        if (State != SurvivorState.Search)
-            SurvivorGroup.StopSearching(GroupId, this);
+        ConsiderPushing(dt);
+        if (State is not (SurvivorState.Search or SurvivorState.Push))
+            SurvivorGroup.ReleaseMover(GroupId, this);
+        _coveringFire = State is SurvivorState.Engage or SurvivorState.Alert && !CanSeeTarget
+            && SurvivorGroup.Mover(GroupId) is Survivor { State: SurvivorState.Push } mover && mover != this
+            && Now - _humanThreatTime < 12.0;
 
         switch (State)
         {
@@ -404,6 +441,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             case SurvivorState.Engage: DoEngage(dt); break;
             case SurvivorState.Retreat: DoRetreat(dt); break;
             case SurvivorState.Search: DoSearch(dt); break;
+            case SurvivorState.Push: DoPush(dt); break;
         }
     }
 
@@ -440,7 +478,13 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             _coverTimer = 4f;
         }
         _coverTimer -= dt;
-        IsCrouched = ReachedCover();
+        IsCrouched = ReachedCover() && !_coveringFire;
+        if (_coveringFire)
+        {
+            _stateTimer = Mathf.Max(_stateTimer, 5f);
+            HandleWeaponUpkeep();
+            TryCoveringShot();
+        }
         if (_stateTimer <= 0f)
         {
             State = SurvivorState.Idle;
@@ -489,6 +533,16 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
 
         StopMoving();
         AimAtTarget();
+
+        if (_coveringFire)
+        {
+            // A mate is moving up: rise and keep the enemy's head down at his last position.
+            IsCrouched = Suppression > 0.6f;
+            AimAtThreatArea();
+            HandleWeaponUpkeep();
+            TryCoveringShot();
+            return;
+        }
 
         if (_coverKind == CoverKind.Low)
         {
@@ -551,9 +605,193 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         if (_stateTimer <= 0f)
         {
             State = SurvivorState.Idle;
-            SurvivorGroup.StopSearching(GroupId, this);
+            SurvivorGroup.ReleaseMover(GroupId, this);
             MoveTo(_home);
         }
+    }
+
+    // ---------- Pushing ----------
+
+    /// <summary>
+    /// Judge the upper hand a couple of times a second; when it's big enough and the enemy is hiding,
+    /// one member moves up on him while the others give covering fire.
+    /// </summary>
+    private void ConsiderPushing(float dt)
+    {
+        _advantageTimer -= dt;
+        if (_advantageTimer > 0f)
+            return;
+        _advantageTimer = 0.5f;
+        Advantage = MeasureAdvantage();
+
+        bool humanThreat = Now - _humanThreatTime < 15.0 && (_target == null || _target.Team == SenseTeam.Living);
+        // He's hiding from this one (mates may still see him: they'll cover).
+        bool hiddenEnemy = !CanSeeTarget && Now - _lastSawEnemyTime > 2.0 && Now - _threatTime < Type.SearchSeconds;
+        if (State is not (SurvivorState.Engage or SurvivorState.Alert) || !humanThreat || !hiddenEnemy)
+            return;
+        if (Advantage < Type.PushThreshold || Health.Danger >= Type.RetreatDanger * 0.6f || Suppression > 0.4f
+            || Now - _memory.LastPushTime < Type.PushCooldown || ZombieNearby())
+            return;
+        if (!SurvivorGroup.TryClaimMover(GroupId, this))
+            return;
+        StartPush();
+    }
+
+    /// <summary>
+    /// Numbers, hits landed on the enemy, the enemy reloading, and the enemy's fire not hitting
+    /// anyone add up; being hurt, pinned down or losing members takes away.
+    /// </summary>
+    private float MeasureAdvantage()
+    {
+        int alive = 0;
+        foreach (Node node in GetTree().GetNodesInGroup(Group))
+        {
+            if (node is Survivor { IsAlive: true } mate && mate.GroupId == GroupId)
+                alive++;
+        }
+        _memory.MostMembers = Mathf.Max(_memory.MostMembers, alive);
+        int lost = _memory.MostMembers - alive;
+
+        float score = 0.25f * (alive - 1) - 0.3f * lost;
+        if (Now - _memory.EnemyHitTime < 20.0)
+            score += 0.35f;
+        if (Now - _memory.EnemyReloadTime < 4.0)
+            score += 0.4f;
+        if (Now - _memory.AllyHitTime > 15.0)
+            score += 0.2f;
+        score -= Suppression * 0.6f + Health.Danger * 0.8f;
+        return score;
+    }
+
+    private bool ZombieNearby()
+    {
+        foreach (Node node in GetTree().GetNodesInGroup(Zombie.Group))
+        {
+            if (node is Zombie { IsAlive: true } zombie && zombie.GlobalPosition.DistanceTo(GlobalPosition) < 10f)
+                return true;
+        }
+        return false;
+    }
+
+    private void StartPush()
+    {
+        State = SurvivorState.Push;
+        _stateTimer = 20f;
+        _memory.LastPushTime = Now;
+        ReleaseCover();
+        IsCrouched = false;
+        // Come at the hiding spot from the side, a few metres out, rather than straight down his sights.
+        Vector3 toThreat = _threatPosition - GlobalPosition;
+        toThreat.Y = 0f;
+        Vector3 forward = toThreat.LengthSquared() > 0.01f ? toThreat.Normalized() : -GlobalBasis.Z;
+        Vector3 side = forward.Cross(Vector3.Up) * _flankSign;
+        float back = Mathf.Min(5f, toThreat.Length() * 0.5f);
+        _pushGoal = _threatPosition - forward * back + side * 5f;
+        _pushFinalLeg = false;
+        MoveTo(_pushGoal);
+        _sincePushMove = 0f;
+        Bark(Now - _memory.EnemyReloadTime < 4.0 ? "Push him, he's reloading!" : "Moving up!");
+    }
+
+    private void DoPush(float dt)
+    {
+        _stateTimer -= dt;
+        AimAtThreatArea();
+        HandleWeaponUpkeep();
+        IsCrouched = false;
+        if (Suppression > 0.6f)
+        {
+            AbortPush();
+            return;
+        }
+        if (CanSeeTarget)
+        {
+            // Found him: stop and shoot; keep coming if he ducks out of sight again.
+            _stateTimer = Mathf.Max(_stateTimer, 6f);
+            StopMoving();
+            AimAtTarget();
+            TryShoot();
+            _pushFinalLeg = true;
+            _pushGoal = _target!.GroundPosition;
+            _resumePush = true;
+            return;
+        }
+        _sincePushMove += dt;
+        if (_resumePush)
+        {
+            _resumePush = false;
+            MoveTo(_pushGoal);
+            _sincePushMove = 0f;
+        }
+        Vector3 flat = new(GlobalPosition.X - _pushGoal.X, 0f, GlobalPosition.Z - _pushGoal.Z);
+        // (Navigation reports "finished" for a moment after a new target is set: ignore the first half second.)
+        bool arrived = flat.Length() < 1.5f || (NavReady && _agent.IsNavigationFinished() && _sincePushMove > 0.5f);
+        if (arrived && !_pushFinalLeg)
+        {
+            // Flank reached and still no sight of him: go to where he was.
+            _pushFinalLeg = true;
+            _pushGoal = _threatPosition;
+            MoveTo(_pushGoal);
+            _sincePushMove = 0f;
+        }
+        else if ((arrived && _pushFinalLeg) || _stateTimer <= 0f)
+        {
+            // Nobody there: look around for him.
+            State = SurvivorState.Search;
+            _stateTimer = Type.SearchSeconds;
+        }
+    }
+
+    private void AbortPush()
+    {
+        Bark("Pinned down!");
+        State = SurvivorState.Engage;
+        _coverTimer = 0f;
+        _memory.LastPushTime = Now;
+        SurvivorGroup.ReleaseMover(GroupId, this);
+    }
+
+    private void OnShotLanded(bool hitTarget)
+    {
+        if (hitTarget && _aimTarget is { Team: SenseTeam.Living } && _aimTarget.IsAlive)
+        {
+            _memory.EnemyHitTime = Now;
+            if (_rng.Randf() < 0.5f)
+                Bark("He's hit!");
+        }
+    }
+
+    /// <summary>Fire at where the enemy is hiding (walls and all) so he keeps his head down.</summary>
+    private void TryCoveringShot()
+    {
+        if (_shotTimer > 0f || !Weapons.IsAiming || Weapons.AdsBlend < 0.9f || !_hasAimPoint || Weapons.IsBusy)
+            return;
+        if (Weapons.IsJammed || NeedsReload())
+        {
+            HandleWeaponUpkeep();
+            return;
+        }
+        if (FriendlyInLine())
+            return;
+        Weapons.PullTrigger();
+        RerollWobble();
+        _shotTimer = _rng.RandfRange(Type.CoveringFireIntervalMin, Type.CoveringFireIntervalMax);
+    }
+
+    private bool FriendlyInLine()
+    {
+        _ray.From = Weapons.AimPivot.Origin;
+        _ray.To = _aimPoint;
+        _ray.CollisionMask = HitboxRig.HitboxLayer;
+        Dictionary hit = GetWorld3D().DirectSpaceState.IntersectRay(_ray);
+        if (hit.Count == 0)
+            return false;
+        for (Node? node = hit["collider"].AsGodotObject() as Node; node != null; node = node.GetParent())
+        {
+            if (node is Survivor other)
+                return other.GroupId == GroupId;
+        }
+        return false;
     }
 
     // ---------- Weapon ----------
@@ -599,6 +837,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     private void AimAtThreatArea()
     {
         _aimPoint = _threatPosition + Vector3.Up * 1.3f;
+        _aimError = _wobble * Type.AimWobble * 1.5f; // Firing blind: scattered.
         _hasAimPoint = Now - _threatTime < Type.SearchSeconds;
     }
 
@@ -660,8 +899,9 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
 
     private void UpdateWeaponIntent(float speed)
     {
-        bool fighting = State is SurvivorState.Engage or SurvivorState.Retreat;
-        Weapons.WantsAim = fighting && CanSeeTarget && (!IsCrouched || _coverKind != CoverKind.Low);
+        bool fighting = State is SurvivorState.Engage or SurvivorState.Retreat or SurvivorState.Push;
+        Weapons.WantsAim = (fighting && CanSeeTarget && (!IsCrouched || _coverKind != CoverKind.Low))
+            || (_coveringFire && !IsCrouched);
         Weapons.TriggerHeld = false;
         Weapons.Lowered = false;
         Weapons.MoveFraction = Mathf.Clamp(speed / 3.5f, 0f, 1f) * (Velocity.LengthSquared() > 0.1f ? 1f : 0f);
@@ -807,7 +1047,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     {
         float speed = State switch
         {
-            SurvivorState.Engage or SurvivorState.Retreat => Type.RunSpeed,
+            SurvivorState.Engage or SurvivorState.Retreat or SurvivorState.Push => Type.RunSpeed,
             SurvivorState.Idle => Type.WalkSpeed * 0.7f,
             _ => Type.WalkSpeed,
         };
@@ -854,6 +1094,9 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     {
         Suppression = Mathf.Min(1f, Suppression + 0.5f);
         Bark("I'm hit!");
+        _memory.AllyHitTime = Now;
+        if (State == SurvivorState.Push)
+            AbortPush();
         if (State is SurvivorState.Idle or SurvivorState.Alert)
             BecomeAlert();
     }
@@ -874,7 +1117,16 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             _enemyShotPosition = noise.Position + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * error;
             _enemyShotPosition.Y = GlobalPosition.Y;
             _enemyShotTime = Now;
+            _humanThreatTime = Now;
             _enemyShotNew = true;
+            return;
+        }
+        if (noise.Kind == NoiseKind.Handling && noise.Source is ISenseTarget handler && IsEnemy(handler)
+            && handler.Team == SenseTeam.Living && GlobalPosition.DistanceTo(noise.Position) <= noise.Radius * Perception.HearingMultiplier * 2f)
+        {
+            // Heard them reloading or dry-firing: a window to move.
+            _memory.EnemyReloadTime = Now;
+            Bark("He's reloading!");
             return;
         }
         if (noise.Kind != NoiseKind.Impact)
@@ -908,7 +1160,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
 
     private void OnDied()
     {
-        SurvivorGroup.StopSearching(GroupId, this);
+        SurvivorGroup.ReleaseMover(GroupId, this);
         State = SurvivorState.Dead;
         ReleaseCover();
         CollisionLayer = 0;
