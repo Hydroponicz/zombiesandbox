@@ -328,7 +328,7 @@ Shared by player, zombies and NPCs (one Health component).
 Survivors reuse everything: body-part health and hitboxes, the same weapons (sway, recoil, reloads,
 jams), perception, navigation. Zombies attack them too.
 
-#### Piece A: combat AI (implemented on preview — in testing)
+#### Piece A: combat AI (done)
 - **Same rules as the player:** NPCs aim through the same weapon system; accuracy comes from sway,
   recoil and their skills (Aiming, Strength...) plus a human reaction/aim-settling time. Difficulty
   = NPC skill levels (survivor type resource), never hidden accuracy cheats.
