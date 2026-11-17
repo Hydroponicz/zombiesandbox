@@ -344,6 +344,11 @@ jams), perception, navigation. Zombies attack them too.
 - **Infection:** zombie wounds can infect NPCs; an NPC who dies infected **rises as a zombie**.
 - Test range: a bandit camp (3 hostile bandits) with low and full cover.
 - Developer key: Ctrl+M makes NPCs ignore the player (to watch them fight zombies).
+- **Sightlines & searching:** they see whatever of you is exposed: leaning out shows your head.
+  Shot at by someone they can't see, they stay in cover facing the gunfire instead of walking out.
+  After losing contact they wait in cover (≈10 s of quiet), then **one** member goes to check while
+  the rest keep watch ("Cover me, I'll check it."); gunfire sends the searcher back to cover.
+- **Shoving** shows a "Get off!" bark until there are animations.
 - **Aim never becomes perfect:** besides the starting error that settles, every shot gets a small
   random hand wobble (bigger at range and when suppressed).
 - Dev notes (headless test, player standing still in the open at ~15 m): first shot ≈3 s after being

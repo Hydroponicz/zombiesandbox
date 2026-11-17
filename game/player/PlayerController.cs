@@ -190,7 +190,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
 
     // ---------- What AI can see and hear ----------
 
-    public Vector3 SightPoint => GlobalPosition + Vector3.Up * Mathf.Max(EyeHeight - 0.2f, 0.25f);
+    /// <summary>The head, including lean: peeking around a corner shows your head.</summary>
+    public Vector3 SightPoint => GlobalPosition + Vector3.Up * Mathf.Max(EyeHeight - 0.2f, 0.25f) + GlobalBasis.X * (Lean * Config.LeanOffset);
     public Vector3 GroundPosition => GlobalPosition;
     public Array<Rid> SightExclude => SelfExclude;
     public bool IsAlive => !IsDead;

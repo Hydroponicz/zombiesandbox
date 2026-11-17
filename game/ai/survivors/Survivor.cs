@@ -69,6 +69,10 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     private Vector3 _threatPosition;
     private double _threatTime = -999;
     private int _lastHeardCount;
+    /// <summary>Last time it heard an enemy fire (seconds), and roughly where from.</summary>
+    private double _enemyShotTime = -100.0;
+    private Vector3 _enemyShotPosition;
+    private bool _enemyShotNew;
 
     // Cover.
     private enum CoverKind { None, Low, Full }
@@ -317,6 +321,24 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
                 State = SurvivorState.Engage;
             }
         }
+        else if (_enemyShotNew && State is SurvivorState.Engage or SurvivorState.Retreat or SurvivorState.Search or SurvivorState.Alert)
+        {
+            // Shot at by someone it can't see: stay in (or get back to) cover facing the shots,
+            // rather than walking out to look for them.
+            _threatPosition = _enemyShotPosition;
+            _threatTime = Now;
+            SurvivorGroup.ReportShots(GroupId, _enemyShotPosition);
+            if (State == SurvivorState.Search)
+            {
+                Bark("Over there!");
+                SurvivorGroup.StopSearching(GroupId, this);
+                BecomeAlert();
+            }
+            else if (State == SurvivorState.Alert)
+            {
+                _stateTimer = 25f;
+            }
+        }
         else if (State is SurvivorState.Engage or SurvivorState.Retreat && !knowsThreat)
         {
             State = SurvivorState.Idle;
@@ -324,25 +346,42 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         }
         else if (State is SurvivorState.Engage or SurvivorState.Retreat && knowsThreat)
         {
-            if (State == SurvivorState.Engage && Now - _threatTime > 4.0)
+            // Lost sight: wait a while in cover (longer if they were shooting at us), then one member
+            // of the group goes to look while the others keep watching from cover.
+            double quietFor = Mathf.Min(Now - _threatTime, Now - _enemyShotTime);
+            if (State == SurvivorState.Engage && Now - _threatTime > 6.0 && quietFor > 10.0)
             {
-                State = SurvivorState.Search;
-                _stateTimer = Type.SearchSeconds;
-                Bark("Where'd they go?");
-                ReleaseCover();
-                MoveTo(_threatPosition);
+                if (SurvivorGroup.TryStartSearching(GroupId, this))
+                {
+                    State = SurvivorState.Search;
+                    _stateTimer = Type.SearchSeconds;
+                    Bark("Cover me, I'll check it.");
+                    ReleaseCover();
+                    MoveTo(_threatPosition);
+                }
+                else
+                {
+                    BecomeAlert();
+                }
             }
         }
         else if (State is SurvivorState.Idle or SurvivorState.Alert)
         {
             // A group mate's sighting or a sound: get ready, facing it.
             SurvivorGroup.Sighting? shared = SurvivorGroup.Recent(GroupId, 6.0);
+            Vector3? shots = SurvivorGroup.RecentShots(GroupId, 3.0);
             if (shared is { } s && s.Target.IsAlive && Now - _threatTime > 1.0)
             {
                 if (State == SurvivorState.Idle)
                     Bark("Where?");
                 _threatPosition = s.Position;
                 _threatTime = s.Time;
+                BecomeAlert();
+            }
+            else if (shots is { } shotPosition && Now - _threatTime > 1.0)
+            {
+                _threatPosition = shotPosition;
+                _threatTime = Now;
                 BecomeAlert();
             }
             else if (Perception.HeardCount != _lastHeardCount)
@@ -353,6 +392,10 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
                 BecomeAlert();
             }
         }
+
+        _enemyShotNew = false;
+        if (State != SurvivorState.Search)
+            SurvivorGroup.StopSearching(GroupId, this);
 
         switch (State)
         {
@@ -409,9 +452,8 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     {
         if (_target == null)
         {
-            State = SurvivorState.Search;
-            _stateTimer = Type.SearchSeconds;
-            MoveTo(_threatPosition);
+            // Target gone (killed): stay ready for a while.
+            BecomeAlert();
             return;
         }
         _coverTimer -= dt;
@@ -509,6 +551,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         if (_stateTimer <= 0f)
         {
             State = SurvivorState.Idle;
+            SurvivorGroup.StopSearching(GroupId, this);
             MoveTo(_home);
         }
     }
@@ -752,6 +795,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             zombie.ApplyShove(to.LengthSquared() > 0.01f ? to : -GlobalBasis.Z, 1f, _rng.Randf() < 0.3f);
             zombie.Health.ApplyDamage(BodyPart.Head, 5f, DamageSource.Shove);
             Weapons.PlayShove();
+            Bark("Get off!");
             _shoveCooldown = 1.2f;
             return;
         }
@@ -814,10 +858,26 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             BecomeAlert();
     }
 
-    /// <summary>Bullets landing close by keep its head down.</summary>
+    /// <summary>Bullets landing close by keep its head down; enemy gunfire tells it where the shooter is.</summary>
     private void OnNoise(NoiseEvent noise)
     {
-        if (State == SurvivorState.Dead || noise.Kind != NoiseKind.Impact)
+        if (State == SurvivorState.Dead)
+            return;
+        if (noise.Kind == NoiseKind.Gunshot && noise.Source is ISenseTarget shooter && IsEnemy(shooter))
+        {
+            float range = GlobalPosition.DistanceTo(noise.Position);
+            if (range > noise.Radius * Perception.HearingMultiplier)
+                return;
+            // Gunfire is easy to place roughly, not exactly (a few metres off at 30 m).
+            float error = range * 0.1f * _rng.Randf();
+            float angle = _rng.Randf() * Mathf.Tau;
+            _enemyShotPosition = noise.Position + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * error;
+            _enemyShotPosition.Y = GlobalPosition.Y;
+            _enemyShotTime = Now;
+            _enemyShotNew = true;
+            return;
+        }
+        if (noise.Kind != NoiseKind.Impact)
             return;
         float distance = (GlobalPosition + Vector3.Up * 1.2f).DistanceTo(noise.Position);
         if (distance < 2.5f)
@@ -848,6 +908,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
 
     private void OnDied()
     {
+        SurvivorGroup.StopSearching(GroupId, this);
         State = SurvivorState.Dead;
         ReleaseCover();
         CollisionLayer = 0;

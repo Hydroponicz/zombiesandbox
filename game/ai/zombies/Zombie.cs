@@ -449,8 +449,9 @@ public partial class Zombie : CharacterBody3D, ISenseTarget
             WoundType.Laceration => (Type.LacerationDamage, 0.7f, 0.15f, Type.LacerationInfection),
             _ => (Type.ScratchDamage, 0.3f, 0f, Type.ScratchInfection),
         };
-        target.Health.ApplyWound(part, type, damage, light, heavy, DamageSource.ZombieAttack);
+        // Exposure first: a wound that kills still infects (the dead rise).
         target.Infection?.Expose(infection);
+        target.Health.ApplyWound(part, type, damage, light, heavy, DamageSource.ZombieAttack);
     }
 
     private BodyPart PickBodyPart()

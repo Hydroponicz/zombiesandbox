@@ -12,6 +12,37 @@ public static class SurvivorGroup
     public readonly record struct Sighting(Vector3 Position, double Time, ISenseTarget Target);
 
     private static readonly Dictionary<string, Sighting> Latest = new();
+    private static readonly Dictionary<string, (Vector3 Position, double Time)> Shots = new();
+    private static readonly Dictionary<string, Node> Searchers = new();
+
+    private static double Now => Time.GetTicksMsec() / 1000.0;
+
+    /// <summary>A member heard an enemy shooting from roughly here.</summary>
+    public static void ReportShots(string group, Vector3 position)
+    {
+        if (group != "")
+            Shots[group] = (position, Now);
+    }
+
+    public static Vector3? RecentShots(string group, double maxAgeSeconds) =>
+        group != "" && Shots.TryGetValue(group, out var s) && Now - s.Time <= maxAgeSeconds ? s.Position : null;
+
+    /// <summary>Only one member at a time goes to look; the rest keep watch. True if this one may go.</summary>
+    public static bool TryStartSearching(string group, Node member)
+    {
+        if (group == "")
+            return true;
+        if (Searchers.TryGetValue(group, out Node? current) && current != member && GodotObject.IsInstanceValid(current))
+            return false;
+        Searchers[group] = member;
+        return true;
+    }
+
+    public static void StopSearching(string group, Node member)
+    {
+        if (group != "" && Searchers.TryGetValue(group, out Node? current) && current == member)
+            Searchers.Remove(group);
+    }
 
     public static void Report(string group, ISenseTarget target, Vector3 position)
     {
@@ -28,5 +59,10 @@ public static class SurvivorGroup
         return Time.GetTicksMsec() / 1000.0 - sighting.Time <= maxAgeSeconds ? sighting : null;
     }
 
-    public static void Clear() => Latest.Clear();
+    public static void Clear()
+    {
+        Latest.Clear();
+        Shots.Clear();
+        Searchers.Clear();
+    }
 }
