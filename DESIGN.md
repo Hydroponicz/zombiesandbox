@@ -239,10 +239,10 @@ prone moves to D-pad down.
   ×1.0 → ×0.5; repairs later. XP from clearing jams and inspecting.
 - Developer keys: Ctrl+9/0 Maintenance −/+, Ctrl+K cycle condition (100/70/40/15/0%), Ctrl+J jam next shot.
 
-### 3. Health & damage (in progress)
+### 3. Health & damage (piece 1 done; healing with inventory)
 Shared by player, zombies and NPCs (one Health component).
 
-#### Piece 1: body, damage, feedback (implemented on `preview` — in testing)
+#### Piece 1: body, damage, feedback (done)
 - **Body parts** (max HP): head 35, chest 85, stomach 70, arms 60 each, legs 65 each.
   - Head or chest at 0 = death. Other parts at 0 are **destroyed**: further damage to them spreads
     to the rest of the body (×0.7).
@@ -273,7 +273,7 @@ Shared by player, zombies and NPCs (one Health component).
 
 #### Piece 2: healing & medical items (with inventory, step 6)
 
-### 4. Zombies & AI foundation (in progress)
+### 4. Zombies & AI foundation (done)
 
 #### Vision for 1.0
 - Zombies start as **shamblers**. Over the first few in-game months the virus **mutates**, producing
@@ -284,7 +284,7 @@ Shared by player, zombies and NPCs (one Health component).
 - **Game clock:** 1 game day = 3 real hours (2 h daylight, 1 h night). Seasons with varying daylight and
   weather come later.
 
-#### Piece A: clock, senses, navigation, zombie (implemented on `preview` — in testing)
+#### Piece A: clock, senses, navigation, zombie (done)
 - **World clock** (autoload): game time flows at 1 game day / 3 real hours; daylight 06:00–22:00
   (2 real hours), night 22:00–06:00 (1 real hour). Sun moves; nights are dark. Debug: speed up time.
 - **Noise system** (shared): every sound is an event with a loudness radius. Rifle shot ≈250 m,
@@ -307,7 +307,7 @@ Shared by player, zombies and NPCs (one Health component).
 - Developer keys: Ctrl+Z spawn a zombie 20 m ahead, Ctrl+P cycle time speed (×1/×60/×600),
   Ctrl+O skip 3 game hours. Zombies show their state/awareness above their heads (dev builds).
 
-#### Piece B: attacks, wounds, infection, shove (implemented on `preview` — in testing)
+#### Piece B: attacks, wounds, infection, shove (done)
 - Zombies grab and attack: scratches, lacerations, bites to a body part (bites mostly when grabbed).
   Being grabbed slows you hard.
 - Wounds bleed and carry the 85–95% infection chance. Infection: hidden → symptoms (shown on the health
@@ -363,8 +363,8 @@ Each step is refined until solid before moving on. All work happens in graybox t
 2. ✅ Gunplay core (weapons usable by any character). Includes, because they need aiming down sights:
    - **Gamepad auto-lean:** aiming down sights beside a corner/cover edge leans around it (CoD-style).
    - **Peek over cover:** aiming while crouched behind waist-high cover raises you to aim over it (gamepad and keyboard).
-3. 🧪 Health & damage — body parts, bleeding, fractures (shared by everyone)
-4. 🧪 AI foundation — perception (sight/hearing) + navigation, zombie as first user
+3. ✅ Health & damage — body parts, bleeding, fractures (shared by everyone)
+4. ✅ AI foundation — perception (sight/hearing) + navigation, zombie as first user
 5. Human NPCs — factions, disposition (hostile/neutral/friendly), combat with the same guns
 6. Inventory & loot
 7. Survival stats (hunger, thirst, fatigue)
