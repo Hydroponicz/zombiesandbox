@@ -395,6 +395,52 @@ jams), perception, navigation. Zombies attack them too.
 - Developer: the overlay lists each faction's attitude; Ctrl+Y resets all factions to their starting attitude.
 - Dialogue, trading and recruiting come with steps 6 and 10.
 
+### 6. Inventory & loot (spec agreed — piece A details to confirm)
+Tarkov-style grid inventory. Pieces, in order: **A** items & grid inventory → **B** looting & searching →
+**C** ammo & magazines as items → **D** medical items + hotbar/quick-use wheel → **E** armor.
+Weapon attachments come after survival stats (step 7).
+
+#### Piece A: items & grid inventory (proposed)
+- **Items** are data resources: name, grid size (w×h), weight (kg), stack size, category. Every item in
+  the world has a stable unique id (persistent). Until real art, items draw as coloured boxes with a short name.
+- **Gear slots:** weapon, headwear, body armor, chest rig, backpack, plus fixed **pockets** (4 × 1×1).
+  Storage comes from what you wear: the chest rig and backpack each have their own grid(s).
+  The current 6-slot magazine pouch becomes a starting chest rig; reloading pulls magazines from the
+  rig and pockets only (not the backpack), like Tarkov.
+- **Inventory screen** (keyboard **Tab**, gamepad **Y**): the game keeps running while it's open (you
+  can only walk), so checking your bag near zombies is a risk.
+  - Mouse: drag & drop, **R** rotates while dragging, **Ctrl+click** quick-moves to the other side,
+    drag outside the grids (or **Delete**) to drop on the ground.
+  - Gamepad: a cursor moves cell by cell across the grids (d-pad / left stick); **A** pick up / place,
+    **X** rotate, **RB/LB** switch panels, **B** cancel / close, **Y** close.
+- **World items:** anything dropped lies on the ground as a pickup (**F** / gamepad **X** to pick up
+  into the first free spot).
+- **Weight** (Strength raises every limit):
+  - under the **carry limit** (≈25 kg at Strength 3, +2.5 kg per level): no effect;
+  - **over** it: slower, sprint drains stamina faster, the more the worse;
+  - **heavily overloaded** (≈1.6× the limit): can only walk slowly — no sprinting or jumping;
+  - **immobile** (≈2.2× the limit): can't move at all until you drop something.
+  - Moving while over the limit slowly trains Strength.
+- Test range: a few loose items, a backpack and a chest rig to pick up and wear.
+
+#### Piece B: looting & searching
+- Containers (crates, cabinets) and dead NPCs are searched **Tarkov-style**: items appear one at a time,
+  unknown ones shown as "?" until revealed (bigger items take longer). A container is only searched once.
+- New skill **Scavenging** (0–10): faster searching (≈1.5 s per item at 0 → ≈0.4 s at 10). Levels up
+  by searching.
+
+#### Piece C: ammo & magazines as items
+- Loose rounds stack in the inventory; load/unload magazines by hand (slow at low Reloading); ammo types per calibre.
+
+#### Piece D: medical items + quick use
+- Bandage, tourniquet, splint, painkillers, disinfectant (finishes step 3 healing; trains Medical).
+- **Hotbar:** keys **4–0** use whatever is bound to them (only items in the rig/pockets can be bound).
+- **Gamepad quick-use wheel:** hold **LB**, pick with the right stick, release to use.
+
+#### Piece E: armor
+- Helmets and plate carriers use the armor hook in the damage pipeline (step 3) and lose durability as
+  they stop hits.
+
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level
   needs more XP than the last. Exact curves live in a tunable resource.
@@ -407,6 +453,7 @@ jams), perception, navigation. Zombies attack them too.
 - **Maintenance** (step 2): jam clearing and inspection speed, slower weapon wear; repairs later.
 - **Reloading** (step 2): reload and magazine-check speed, magazine-check precision.
 - **Aiming** (step 2): hold-breath duration (4 s → 10 s) and less weapon sway. Earns XP from hits (piece 2).
+- **Scavenging** (step 6): faster container/body searching.
 - Weapon and other skills are added in the step that introduces them.
 - A developer-only debug key sets skill levels for testing (removed from release builds).
 
