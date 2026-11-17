@@ -153,7 +153,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         Stats.Initialize(Skills);
         Stamina.Initialize(Stats, Skills);
         Health.Initialize(Skills);
-        Weapons.Initialize(Stats, Skills, Pouch, SelfExclude, worldMask: CollisionMask, bulletMask: CollisionMask | HitboxRig.HitboxLayer);
+        // Bullets hit the world and body hit zones, never the invisible movement colliders around characters.
+        Weapons.Initialize(Stats, Skills, Pouch, SelfExclude, worldMask: CollisionMask, bulletMask: 1u | HitboxRig.HitboxLayer);
         Weapons.GiveSpareMagazines(StartingSpareMagazines);
 
         _gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle() * Config.GravityMultiplier;
