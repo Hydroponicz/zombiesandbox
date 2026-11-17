@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/ai/factions/FactionData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "settlers"
+DisplayName = "Settlers"
+StartingAttitude = 2
+HostileToEveryone = false
+Color = Color(0.15, 0.4, 0.85, 1)

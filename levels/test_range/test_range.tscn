@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Shader" path="res://assets/materials/dev/dev_grid.gdshader" id="1_grid"]
 [ext_resource type="PackedScene" path="res://game/player/player.tscn" id="2_player"]
@@ -14,6 +14,10 @@
 [ext_resource type="Script" path="res://game/debug/DebugZombieSpawner.cs" id="10_spawner"]
 
 [ext_resource type="PackedScene" path="res://game/ai/survivors/survivor.tscn" id="11_survivor"]
+[ext_resource type="Resource" path="res://game/ai/survivors/drifter.tres" id="12_drifter"]
+[ext_resource type="Resource" path="res://game/ai/survivors/settler.tres" id="13_settler"]
+[ext_resource type="Resource" path="res://game/ai/factions/drifters.tres" id="14_drifters"]
+[ext_resource type="Resource" path="res://game/ai/factions/settlers.tres" id="15_settlers"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_main"]
 cell_height = 0.1
@@ -282,6 +286,30 @@ use_collision = true
 size = Vector3(2, 1.1, 0.6)
 material = SubResource("ShaderMaterial_grid")
 
+[node name="Drifter_Crate_1" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33, 0.55, 35)
+use_collision = true
+size = Vector3(2, 1.1, 0.6)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="Drifter_Crate_2" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29, 0.55, 41)
+use_collision = true
+size = Vector3(0.6, 1.1, 2)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="Settler_Crate_1" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 0.55, 5.5)
+use_collision = true
+size = Vector3(2, 1.1, 0.6)
+material = SubResource("ShaderMaterial_grid")
+
+[node name="Settler_Crate_2" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -43, 0.55, 9)
+use_collision = true
+size = Vector3(0.6, 1.1, 2)
+material = SubResource("ShaderMaterial_grid")
+
 [node name="Camp_Sandbags" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38, 0.55, 32)
 use_collision = true
@@ -448,6 +476,21 @@ text = "BANDIT CAMP (hostile)"
 font_size = 64
 outline_size = 12
 
+
+[node name="DrifterSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33, 3, 33)
+billboard = 1
+text = "DRIFTERS (neutral) - don't aim at them"
+font_size = 64
+outline_size = 12
+
+[node name="SettlerSign" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 3, 4)
+billboard = 1
+text = "SETTLERS (friendly)"
+font_size = 64
+outline_size = 12
+
 [node name="Survivors" type="Node3D" parent="."]
 
 [node name="Bandit_1" parent="Survivors" instance=ExtResource("11_survivor")]
@@ -458,6 +501,36 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.5, 0.05, 35.5)
 
 [node name="Bandit_3" parent="Survivors" instance=ExtResource("11_survivor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 0.05, 39.5)
+
+[node name="Drifter_1" parent="Survivors" instance=ExtResource("11_survivor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0.05, 38)
+Type = ExtResource("12_drifter")
+GroupId = "drifters_camp"
+Faction = ExtResource("14_drifters")
+
+[node name="Drifter_2" parent="Survivors" instance=ExtResource("11_survivor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.5, 0.05, 39.5)
+Type = ExtResource("12_drifter")
+GroupId = "drifters_camp"
+Faction = ExtResource("14_drifters")
+
+[node name="Drifter_Loner" parent="Survivors" instance=ExtResource("11_survivor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42, 0.05, 22)
+Type = ExtResource("12_drifter")
+GroupId = "drifter_loner"
+Faction = ExtResource("14_drifters")
+
+[node name="Settler_1" parent="Survivors" instance=ExtResource("11_survivor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 0.05, 8)
+Type = ExtResource("13_settler")
+GroupId = "settlers"
+Faction = ExtResource("15_settlers")
+
+[node name="Settler_2" parent="Survivors" instance=ExtResource("11_survivor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.5, 0.05, 10)
+Type = ExtResource("13_settler")
+GroupId = "settlers"
+Faction = ExtResource("15_settlers")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)

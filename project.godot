@@ -20,6 +20,7 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 GameInput="*res://game/core/input/GameInput.cs"
 Ballistics="*res://game/combat/ballistics/Ballistics.cs"
 WorldClock="*res://game/world/WorldClock.cs"
+Factions="*res://game/ai/factions/FactionRelations.cs"
 
 [dotnet]
 

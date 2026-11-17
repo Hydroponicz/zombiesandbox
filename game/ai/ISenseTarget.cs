@@ -29,4 +29,7 @@ public interface ISenseTarget
 public static class SenseTargets
 {
     public static readonly List<ISenseTarget> All = new();
+
+    /// <summary>False once the target's node has been freed (a corpse that rose, a removed zombie).</summary>
+    public static bool IsValid(ISenseTarget? target) => target is Godot.GodotObject node && Godot.GodotObject.IsInstanceValid(node);
 }

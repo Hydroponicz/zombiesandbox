@@ -32,6 +32,8 @@ public partial class Hitbox : StaticBody3D, IHittable
             return false;
         // Damage falls off with the bullet's remaining speed.
         float speedFactor = Mathf.Clamp(hit.Velocity.Length() / hit.Ammo.MuzzleVelocity, 0.3f, 1f);
+        // The shooter is the weapon holder; the character holding it is its parent.
+        health.NoteAttacker(hit.Shooter?.GetParent());
         health.ApplyBulletHit(Part, hit.Ammo.Damage * speedFactor);
         return true;
     }

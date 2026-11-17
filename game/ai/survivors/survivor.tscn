@@ -1,7 +1,8 @@
-[gd_scene load_steps=25 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://game/ai/survivors/Survivor.cs" id="1_survivor"]
 [ext_resource type="Resource" path="res://game/ai/survivors/bandit.tres" id="2_type"]
+[ext_resource type="Resource" path="res://game/ai/factions/bandits.tres" id="20_faction"]
 [ext_resource type="Script" path="res://game/health/BodyHealth.cs" id="3_health"]
 [ext_resource type="Resource" path="res://game/health/health_config.tres" id="4_healthcfg"]
 [ext_resource type="Script" path="res://game/health/Infection.cs" id="5_infection"]
@@ -51,6 +52,7 @@ collision_layer = 2
 collision_mask = 3
 script = ExtResource("1_survivor")
 Type = ExtResource("2_type")
+Faction = ExtResource("20_faction")
 ZombieScene = ExtResource("17_zombie")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

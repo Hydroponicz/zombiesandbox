@@ -41,6 +41,18 @@ public partial class BodyHealth : Node, ISaveState
     public event Action<BodyPart, float>? Damaged;
     public event Action<BodyPart>? Fractured;
     public event Action? Died;
+    /// <summary>Someone (a character node) shot this body. Raised before the damage is applied.</summary>
+    public event Action<Node>? Attacked;
+    /// <summary>Who last shot this body (null if nobody, or unknown).</summary>
+    public Node? LastAttacker { get; private set; }
+
+    public void NoteAttacker(Node? attacker)
+    {
+        if (attacker == null || IsDead)
+            return;
+        LastAttacker = attacker;
+        Attacked?.Invoke(attacker);
+    }
 
     public override void _Ready() => HealAll();
 

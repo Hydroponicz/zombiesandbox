@@ -44,6 +44,8 @@ public partial class SurvivorType : Resource
     /// <summary>Zombies closer than this get dealt with first (m).</summary>
     [Export] public float ZombieThreatRange { get; set; } = 20f;
     [Export] public float SearchSeconds { get; set; } = 25f;
+    /// <summary>Won't push or search for enemies further than this from its home spot (m).</summary>
+    [Export] public float LeashRange { get; set; } = 35f;
 
     [ExportGroup("Aggression")]
     /// <summary>
@@ -56,6 +58,11 @@ public partial class SurvivorType : Resource
     /// <summary>Seconds between covering shots at the enemy's hiding spot while a mate moves.</summary>
     [Export] public float CoveringFireIntervalMin { get; set; } = 0.9f;
     [Export] public float CoveringFireIntervalMax { get; set; } = 1.8f;
+    /// <summary>
+    /// Runs from a losing fight when the group's upper hand drops below this (solo ≈0.2, a fresh pair
+    /// ≈0.45). Anything at or below -50 never runs (bandits).
+    /// </summary>
+    [Export] public float FleeThreshold { get; set; } = -99f;
 
     [ExportGroup("Movement (m/s)")]
     [Export] public float RunSpeed { get; set; } = 3.4f;

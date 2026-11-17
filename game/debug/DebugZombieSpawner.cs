@@ -32,6 +32,8 @@ public partial class DebugZombieSpawner : Node
             foreach (Node zombie in GetTree().GetNodesInGroup(ZombieSandbox.AI.Zombie.Group))
                 zombie.QueueFree();
         }
+        else if (e.IsActionPressed(InputActions.DebugResetFactions))
+            ZombieSandbox.AI.FactionRelations.Instance.ResetAll();
         else if (e.IsActionPressed(InputActions.DebugIgnorePlayer))
             ZombieSandbox.AI.Survivor.DebugIgnorePlayer = !ZombieSandbox.AI.Survivor.DebugIgnorePlayer;
     }

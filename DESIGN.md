@@ -364,11 +364,36 @@ jams), perception, navigation. Zombies attack them too.
   ≈10–12 s by three bandits (first tuning pass killed in ≈5 s: too deadly). Cover search only accepts *low* cover while fighting (full cover can't shoot back);
   cover heights are measured from the real ground, not the navmesh.
 
-#### Piece B: factions & attitude
-- Hostile / neutral / friendly per group; they remember what you did (saved per faction).
-- Neutrals read body language: aiming at them (≈1–2 s) or sprinting at them makes them nervous, then
-  hostile; voice-line warnings first ("Back off!", "Lower your weapon!").
-- Dialogue, trading, recruiting come with steps 6 and 10.
+#### Piece B: factions & attitude (implemented on preview — in testing)
+- **Factions** (a resource each: name, starting attitude, armband colour). Every NPC belongs to a group
+  (2–4, or solo) and a faction. Attitude toward the player is **per faction**: Hostile / Neutral / Friendly.
+  Anger one group and everyone in that faction treats you the same way.
+- **Between NPCs:** raider-type factions (bandits) are enemies of everyone; other factions get along.
+  Neutrals and friendlies fight bandits and zombies, and otherwise stay out of your fights.
+- **Neutrals read body language** (a hidden "nervousness" meter that rises and falls):
+  aiming at them (≈1.5 s from calm to hostile), sprinting straight at them, crowding them (< 3 m) and
+  firing close to them raise it; it drains when you stop. Stages: **watching** (they turn to watch you)
+  → **warning** (weapon raised at you, "Back off!" / "Lower your weapon!") → **last warning** → **hostile**.
+- **What angers a faction instantly:** shooting or killing one of its members. Friendlies forgive one
+  accidental hit ("Watch your fire!") per in-game hour; neutrals don't forgive hits.
+- **Friendlies** shoot zombies and bandits near them; aiming at them only gets a "Hey, watch where you
+  point that!". Following, orders and recruiting come with dialogue (step 10).
+- **Calming down:** an angered faction that didn't start hostile goes back to its starting attitude
+  after a few in-game weeks (`CalmDownDays`, default 21). No other ways to win goodwill yet (later steps).
+- **Running away:** neutral (and friendly) NPCs that are solo or outnumbered retreat from a losing fight
+  when they can get away safely (the enemy isn't right on top of them): they run off, barking
+  "I'm getting out of here!", and settle down somewhere else. Cornered, they fight. Bandits don't run.
+- **Home ground:** NPCs don't push or go searching more than ≈35 m from their home spot (`LeashRange`),
+  so a camp doesn't chase every distant gunshot across the map.
+- **Faction memory is saved** (part of the persistent world; wired into the save file in step 9).
+- Aim assist only grips NPCs that are hostile to you.
+- Test range: a neutral group (Drifters: a pair and a loner, yellow armbands) and a friendly group
+  (Settlers, blue armbands) in the west half; bandits have red armbands.
+- Dev notes (headless test): aiming at a drifter from 12 m → "Lower your weapon!" after ≈0.8 s,
+  "Last warning!" ≈1.2 s, hostile ≈1.7 s; shooting the loner → he flees ≈35 m and settles there;
+  a settler forgives the first hit, the second turns the Settlers hostile.
+- Developer: the overlay lists each faction's attitude; Ctrl+Y resets all factions to their starting attitude.
+- Dialogue, trading and recruiting come with steps 6 and 10.
 
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level

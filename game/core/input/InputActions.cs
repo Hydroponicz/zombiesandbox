@@ -62,6 +62,7 @@ public static class InputActions
     public const string DebugSkipHours = "debug_skip_hours";
     public const string DebugIgnorePlayer = "debug_ignore_player";
     public const string DebugClearZombies = "debug_clear_zombies";
+    public const string DebugResetFactions = "debug_reset_factions";
     public const string DebugDamageSelf = "debug_damage_self";
     public const string DebugBreakLeg = "debug_break_leg";
     public const string DebugMedicalUp = "debug_medical_up";
@@ -131,6 +132,7 @@ public static class InputActions
             Bind(DebugSkipHours, 0.5f, CtrlKeyEvent(Key.O));
             Bind(DebugIgnorePlayer, 0.5f, CtrlKeyEvent(Key.M));
             Bind(DebugClearZombies, 0.5f, CtrlKeyEvent(Key.L));
+            Bind(DebugResetFactions, 0.5f, CtrlKeyEvent(Key.Y));
             Bind(DebugDamageSelf, 0.5f, CtrlKeyEvent(Key.H));
             Bind(DebugBreakLeg, 0.5f, CtrlKeyEvent(Key.N));
             Bind(DebugMedicalDown, 0.5f, CtrlKeyEvent(Key.Minus));

@@ -23,8 +23,18 @@ public partial class Perception : Node3D
     [Export] public float UpdateInterval { get; set; } = 0.15f;
 
     /// <summary>The target currently in view (once fully noticed).</summary>
-    public ISenseTarget? Target { get; private set; }
-    public bool CanSeeTarget { get; private set; }
+    public ISenseTarget? Target
+    {
+        get => SenseTargets.IsValid(_target) ? _target : null; // Freed targets (a corpse that rose) vanish.
+        private set => _target = value;
+    }
+    private ISenseTarget? _target;
+    public bool CanSeeTarget
+    {
+        get => _canSeeTarget && Target != null;
+        private set => _canSeeTarget = value;
+    }
+    private bool _canSeeTarget;
     /// <summary>0..1 how close to noticing the target in view.</summary>
     public float Awareness { get; private set; }
     public Vector3 LastSeenPosition { get; private set; }

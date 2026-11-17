@@ -21,6 +21,8 @@ public enum SurvivorState
     Search,
     /// <summary>The group has the upper hand: move up on the enemy's position while the others cover.</summary>
     Push,
+    /// <summary>Solo or outnumbered and losing: run off while it still can.</summary>
+    Flee,
     Dead,
 }
 
@@ -37,6 +39,8 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     [Export] public SurvivorType Type { get; set; } = null!;
     /// <summary>Survivors with the same group id share sightings and never shoot each other.</summary>
     [Export] public string GroupId { get; set; } = "bandits";
+    /// <summary>Its faction: attitude toward the player and who its enemies are.</summary>
+    [Export] public FactionData? Faction { get; set; }
     /// <summary>Spawned when an infected survivor dies and turns.</summary>
     [Export] public PackedScene? ZombieScene { get; set; }
 
@@ -83,6 +87,15 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     /// <summary>How much of an upper hand the group has right now (pushes at Type.PushThreshold).</summary>
     public float Advantage { get; private set; }
     private float _advantageTimer;
+
+    // Attitude toward the player (neutrals read body language).
+    /// <summary>0..1: how close a neutral is to turning on the player.</summary>
+    public float Nervousness { get; private set; }
+    private int _nervousStage;
+    private float _attitudeTimer;
+    private bool _watchingPlayer;
+    private PlayerController? _player;
+    private AimAssistTarget? _assist;
     private Vector3 _pushGoal;
     private bool _pushFinalLeg;
     private bool _resumePush;
@@ -201,6 +214,10 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         _memory = SurvivorGroup.Memory(GroupId);
         _flankSign = _rng.Randf() < 0.5f ? -1f : 1f;
         Weapons.ShotLanded += OnShotLanded;
+        Health.Attacked += OnAttacked;
+        _assist = GetNodeOrNull<AimAssistTarget>("AimAssistTarget");
+        if (Faction != null && GetNodeOrNull<MeshInstance3D>("Body/Mesh/Armband") is { } armband)
+            armband.MaterialOverride = new StandardMaterial3D { AlbedoColor = Faction.Color };
         Health.Damaged += OnDamaged;
         Health.Died += OnDied;
     }
@@ -218,14 +235,15 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     /// <summary>Developer toggle (Ctrl+M): survivors ignore the player, to watch them fight zombies.</summary>
     public static bool DebugIgnorePlayer { get; set; }
 
-    /// <summary>Piece A: zombies, the player and other groups are enemies. Factions come in piece B.</summary>
-
+    /// <summary>Zombies always; the player if its faction is hostile to him; NPCs by faction.</summary>
     private bool IsEnemy(ISenseTarget target) => target switch
     {
-        ZombieSandbox.Player.PlayerController => !DebugIgnorePlayer,
-        Survivor other => other.GroupId != GroupId,
+        PlayerController => !DebugIgnorePlayer && AttitudeToPlayer == Attitude.Hostile,
+        Survivor other => other.GroupId != GroupId && FactionRelations.AreEnemies(Faction, other.Faction),
         _ => true,
     };
+
+    public Attitude AttitudeToPlayer => Faction == null ? Attitude.Hostile : FactionRelations.Instance.AttitudeOf(Faction);
 
     // ---------- Main loop ----------
 
@@ -251,6 +269,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         _barkCooldown -= dt;
         UpdateKnowledge();
         Decide(dt);
+        UpdateAttitude(dt);
         DefendAgainstZombies();
 
         Vector3 desired = Vector3.Zero;
@@ -292,7 +311,12 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
 
     private void UpdateKnowledge()
     {
-        if (Perception.CanSeeTarget && Perception.Target != null)
+        // Targets can be freed (a corpse rising, a zombie removed): forget them.
+        if (_target != null && !SenseTargets.IsValid(_target))
+            _target = null;
+        if (_aimTarget != null && !SenseTargets.IsValid(_aimTarget))
+            _aimTarget = null;
+        if (Perception.CanSeeTarget && Perception.Target != null && SenseTargets.IsValid(Perception.Target))
         {
             if (_target != Perception.Target)
                 StartAimingAt(Perception.Target);
@@ -313,7 +337,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         }
     }
 
-    private bool CanSeeTarget => Perception.CanSeeTarget && _target != null && Perception.Target == _target;
+    private bool CanSeeTarget => Perception.CanSeeTarget && _target != null && Perception.Target == _target && SenseTargets.IsValid(_target);
 
     private void StartAimingAt(ISenseTarget target)
     {
@@ -340,6 +364,10 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
                 if (State != SurvivorState.Retreat)
                     Bark("Fall back!");
                 State = SurvivorState.Retreat;
+            }
+            else if (State == SurvivorState.Flee && GlobalPosition.DistanceTo(_target!.GroundPosition) > 8f)
+            {
+                // Running: only turn and fight if cornered.
             }
             else if (State == SurvivorState.Push && _target!.Team == SenseTeam.Living
                 && GlobalPosition.DistanceTo(_target.GroundPosition) < 20f)
@@ -379,7 +407,8 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             // Lost sight: wait a while in cover (longer if they were shooting at us), then one member
             // of the group goes to look while the others keep watching from cover.
             double quietFor = Mathf.Min(Now - _threatTime, Now - _enemyShotTime);
-            if (State == SurvivorState.Engage && Now - _threatTime > 6.0 && quietFor > 10.0)
+            if (State == SurvivorState.Engage && Now - _threatTime > 6.0 && quietFor > 10.0
+                && _threatPosition.DistanceTo(_home) <= Type.LeashRange)
             {
                 if (SurvivorGroup.TryClaimMover(GroupId, this))
                 {
@@ -417,7 +446,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
                 _threatTime = Now;
                 BecomeAlert();
             }
-            else if (Perception.HeardCount != _lastHeardCount)
+            else if (Perception.HeardCount != _lastHeardCount && Now - _humanThreatTime > 10.0)
             {
                 _lastHeardCount = Perception.HeardCount;
                 _threatPosition = Perception.HeardPosition;
@@ -430,6 +459,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         ConsiderPushing(dt);
         if (State is not (SurvivorState.Search or SurvivorState.Push))
             SurvivorGroup.ReleaseMover(GroupId, this);
+        ConsiderFleeing();
         _coveringFire = State is SurvivorState.Engage or SurvivorState.Alert && !CanSeeTarget
             && SurvivorGroup.Mover(GroupId) is Survivor { State: SurvivorState.Push } mover && mover != this
             && Now - _humanThreatTime < 12.0;
@@ -442,6 +472,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             case SurvivorState.Retreat: DoRetreat(dt); break;
             case SurvivorState.Search: DoSearch(dt); break;
             case SurvivorState.Push: DoPush(dt); break;
+            case SurvivorState.Flee: DoFlee(dt); break;
         }
     }
 
@@ -459,6 +490,11 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     {
         _hasAimPoint = false;
         IsCrouched = false;
+        if (_watchingPlayer)
+        {
+            StopMoving();
+            return;
+        }
         _idleTimer -= dt;
         if (_idleTimer <= 0f)
         {
@@ -610,6 +646,256 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         }
     }
 
+    // ---------- Attitude toward the player ----------
+
+    /// <summary>
+    /// Neutrals read body language: aiming at them, sprinting at them, crowding them and shooting
+    /// next to them make them nervous; they watch, warn, warn again, then turn hostile.
+    /// Friendlies just complain. Runs five times a second.
+    /// </summary>
+    private void UpdateAttitude(float dt)
+    {
+        if (_watchingPlayer && _player != null)
+        {
+            _aimPoint = _player.SightPoint - Vector3.Up * 0.3f;
+            _aimError = Vector3.Zero;
+            _hasAimPoint = true;
+        }
+        _attitudeTimer -= dt;
+        if (_attitudeTimer > 0f)
+            return;
+        float step = 0.2f - _attitudeTimer;
+        _attitudeTimer = 0.2f;
+
+        _player ??= GetTree().GetFirstNodeInGroup(PlayerController.Group) as PlayerController;
+        Attitude attitude = AttitudeToPlayer;
+        if (_assist != null)
+            _assist.Hostile = attitude == Attitude.Hostile;
+
+        bool calmState = State is SurvivorState.Idle or SurvivorState.Alert;
+        if (_player == null || !_player.IsAlive || attitude == Attitude.Hostile || !calmState)
+        {
+            Nervousness = Mathf.Max(0f, Nervousness - 0.25f * step);
+            _watchingPlayer = false;
+            _nervousStage = 0;
+            return;
+        }
+
+        bool sees = SeesPlayer(out float distance);
+        bool aimedAt = sees && PlayerAimingAtMe();
+        if (attitude == Attitude.Friendly)
+        {
+            Nervousness = 0f;
+            _watchingPlayer = aimedAt;
+            if (aimedAt)
+                Bark("Hey, watch where you point that!");
+            return;
+        }
+
+        float rise = 0f;
+        if (sees)
+        {
+            if (aimedAt)
+                rise += 0.65f;
+            if (_player.IsSprinting && distance < 15f && SprintingTowardMe())
+                rise += 0.4f;
+            if (distance < 3f)
+                rise += 0.15f;
+        }
+        Nervousness = rise > 0f ? Mathf.Min(1f, Nervousness + rise * step) : Mathf.Max(0f, Nervousness - 0.25f * step);
+
+        int stage = Nervousness >= 1f ? 4 : Nervousness >= 0.75f ? 3 : Nervousness >= 0.45f ? 2 : Nervousness >= 0.2f ? 1 : 0;
+        if (stage > _nervousStage)
+        {
+            if (stage == 2)
+                Bark(aimedAt ? "Lower your weapon!" : "Back off!");
+            else if (stage == 3)
+                Bark("Last warning!");
+            else if (stage == 4)
+            {
+                Bark("That's it!");
+                TurnOnPlayer();
+            }
+        }
+        else if (stage == 0 && _nervousStage >= 2)
+        {
+            Bark("...Alright.");
+        }
+        _nervousStage = stage;
+        _watchingPlayer = sees && stage >= 1;
+    }
+
+    private bool SeesPlayer(out float distance)
+    {
+        distance = GlobalPosition.DistanceTo(_player!.GlobalPosition);
+        if (distance > 30f)
+            return false;
+        Vector3 eye = Perception.GlobalPosition;
+        Vector3 to = _player.SightPoint - eye;
+        Vector3 flat = new(to.X, 0f, to.Z);
+        Vector3 forward = -GlobalBasis.Z;
+        if (distance > 6f && forward.AngleTo(flat) > Mathf.DegToRad(Type.FieldOfViewDegrees * 0.5f))
+            return false;
+        return !WorldBlocks(eye, _player.SightPoint);
+    }
+
+    /// <summary>The player's aim line passes close to this one's body.</summary>
+    private bool PlayerAimingAtMe()
+    {
+        WeaponHolder weapons = _player!.Weapons;
+        if (!weapons.IsAiming)
+            return false;
+        Vector3 origin = weapons.AimPivot.Origin;
+        Vector3 direction = -weapons.AimPivot.Basis.Z.Normalized();
+        Vector3 toMe = GlobalPosition + Vector3.Up * (_height * 0.65f) - origin;
+        float along = toMe.Dot(direction);
+        if (along <= 0f)
+            return false;
+        float miss = (toMe - direction * along).Length();
+        return miss < 0.6f + along * 0.015f;
+    }
+
+    private bool SprintingTowardMe()
+    {
+        Vector3 velocity = _player!.Velocity with { Y = 0f };
+        Vector3 toMe = (GlobalPosition - _player.GlobalPosition) with { Y = 0f };
+        return velocity.LengthSquared() > 1f && toMe.LengthSquared() > 0.01f && velocity.Normalized().Dot(toMe.Normalized()) > 0.8f;
+    }
+
+    /// <summary>Shot by someone: the player angers the whole faction (friendlies forgive one hit).</summary>
+    private void OnAttacked(Node attacker)
+    {
+        if (attacker is not PlayerController player || Faction == null)
+            return;
+        Attitude attitude = AttitudeToPlayer;
+        if (attitude == Attitude.Friendly && FactionRelations.Instance.TryForgiveHit(Faction))
+        {
+            Bark("Watch your fire!");
+            return;
+        }
+        if (attitude != Attitude.Hostile)
+        {
+            _player = player;
+            TurnOnPlayer();
+            Bark("You'll pay for that!");
+        }
+    }
+
+    private void TurnOnPlayer()
+    {
+        if (Faction != null)
+            FactionRelations.Instance.Anger(Faction);
+        _watchingPlayer = false;
+        Nervousness = 0f;
+        _nervousStage = 0;
+        if (_player == null)
+            return;
+        // Everyone in the group knows where he is.
+        _threatPosition = _player.GlobalPosition;
+        _threatTime = Now;
+        _humanThreatTime = Now;
+        SurvivorGroup.Report(GroupId, _player, _threatPosition);
+        BecomeAlert();
+    }
+
+    // ---------- Fleeing ----------
+
+    /// <summary>Living enemies (player, hostile NPCs) within range: a rough head count.</summary>
+    private int CountHumanEnemies(float range)
+    {
+        int count = 0;
+        foreach (ISenseTarget target in SenseTargets.All)
+        {
+            if (target.IsAlive && target.Team == SenseTeam.Living && target != this && IsEnemy(target)
+                && target.GroundPosition.DistanceTo(GlobalPosition) < range)
+                count++;
+        }
+        return count;
+    }
+
+    private float NearestHumanEnemyDistance() =>
+        NearestHumanEnemy() is { } enemy ? enemy.GroundPosition.DistanceTo(GlobalPosition) : float.MaxValue;
+
+    private ISenseTarget? NearestHumanEnemy()
+    {
+        ISenseTarget? nearest = null;
+        float best = float.MaxValue;
+        foreach (ISenseTarget target in SenseTargets.All)
+        {
+            if (!target.IsAlive || target.Team != SenseTeam.Living || target == this || !IsEnemy(target))
+                continue;
+            float distance = target.GroundPosition.DistanceTo(GlobalPosition);
+            if (distance < best)
+            {
+                best = distance;
+                nearest = target;
+            }
+        }
+        return nearest;
+    }
+
+    /// <summary>Solo or outnumbered and losing, with room to get away: run.</summary>
+    private void ConsiderFleeing()
+    {
+        if (Type.FleeThreshold <= -50f || _advantageTimer < 0.49f)
+            return; // Never runs, or the advantage wasn't just re-measured.
+        bool humanThreat = Now - _humanThreatTime < 15.0 && (_target == null || _target.Team == SenseTeam.Living);
+        if (State is not (SurvivorState.Engage or SurvivorState.Alert or SurvivorState.Retreat) || !humanThreat)
+            return;
+        if (Advantage >= Type.FleeThreshold || NearestHumanEnemyDistance() < 8f || ZombieNearby())
+            return;
+        StartFlee();
+    }
+
+    private void StartFlee()
+    {
+        State = SurvivorState.Flee;
+        _stateTimer = 30f;
+        ReleaseCover();
+        IsCrouched = false;
+        Bark("I'm getting out of here!");
+        // Run away from the threat; try a few directions and take the one that ends furthest from it.
+        Vector3 from = NearestHumanEnemy() is { } enemy ? enemy.GroundPosition : _threatPosition;
+        _threatPosition = from;
+        Vector3 away = (GlobalPosition - from) with { Y = 0f };
+        away = away.LengthSquared() > 0.01f ? away.Normalized() : GlobalBasis.Z;
+        Vector3 best = GlobalPosition;
+        float bestDistance = 0f;
+        foreach (float degrees in new[] { 0f, 35f, -35f, 70f, -70f })
+        {
+            Vector3 wanted = GlobalPosition + away.Rotated(Vector3.Up, Mathf.DegToRad(degrees)) * 35f;
+            Vector3 point = NavReady ? NavigationServer3D.MapGetClosestPoint(GetWorld3D().NavigationMap, wanted) : wanted;
+            float distance = point.DistanceTo(_threatPosition);
+            if (distance > bestDistance)
+            {
+                best = point;
+                bestDistance = distance;
+            }
+        }
+        _sincePushMove = 0f;
+        MoveTo(best);
+    }
+
+    private void DoFlee(float dt)
+    {
+        _stateTimer -= dt;
+        _sincePushMove += dt;
+        _hasAimPoint = false;
+        IsCrouched = false;
+        bool arrived = NavReady && _agent.IsNavigationFinished() && _sincePushMove > 0.5f;
+        if ((arrived || _stateTimer <= 0f) && !CanSeeTarget && Now - _lastSawEnemyTime > 5.0)
+        {
+            // Got away: settle down here.
+            State = SurvivorState.Idle;
+            _home = GlobalPosition;
+            _target = null;
+        }
+        else if (arrived)
+        {
+            StartFlee(); // Still too close: keep going.
+        }
+    }
+
     // ---------- Pushing ----------
 
     /// <summary>
@@ -630,7 +916,8 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         if (State is not (SurvivorState.Engage or SurvivorState.Alert) || !humanThreat || !hiddenEnemy)
             return;
         if (Advantage < Type.PushThreshold || Health.Danger >= Type.RetreatDanger * 0.6f || Suppression > 0.4f
-            || Now - _memory.LastPushTime < Type.PushCooldown || ZombieNearby())
+            || Now - _memory.LastPushTime < Type.PushCooldown || ZombieNearby()
+            || _threatPosition.DistanceTo(_home) > Type.LeashRange) // Don't chase fights far from home.
             return;
         if (!SurvivorGroup.TryClaimMover(GroupId, this))
             return;
@@ -652,7 +939,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         _memory.MostMembers = Mathf.Max(_memory.MostMembers, alive);
         int lost = _memory.MostMembers - alive;
 
-        float score = 0.25f * (alive - 1) - 0.3f * lost;
+        float score = 0.25f * (alive - 1) - 0.3f * lost - 0.25f * Mathf.Max(0, CountHumanEnemies(40f) - 1);
         if (Now - _memory.EnemyHitTime < 20.0)
             score += 0.35f;
         if (Now - _memory.EnemyReloadTime < 4.0)
@@ -789,7 +1076,9 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         for (Node? node = hit["collider"].AsGodotObject() as Node; node != null; node = node.GetParent())
         {
             if (node is Survivor other)
-                return other.GroupId == GroupId;
+                return !IsEnemy(other);
+            if (node is PlayerController player)
+                return !IsEnemy(player);
         }
         return false;
     }
@@ -870,10 +1159,12 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         Node? node = hit["collider"].AsGodotObject() as Node;
         for (; node != null; node = node.GetParent())
         {
-            if (node is Survivor other)
-                return other.GroupId != GroupId;
             if (node == _target as Node)
                 return true;
+            if (node is Survivor other)
+                return IsEnemy(other);
+            if (node is PlayerController player)
+                return IsEnemy(player);
         }
         return false; // Something solid in the way.
     }
@@ -901,7 +1192,8 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     {
         bool fighting = State is SurvivorState.Engage or SurvivorState.Retreat or SurvivorState.Push;
         Weapons.WantsAim = (fighting && CanSeeTarget && (!IsCrouched || _coverKind != CoverKind.Low))
-            || (_coveringFire && !IsCrouched);
+            || (_coveringFire && !IsCrouched)
+            || (_watchingPlayer && _nervousStage >= 2); // Warning: weapon up, finger off the trigger.
         Weapons.TriggerHeld = false;
         Weapons.Lowered = false;
         Weapons.MoveFraction = Mathf.Clamp(speed / 3.5f, 0f, 1f) * (Velocity.LengthSquared() > 0.1f ? 1f : 0f);
@@ -1048,6 +1340,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         float speed = State switch
         {
             SurvivorState.Engage or SurvivorState.Retreat or SurvivorState.Push => Type.RunSpeed,
+            SurvivorState.Flee => Type.RunSpeed * 1.1f,
             SurvivorState.Idle => Type.WalkSpeed * 0.7f,
             _ => Type.WalkSpeed,
         };
@@ -1080,7 +1373,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
 
     private void Face(float dt, Vector3 moving)
     {
-        Vector3 look = _hasAimPoint && State != SurvivorState.Idle ? _aimPoint - GlobalPosition : moving;
+        Vector3 look = _hasAimPoint && (State != SurvivorState.Idle || _watchingPlayer) ? _aimPoint - GlobalPosition : moving;
         look.Y = 0f;
         if (look.LengthSquared() < 0.0001f)
             return;
@@ -1093,7 +1386,8 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     private void OnDamaged(BodyPart part, float amount)
     {
         Suppression = Mathf.Min(1f, Suppression + 0.5f);
-        Bark("I'm hit!");
+        if (_barkLeft < 1.9f) // Don't drown out what it just said ("Watch your fire!").
+            Bark("I'm hit!");
         _memory.AllyHitTime = Now;
         if (State == SurvivorState.Push)
             AbortPush();
@@ -1106,6 +1400,12 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     {
         if (State == SurvivorState.Dead)
             return;
+        if (noise.Kind == NoiseKind.Gunshot && noise.Source is PlayerController && AttitudeToPlayer == Attitude.Neutral
+            && State is SurvivorState.Idle or SurvivorState.Alert && GlobalPosition.DistanceTo(noise.Position) < 15f)
+        {
+            Nervousness = Mathf.Min(1f, Nervousness + 0.35f); // Shooting right next to them.
+            return;
+        }
         if (noise.Kind == NoiseKind.Gunshot && noise.Source is ISenseTarget shooter && IsEnemy(shooter))
         {
             float range = GlobalPosition.DistanceTo(noise.Position);
@@ -1131,6 +1431,9 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         }
         if (noise.Kind != NoiseKind.Impact)
             return;
+        if (AttitudeToPlayer == Attitude.Neutral && State is SurvivorState.Idle
+            && (GlobalPosition + Vector3.Up * 1.2f).DistanceTo(noise.Position) < 3f)
+            Nervousness = Mathf.Min(1f, Nervousness + 0.3f); // Bullets landing next to them, nobody else fighting.
         float distance = (GlobalPosition + Vector3.Up * 1.2f).DistanceTo(noise.Position);
         if (distance < 2.5f)
             Suppression = Mathf.Min(1f, Suppression + 0.35f * (1f - distance / 2.5f) + 0.1f);
@@ -1215,6 +1518,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         string target = _target == null ? "-" : _target.Team == SenseTeam.Zombie ? "zombie" : "player/npc";
         _debug.Text = $"{State} {(_cover != null ? _coverKind + " cover" : "no cover")}{(IsCrouched ? " crouched" : "")}\n"
             + $"target {target}  seen {(CanSeeTarget ? "yes" : "no")}  aim {_aimSettle:0.0}  supp {Suppression:0.0}\n"
+            + $"{Faction?.DisplayName ?? "-"}: {AttitudeToPlayer}{(Nervousness > 0.01f ? $"  nervous {Nervousness:0.00}" : "")}\n"
             + $"mag {Weapons.Magazine?.Rounds ?? 0}{(Weapons.IsBusy ? " BUSY" : "")}  head {Mathf.Ceil(Health.Hp(BodyPart.Head))} chest {Mathf.Ceil(Health.Hp(BodyPart.Chest))}";
     }
 }

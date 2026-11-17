@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/ai/factions/FactionData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "bandits"
+DisplayName = "Bandits"
+StartingAttitude = 0
+HostileToEveryone = true
+Color = Color(0.7, 0.1, 0.1, 1)

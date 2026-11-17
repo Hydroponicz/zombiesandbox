@@ -94,10 +94,14 @@ public partial class DebugHud : CanvasLayer
         Line($"Fire mode: {w.FireMode}    Shots: {w.ShotsFired}    In flight: {ballistics.BulletsInFlight}    Trails: {(ballistics.ShowTrails ? "on" : "off")}    Recoil: {w.RecoilDegrees.X:+0.00;-0.00;0.00}° up {w.RecoilDegrees.Y:+0.00;-0.00;0.00}° side (burst {w.BurstShots}){assist}");
         if (ballistics.LastImpact is { } hit)
             Line($"Last hit: {hit.Distance:0.0} m   {hit.Speed:0} m/s   {hit.FlightTime * 1000f:0} ms   {Mathf.Round(hit.DropFromSightLine * 1000f) / 10f:+0.0;-0.0;0.0} cm vs sight line{(hit.HitTarget ? "   TARGET" : "")}");
+        var factions = new StringBuilder();
+        foreach ((string name, ZombieSandbox.AI.Attitude attitude) in ZombieSandbox.AI.FactionRelations.Instance.All())
+            factions.Append(name).Append(": ").Append(attitude == ZombieSandbox.AI.Attitude.Hostile ? "HOSTILE" : attitude.ToString().ToLowerInvariant()).Append("   ");
+        Line($"Factions (dev only): {factions}");
         Line("");
         Line("[DEV] Skills -/+:  Ctrl+1/2 Fitness   Ctrl+3/4 Aiming   Ctrl+5/6 Strength   Ctrl+7/8 Reloading   Ctrl+9/0 Maintenance   Ctrl+-/= Medical");
         Line("[DEV] Weapon:  Ctrl+R refill ammo   Ctrl+K condition   Ctrl+J jam next shot   Ctrl+T bullet trails");
-        Line($"[DEV] Health:  Ctrl+H hurt self   Ctrl+N break leg   Ctrl+U infect self   Ctrl+G heal (+cure)      World:  Ctrl+Z spawn zombie   Ctrl+L remove zombies   Ctrl+P time speed   Ctrl+O +3 h   Ctrl+M NPCs ignore you{(ZombieSandbox.AI.Survivor.DebugIgnorePlayer ? " (ON)" : "")}");
+        Line($"[DEV] Health:  Ctrl+H hurt self   Ctrl+N break leg   Ctrl+U infect self   Ctrl+G heal (+cure)      World:  Ctrl+Z spawn zombie   Ctrl+L remove zombies   Ctrl+P time speed   Ctrl+O +3 h   Ctrl+M NPCs ignore you   Ctrl+Y reset factions{(ZombieSandbox.AI.Survivor.DebugIgnorePlayer ? " (ON)" : "")}");
         Line("[DEV] Ctrl+I hide this overlay      G shove   H health screen   Esc release mouse (click to recapture)");
         _info.Text = _text.ToString();
     }

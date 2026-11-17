@@ -118,6 +118,8 @@ public partial class Zombie : CharacterBody3D, ISenseTarget
 
     public override void _PhysicsProcess(double delta)
     {
+        if (_grabbing is GodotObject held && !IsInstanceValid(held))
+            _grabbing = null; // The body it held is gone (rose as a zombie).
         float dt = (float)delta;
         Vector3 velocity = Velocity;
         if (!IsOnFloor())
