@@ -41,6 +41,10 @@ public partial class Perception : Node3D
 
     /// <summary>The owner's own colliders/hitboxes, ignored by line-of-sight rays.</summary>
     public Array<Rid> SelfExclude { get; } = new();
+    /// <summary>The owner (never its own target).</summary>
+    public ISenseTarget? Self { get; set; }
+    /// <summary>Which targets this AI cares about (zombies: the living; survivors: enemies). Null = all.</summary>
+    public System.Func<ISenseTarget, bool>? TargetFilter { get; set; }
     public bool Enabled { get; set; } = true;
 
     private readonly PhysicsRayQueryParameters3D _ray = new();
@@ -88,7 +92,7 @@ public partial class Perception : Node3D
         float bestCloseness = 0f;
         foreach (ISenseTarget target in SenseTargets.All)
         {
-            if (!target.IsAlive)
+            if (!target.IsAlive || target == Self || (TargetFilter != null && !TargetFilter(target)))
                 continue;
             Vector3 to = target.SightPoint - eye;
             float distance = to.Length();

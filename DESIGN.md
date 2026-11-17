@@ -324,6 +324,35 @@ Shared by player, zombies and NPCs (one Health component).
   ≈48–72 game h ("You succumbed to the infection"). Fever also adds sway, pain and lowers stamina.
 - Developer keys: Ctrl+U infect self, Ctrl+G heal also cures; Ctrl+P speeds time up to watch it.
 
+### 5. Human NPCs (in progress)
+Survivors reuse everything: body-part health and hitboxes, the same weapons (sway, recoil, reloads,
+jams), perception, navigation. Zombies attack them too.
+
+#### Piece A: combat AI (implemented on preview — in testing)
+- **Same rules as the player:** NPCs aim through the same weapon system; accuracy comes from sway,
+  recoil and their skills (Aiming, Strength...) plus a human reaction/aim-settling time. Difficulty
+  = NPC skill levels (survivor type resource), never hidden accuracy cheats.
+- **Senses:** human sight ≈80 m by day, ≈15 m at night, wide field of view; they hear gunfire etc.
+- **Combat:** spot → take cover (low cover: crouch to hide, rise to shoot; full cover: hide/reload) →
+  fire semi/short bursts → reload behind cover → **suppression** (bullets landing close make them
+  keep their head down and shoot worse) → retreat when badly hurt → search the last known position.
+  Shove zombies that get close, shoot zombies in the head. Won't shoot through allies.
+- **Groups (2–4) share what they see:** one spotting you alerts the rest.
+- **Barks:** short callouts ("Contact!", "Reloading!", "I'm hit!") as floating text until real voice audio.
+- **Bodies:** dead NPCs keep their gun; their spare magazines drop as pickups (full looting with inventory).
+- **Infection:** zombie wounds can infect NPCs; an NPC who dies infected **rises as a zombie**.
+- Test range: a bandit camp (3 hostile bandits) with low and full cover.
+- Dev notes (headless test, player standing still in the open at ~15 m): first shot ≈2 s after being
+  spotted, bandits alternate crouched-behind-crates / risen-to-shoot, a still standing target is killed in
+  ≈5 s by three bandits. Cover search only accepts *low* cover while fighting (full cover can't shoot back);
+  cover heights are measured from the real ground, not the navmesh.
+
+#### Piece B: factions & attitude
+- Hostile / neutral / friendly per group; they remember what you did (saved per faction).
+- Neutrals read body language: aiming at them (≈1–2 s) or sprinting at them makes them nervous, then
+  hostile; voice-line warnings first ("Back off!", "Lower your weapon!").
+- Dialogue, trading, recruiting come with steps 6 and 10.
+
 ### Skills
 - Levels 0–10, new characters start at 3. Skills level up **by doing**, and each level
   needs more XP than the last. Exact curves live in a tunable resource.
@@ -365,7 +394,7 @@ Each step is refined until solid before moving on. All work happens in graybox t
    - **Peek over cover:** aiming while crouched behind waist-high cover raises you to aim over it (gamepad and keyboard).
 3. ✅ Health & damage — body parts, bleeding, fractures (shared by everyone)
 4. ✅ AI foundation — perception (sight/hearing) + navigation, zombie as first user
-5. Human NPCs — factions, disposition (hostile/neutral/friendly), combat with the same guns
+5. 🧪 Human NPCs — factions, disposition (hostile/neutral/friendly), combat with the same guns
 6. Inventory & loot
 7. Survival stats (hunger, thirst, fatigue)
 8. World chunking/streaming + first real town generated from OpenStreetMap data

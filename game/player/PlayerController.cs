@@ -194,6 +194,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
     public Vector3 GroundPosition => GlobalPosition;
     public Array<Rid> SightExclude => SelfExclude;
     public bool IsAlive => !IsDead;
+    public SenseTeam Team => SenseTeam.Living;
 
     /// <summary>How easy the player is to spot: stance and movement.</summary>
     public float Visibility

@@ -20,7 +20,7 @@ public enum ZombieState
 /// Killed by destroying the head, or by a destroyed chest (it bleeds out after a stagger).
 /// Destroyed legs turn it into a crawler. Attacks come in piece B.
 /// </summary>
-public partial class Zombie : CharacterBody3D
+public partial class Zombie : CharacterBody3D, ISenseTarget
 {
     public const string Group = "zombies";
 
@@ -62,6 +62,20 @@ public partial class Zombie : CharacterBody3D
     private AudioStreamPlayer3D _attackVoice = null!;
 
     public bool IsGrabbing => _grabbing != null;
+
+    // ---------- Seen by survivors ----------
+    public Vector3 SightPoint => GlobalPosition + Vector3.Up * (IsCrawler ? 0.3f : 1.5f);
+    /// <summary>Where to aim for a kill: the head.</summary>
+    public Vector3 HeadPoint => GlobalPosition + Vector3.Up * (IsCrawler || IsKnockedDown ? 0.25f : 1.62f);
+    public Vector3 GroundPosition => GlobalPosition;
+    public float Visibility => 1f;
+    public Godot.Collections.Array<Rid> SightExclude => Perception.SelfExclude;
+    public bool IsAlive => State != ZombieState.Dead;
+    public SenseTeam Team => SenseTeam.Zombie;
+
+    public override void _EnterTree() => SenseTargets.All.Add(this);
+
+    public override void _ExitTree() => SenseTargets.All.Remove(this);
     public bool IsKnockedDown => _knockdownLeft > 0f;
 
     public override void _Ready()
@@ -85,6 +99,8 @@ public partial class Zombie : CharacterBody3D
         Perception.SightRangeNight = Type.SightRangeNight;
         Perception.FieldOfViewDegrees = Type.FieldOfViewDegrees;
         Perception.HearingMultiplier = Type.HearingMultiplier;
+        Perception.Self = this;
+        Perception.TargetFilter = t => t.Team == SenseTeam.Living;
         Perception.SelfExclude.Add(GetRid());
         GetNode<HitboxRig>("Visual/Hitboxes").AddRidsTo(Perception.SelfExclude);
 

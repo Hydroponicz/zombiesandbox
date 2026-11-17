@@ -3,6 +3,12 @@ using Godot;
 
 namespace ZombieSandbox.AI;
 
+public enum SenseTeam
+{
+    Living,
+    Zombie,
+}
+
 /// <summary>
 /// Something AI can see: the player now, NPCs later. Register with <see cref="SenseTargets"/>.
 /// </summary>
@@ -17,6 +23,7 @@ public interface ISenseTarget
     /// <summary>Physics bodies to ignore in line-of-sight checks (the target's own colliders).</summary>
     Godot.Collections.Array<Rid> SightExclude { get; }
     bool IsAlive { get; }
+    SenseTeam Team { get; }
 }
 
 public static class SenseTargets
