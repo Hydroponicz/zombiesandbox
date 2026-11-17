@@ -332,7 +332,8 @@ jams), perception, navigation. Zombies attack them too.
 - **Same rules as the player:** NPCs aim through the same weapon system; accuracy comes from sway,
   recoil and their skills (Aiming, Strength...) plus a human reaction/aim-settling time. Difficulty
   = NPC skill levels (survivor type resource), never hidden accuracy cheats.
-- **Senses:** human sight ≈80 m by day, ≈15 m at night, wide field of view; they hear gunfire etc.
+- **Senses:** human sight ≈60 m by day, ≈15 m at night, wide field of view; noticing someone takes
+  ≈2.5 s at the edge of sight (much faster up close); they hear gunfire etc.
 - **Combat:** spot → take cover (low cover: crouch to hide, rise to shoot; full cover: hide/reload) →
   fire semi/short bursts → reload behind cover → **suppression** (bullets landing close make them
   keep their head down and shoot worse) → retreat when badly hurt → search the last known position.
@@ -342,9 +343,12 @@ jams), perception, navigation. Zombies attack them too.
 - **Bodies:** dead NPCs keep their gun; their spare magazines drop as pickups (full looting with inventory).
 - **Infection:** zombie wounds can infect NPCs; an NPC who dies infected **rises as a zombie**.
 - Test range: a bandit camp (3 hostile bandits) with low and full cover.
-- Dev notes (headless test, player standing still in the open at ~15 m): first shot ≈2 s after being
+- Developer key: Ctrl+M makes NPCs ignore the player (to watch them fight zombies).
+- **Aim never becomes perfect:** besides the starting error that settles, every shot gets a small
+  random hand wobble (bigger at range and when suppressed).
+- Dev notes (headless test, player standing still in the open at ~15 m): first shot ≈3 s after being
   spotted, bandits alternate crouched-behind-crates / risen-to-shoot, a still standing target is killed in
-  ≈5 s by three bandits. Cover search only accepts *low* cover while fighting (full cover can't shoot back);
+  ≈10–12 s by three bandits (first tuning pass killed in ≈5 s: too deadly). Cover search only accepts *low* cover while fighting (full cover can't shoot back);
   cover heights are measured from the real ground, not the navmesh.
 
 #### Piece B: factions & attitude

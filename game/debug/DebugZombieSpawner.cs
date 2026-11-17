@@ -27,6 +27,8 @@ public partial class DebugZombieSpawner : Node
         }
         else if (e.IsActionPressed(InputActions.DebugSkipHours))
             WorldClock.Instance.AdvanceGameHours(3);
+        else if (e.IsActionPressed(InputActions.DebugIgnorePlayer))
+            ZombieSandbox.AI.Survivor.DebugIgnorePlayer = !ZombieSandbox.AI.Survivor.DebugIgnorePlayer;
     }
 
     private void SpawnInFrontOfPlayer()

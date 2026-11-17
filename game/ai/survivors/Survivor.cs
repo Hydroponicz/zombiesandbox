@@ -84,6 +84,8 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     private float _aimSettle;
     private Vector3 _aimError;
     private Vector3 _aimErrorDirection;
+    /// <summary>Per-shot hand wobble (unit disk), re-rolled after every shot: aim never becomes perfect.</summary>
+    private Vector3 _wobble;
     private Vector3 _aimPoint;
     private bool _hasAimPoint;
     private float _shotTimer;
@@ -169,7 +171,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         Perception.SightRangeDay = Type.SightRangeDay;
         Perception.SightRangeNight = Type.SightRangeNight;
         Perception.FieldOfViewDegrees = Type.FieldOfViewDegrees;
-        Perception.DetectionTime = 0.8f;
+        Perception.DetectionTime = Type.DetectionTime;
         Perception.Self = this;
         Perception.TargetFilter = IsEnemy;
         Perception.SelfExclude.AddRange(_selfExclude);
@@ -190,8 +192,12 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     }
 
     /// <summary>Piece A: zombies, the player and other groups are enemies. Factions come in piece B.</summary>
+    /// <summary>Developer toggle (Ctrl+M): survivors ignore the player, to watch them fight zombies.</summary>
+    public static bool DebugIgnorePlayer { get; set; }
+
     private bool IsEnemy(ISenseTarget target) => target switch
     {
+        ZombieSandbox.Player.PlayerController => !DebugIgnorePlayer,
         Survivor other => other.GroupId != GroupId,
         _ => true,
     };
@@ -519,7 +525,8 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             _aimSettle = Mathf.Min(1f, _aimSettle + settleRate * (float)GetPhysicsProcessDeltaTime());
             // The starting error shrinks to nothing as the aim settles.
             float remaining = 1f - Mathf.SmoothStep(0f, 1f, _aimSettle);
-            _aimError = _aimErrorDirection * (InitialErrorLength() * remaining);
+            float wobble = Type.AimWobble * DistanceScale() * (1f + 2f * Suppression);
+            _aimError = _aimErrorDirection * (InitialErrorLength() * remaining) + _wobble * wobble;
         }
         else
         {
@@ -527,12 +534,23 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         }
     }
 
-    private float InitialErrorLength()
+    private float InitialErrorLength() => Type.InitialAimError * DistanceScale();
+
+    /// <summary>Aim errors are given for 20 m and grow with distance.</summary>
+    private float DistanceScale()
     {
         if (_aimTarget == null)
             return 0f;
         float distance = GlobalPosition.DistanceTo(_aimTarget.GroundPosition);
-        return Type.InitialAimError * Mathf.Clamp(distance / 20f, 0.5f, 2f);
+        return Mathf.Clamp(distance / 20f, 0.5f, 3f);
+    }
+
+    private void RerollWobble()
+    {
+        float angle = _rng.Randf() * Mathf.Tau;
+        float radius = Mathf.Sqrt(_rng.Randf());
+        Vector3 side = Weapons.AimPivot.Basis.X;
+        _wobble = (side * Mathf.Cos(angle) + Vector3.Up * Mathf.Sin(angle)) * radius;
     }
 
     private void AimAtThreatArea()
@@ -553,6 +571,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         if (!ClearShot())
             return;
         Weapons.PullTrigger();
+        RerollWobble();
         float distance = GlobalPosition.DistanceTo(_target!.GroundPosition);
         _shotTimer = _rng.RandfRange(Type.ShotIntervalMin, Type.ShotIntervalMax) * (distance < 12f ? 0.6f : 1f);
     }

@@ -12,27 +12,31 @@ public partial class SurvivorType : Resource
     [Export] public string DisplayName { get; set; } = "Bandit";
 
     [ExportGroup("Skills (0–10)")]
-    [Export] public int Aiming { get; set; } = 4;
-    [Export] public int Strength { get; set; } = 4;
+    [Export] public int Aiming { get; set; } = 2;
+    [Export] public int Strength { get; set; } = 3;
     [Export] public int Reloading { get; set; } = 4;
     [Export] public int Maintenance { get; set; } = 3;
     [Export] public int Fitness { get; set; } = 4;
 
     [ExportGroup("Senses")]
-    [Export] public float SightRangeDay { get; set; } = 80f;
+    [Export] public float SightRangeDay { get; set; } = 60f;
     [Export] public float SightRangeNight { get; set; } = 15f;
-    [Export] public float FieldOfViewDegrees { get; set; } = 150f;
+    [Export] public float FieldOfViewDegrees { get; set; } = 130f;
+    /// <summary>Seconds to notice someone at the edge of sight range (much faster up close).</summary>
+    [Export] public float DetectionTime { get; set; } = 2.5f;
 
     [ExportGroup("Combat")]
     /// <summary>Seconds to settle the aim on a newly seen target (human reaction + aiming).</summary>
-    [Export] public float AimSettleTime { get; set; } = 0.9f;
+    [Export] public float AimSettleTime { get; set; } = 1.8f;
     /// <summary>Starting aim error when a target appears (m at the target, before settling).</summary>
-    [Export] public float InitialAimError { get; set; } = 1.2f;
-    [Export] public float ShotIntervalMin { get; set; } = 0.35f;
-    [Export] public float ShotIntervalMax { get; set; } = 0.8f;
+    [Export] public float InitialAimError { get; set; } = 2.0f;
+    /// <summary>Hand wobble that never settles, re-rolled each shot (m at 20 m; worse when suppressed).</summary>
+    [Export] public float AimWobble { get; set; } = 0.5f;
+    [Export] public float ShotIntervalMin { get; set; } = 0.6f;
+    [Export] public float ShotIntervalMax { get; set; } = 1.3f;
     /// <summary>Seconds popped up shooting, then seconds hidden, when in low cover.</summary>
-    [Export] public float ExposeSeconds { get; set; } = 2.2f;
-    [Export] public float HideSeconds { get; set; } = 1.8f;
+    [Export] public float ExposeSeconds { get; set; } = 1.8f;
+    [Export] public float HideSeconds { get; set; } = 2.5f;
     /// <summary>How far to look for cover (m).</summary>
     [Export] public float CoverSearchRadius { get; set; } = 10f;
     /// <summary>Health danger (0..1) at which it falls back.</summary>
