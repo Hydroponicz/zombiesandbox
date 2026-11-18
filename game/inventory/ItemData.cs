@@ -25,6 +25,10 @@ public enum GearSlot
     Top,
     /// <summary>Jeans, cargo pants: their pockets are storage.</summary>
     Bottoms,
+    /// <summary>Long gun (key 1). A sidearm slot comes with pistols.</summary>
+    Primary,
+    /// <summary>Melee weapon (key 3).</summary>
+    Melee,
 }
 
 /// <summary>
@@ -52,6 +56,10 @@ public partial class ItemData : Resource
     [Export] public GearSlot Slot { get; set; } = GearSlot.None;
     /// <summary>Storage grids this gives when worn (e.g. a rig: four 1×2 mag pouches and two 1×1).</summary>
     [Export] public Array<Vector2I> Grids { get; set; } = new();
+
+    [ExportGroup("Weapon")]
+    /// <summary>The weapon scene (a gun or melee weapon) this item is, for weapon items.</summary>
+    [Export] public PackedScene? WeaponScene { get; set; }
 
     [ExportGroup("Magazine")]
     /// <summary>Added weight per loaded round (pounds).</summary>

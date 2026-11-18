@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+[ext_resource type="PackedScene" path="res://game/combat/weapons/graybox_rifle/graybox_rifle.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "ar32_rifle"
+DisplayName = "AR-32 rifle"
+ShortName = "AR-32"
+Size = Vector2i(5, 2)
+WeightLb = 7.5
+Category = 5
+Color = Color(0.2, 0.2, 0.22, 1)
+Slot = 7
+WeaponScene = ExtResource("2_scene")

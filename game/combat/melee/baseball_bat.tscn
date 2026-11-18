@@ -1,0 +1,25 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://game/combat/melee/MeleeWeapon.cs" id="1_script"]
+[ext_resource type="Resource" path="res://game/combat/melee/baseball_bat_data.tres" id="2_data"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_0"]
+albedo_color = Color(0.62, 0.45, 0.26, 1)
+roughness = 0.8
+
+[sub_resource type="CylinderMesh" id="Mesh_0"]
+material = SubResource("Mat_0")
+top_radius = 0.035
+bottom_radius = 0.018
+height = 0.82
+radial_segments = 10
+
+[node name="Baseballbat" type="Node3D"]
+script = ExtResource("1_script")
+Data = ExtResource("2_data")
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="Part0" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.41, 0)
+mesh = SubResource("Mesh_0")

@@ -21,11 +21,11 @@ public partial class CharacterInventory : Node, ISaveState, IMagazineStorage
     [Export] public CarryConfig Carry { get; set; } = null!;
     [Export] public ItemData? StartingRig { get; set; }
     [Export] public ItemData? StartingBackpack { get; set; }
+    [Export] public ItemData? StartingPrimary { get; set; }
+    [Export] public ItemData? StartingMelee { get; set; }
 
     /// <summary>The inventory item for this character's magazines (set from the weapon).</summary>
     public ItemData? MagazineData { get; set; }
-    /// <summary>Weight carried outside the inventory (the weapon in hand), in pounds.</summary>
-    public Func<float>? ExtraWeight { get; set; }
 
     private readonly System.Collections.Generic.Dictionary<GearSlot, Item?> _equipped = new()
     {
@@ -35,6 +35,8 @@ public partial class CharacterInventory : Node, ISaveState, IMagazineStorage
         [GearSlot.Backpack] = null,
         [GearSlot.Top] = null,
         [GearSlot.Bottoms] = null,
+        [GearSlot.Primary] = null,
+        [GearSlot.Melee] = null,
     };
     public List<ItemGrid> Pockets { get; } = new();
 
@@ -53,6 +55,10 @@ public partial class CharacterInventory : Node, ISaveState, IMagazineStorage
             Equip(new Item(StartingRig));
         if (StartingBackpack != null)
             Equip(new Item(StartingBackpack));
+        if (StartingPrimary != null)
+            Equip(new Item(StartingPrimary));
+        if (StartingMelee != null)
+            Equip(new Item(StartingMelee));
     }
 
     public void Initialize(CharacterSkills skills) => _skills = skills;
@@ -180,7 +186,7 @@ public partial class CharacterInventory : Node, ISaveState, IMagazineStorage
     {
         get
         {
-            float total = ExtraWeight?.Invoke() ?? 0f;
+            float total = 0f;
             foreach (Item? worn in _equipped.Values)
                 total += worn?.WeightLb ?? 0f;
             foreach (ItemGrid pocket in Pockets)

@@ -47,7 +47,15 @@ public partial class WeaponHolder : Node3D
 
     // ---------- State ----------
 
+    /// <summary>The gun in hand (null when holding a melee weapon or nothing).</summary>
     public Weapon? Weapon { get; private set; }
+    /// <summary>The melee weapon in hand (null when holding a gun or nothing).</summary>
+    public MeleeWeapon? Melee { get; private set; }
+    /// <summary>Whatever is in hand: a <see cref="Combat.Weapon"/>, a <see cref="MeleeWeapon"/>, or null.</summary>
+    public Node3D? Held => (Node3D?)Weapon ?? Melee;
+    /// <summary>Putting one weapon away and getting another out.</summary>
+    public bool IsSwitching { get; private set; }
+    private Node3D? _switchTo;
     /// <summary>True when the owner wants to aim and nothing prevents it (sprinting, wall, raising).</summary>
     public bool IsAiming { get; private set; }
     /// <summary>0 = hip, 1 = fully aimed.</summary>
@@ -61,7 +69,11 @@ public partial class WeaponHolder : Node3D
     public float WallPullBack { get; private set; }
     /// <summary>Current sway amplitude in degrees (for debugging/tuning).</summary>
     public float SwayDegrees => _swayAmplitude;
-    public FireMode FireMode { get; private set; } = FireMode.Auto;
+    public FireMode FireMode
+    {
+        get => Weapon?.FireMode ?? FireMode.Semi;
+        private set { if (Weapon != null) Weapon.FireMode = value; }
+    }
     public int ShotsFired { get; private set; }
     /// <summary>A rifle-butt shove is playing (can't fire).</summary>
     public bool IsShoving => _shoveTime >= 0f;
@@ -127,15 +139,52 @@ public partial class WeaponHolder : Node3D
         AddChild(_shotAudio);
         CreateHandlingAudio();
         if (StartingWeapon != null)
-            Equip(StartingWeapon.Instantiate<Weapon>());
+            Hold(StartingWeapon.Instantiate<Node3D>());
     }
 
-    public void Equip(Weapon weapon)
+    /// <summary>
+    /// Put this weapon (a <see cref="Combat.Weapon"/> or <see cref="MeleeWeapon"/>, or null for empty hands)
+    /// in hand right away. The previous one is taken out of the hands but not destroyed: its owner
+    /// (an inventory item) keeps it, with all its state.
+    /// </summary>
+    public void Hold(Node3D? item)
     {
-        Weapon?.QueueFree();
-        Weapon = weapon;
-        AddChild(weapon);
+        CancelReload();
+        CancelMagazineCheck();
+        CancelMalfunctionHandling();
+        if (Held is { } previous && previous.GetParent() == this)
+            RemoveChild(previous);
+        Weapon = item as Weapon;
+        Melee = item as MeleeWeapon;
+        IsAiming = false;
+        AdsBlend = 0f;
+        CanFire = false;
+        _recoil = _recoilVelocity = Vector2.Zero;
+        _climb = _climbTarget = 0f;
+        _readyTime = 0f;
+        if (item == null)
+            return;
+        if (item.GetParent() is { } oldParent)
+            oldParent.RemoveChild(item);
+        AddChild(item);
+        if (Weapon is { } weapon)
+            PrepareGun(weapon);
+    }
 
+    /// <summary>Lower what's in hand, swap, and raise the new one (takes a moment).</summary>
+    public void SwitchTo(Node3D? item)
+    {
+        if (item == Held && !IsSwitching)
+            return;
+        CancelReload();
+        CancelMagazineCheck();
+        CancelMalfunctionHandling();
+        _switchTo = item;
+        IsSwitching = true;
+    }
+
+    private void PrepareGun(Weapon weapon)
+    {
         // Zero the sights: tilt the bore up just enough that the bullet crosses the sight line at the zero distance.
         WeaponData data = weapon.Data;
         if (data.Ammo != null)
@@ -144,8 +193,14 @@ public partial class WeaponHolder : Node3D
             float gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
             _zeroAngle = Ballistics.SolveZeroAngle(data.Ammo, sightHeight, data.ZeroDistance, gravity);
         }
-        FireMode = data.SupportsAuto ? FireMode.Auto : FireMode.Semi;
-        LoadStartingMagazine(data);
+        if (!weapon.Loaded)
+        {
+            // Brand new: full magazine, a round chambered, its default fire mode.
+            weapon.Loaded = true;
+            FireMode = data.SupportsAuto ? FireMode.Auto : FireMode.Semi;
+            LoadStartingMagazine(data);
+        }
+        UpdateMagazineVisual();
     }
 
     /// <summary>
@@ -182,15 +237,33 @@ public partial class WeaponHolder : Node3D
 
     public override void _Process(double delta)
     {
-        if (Weapon == null || _stats == null)
+        if (_stats == null)
             return;
-
         float dt = (float)delta;
-        WeaponData data = Weapon.Data;
 
-        // Lowering for sprint, then a short raise before the weapon is ready again.
-        _lowerBlend = Mathf.MoveToward(_lowerBlend, Lowered ? 1f : 0f, dt / Config.LowerTime);
-        _readyTime = Lowered ? 0f : _readyTime + dt;
+        // Lowering for sprint (or to switch weapons), then a short raise before the weapon is ready again.
+        bool lowering = Lowered || IsSwitching;
+        _lowerBlend = Mathf.MoveToward(_lowerBlend, lowering ? 1f : 0f, dt / Config.LowerTime);
+        _readyTime = lowering ? 0f : _readyTime + dt;
+        if (IsSwitching && (_lowerBlend >= 1f || Held == null))
+        {
+            IsSwitching = false;
+            Hold(_switchTo);
+            _lowerBlend = _switchTo == null ? 0f : 1f; // The new one comes up from low.
+            _switchTo = null;
+        }
+
+        if (Weapon == null)
+        {
+            IsAiming = false;
+            AdsBlend = 0f;
+            CanFire = false;
+            if (Melee != null)
+                PoseMelee(Melee.Data);
+            return;
+        }
+
+        WeaponData data = Weapon.Data;
         bool raised = _readyTime >= data.RaiseTime;
 
         float wallBlock = Mathf.SmoothStep(Config.WallPullBackBlocksAt, Config.MaxWallPullBack, WallPullBack);
@@ -245,6 +318,15 @@ public partial class WeaponHolder : Node3D
         CanFire = raised && _lowerBlend <= 0f && wallBlock <= 0f && !IsBusy && _busyBlend <= 0f && _shoveTime < 0f;
 
         UpdateTrigger(dt, data);
+    }
+
+    /// <summary>Melee piece A: carry it at the ready (lowered while sprinting or switching).</summary>
+    private void PoseMelee(MeleeData data)
+    {
+        Transform3D ready = WeaponData.Pose(data.HoldPosition, data.HoldRotationDegrees);
+        Transform3D low = WeaponData.Pose(data.LoweredPosition, data.LoweredRotationDegrees);
+        Transform3D local = ready.InterpolateWith(low, Mathf.SmoothStep(0f, 1f, _lowerBlend));
+        GlobalTransform = AimPivot * local;
     }
 
     private void UpdateTrigger(float dt, WeaponData data)

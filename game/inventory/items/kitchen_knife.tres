@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+[ext_resource type="PackedScene" path="res://game/combat/melee/kitchen_knife.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "kitchen_knife"
+DisplayName = "Kitchen knife"
+ShortName = "Knife"
+Size = Vector2i(1, 2)
+WeightLb = 0.4
+Category = 5
+Color = Color(0.7, 0.72, 0.75, 1)
+Slot = 8
+WeaponScene = ExtResource("2_scene")

@@ -38,6 +38,9 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
     public CameraRig CameraRig { get; private set; } = null!;
     public WeaponHolder Weapons { get; private set; } = null!;
     public CharacterInventory Inventory { get; private set; } = null!;
+    /// <summary>Which weapon slot is in your hands (None = empty hands).</summary>
+    public GearSlot ActiveSlot { get; private set; } = GearSlot.None;
+    private Item? _itemInHands;
     /// <summary>Inventory screen open: you can only walk (the game keeps running).</summary>
     public bool InventoryOpen { get; private set; }
     /// <summary>Short text for the HUD ("No room").</summary>
@@ -164,12 +167,18 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         // Bullets hit the world and body hit zones, never the invisible movement colliders around characters.
         Weapons.Initialize(Stats, Skills, Inventory, SelfExclude, worldMask: CollisionMask, bulletMask: 1u | HitboxRig.HitboxLayer);
         Inventory.Initialize(Skills);
+        // Start with the primary weapon in hand.
+        if (Inventory.Equipped(GearSlot.Primary) is { } primary)
+        {
+            ActiveSlot = GearSlot.Primary;
+            _itemInHands = primary;
+            Weapons.Hold(primary.Instance);
+        }
+        _lastPrimary = Inventory.Equipped(GearSlot.Primary);
+        _lastMelee = Inventory.Equipped(GearSlot.Melee);
         Inventory.MagazineData = Weapons.Weapon?.Data.MagazineItemData;
-        // The gun in your hands counts too (with its loaded magazine).
-        Inventory.ExtraWeight = () => Weapons.Weapon == null ? 0f
-            : Weapons.Weapon.Data.MassKg * 2.2046f + (Weapons.Magazine?.Rounds ?? 0) * (Inventory.MagazineData?.WeightPerRoundLb ?? 0f)
-              + (Weapons.Magazine != null ? Inventory.MagazineData?.WeightLb ?? 0f : 0f);
         Weapons.GiveSpareMagazines(StartingSpareMagazines);
+        Inventory.Changed += SyncHands;
         WorldItem.NoRoom += user =>
         {
             if (user == this)
@@ -265,6 +274,22 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
             return;
         if (IsDead)
             return; // The death screen handles restarting.
+
+        if (e.IsActionPressed(InputActions.WeaponPrimary, exactMatch: true))
+        {
+            SelectWeaponSlot(GearSlot.Primary);
+            return;
+        }
+        if (e.IsActionPressed(InputActions.WeaponMelee, exactMatch: true))
+        {
+            SelectWeaponSlot(GearSlot.Melee);
+            return;
+        }
+        if (e.IsActionPressed(InputActions.SwitchWeapon) && !InventoryOpen)
+        {
+            CycleWeapon();
+            return;
+        }
 
         if (e.IsAction(InputActions.Inventory))
         {
@@ -695,6 +720,59 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
             }
         }
     }
+
+    // ---------- Weapons in hand ----------
+
+    /// <summary>Get the weapon in that slot out (1 = primary, 3 = melee). Takes a moment.</summary>
+    public void SelectWeaponSlot(GearSlot slot)
+    {
+        if (IsDead || slot == ActiveSlot || Inventory.Equipped(slot) is not { } item || item.Instance == null)
+            return;
+        ActiveSlot = slot;
+        _itemInHands = item;
+        _sprintToggled = false;
+        Weapons.SwitchTo(item.Instance);
+        if (item.Instance is Weapon gun && gun.Data.MagazineItemData != null)
+            Inventory.MagazineData = gun.Data.MagazineItemData;
+    }
+
+    /// <summary>Gamepad Y: swap between the primary and the melee weapon.</summary>
+    private void CycleWeapon()
+    {
+        GearSlot next = ActiveSlot == GearSlot.Primary ? GearSlot.Melee : GearSlot.Primary;
+        if (Inventory.Equipped(next) != null)
+            SelectWeaponSlot(next);
+        else if (ActiveSlot == GearSlot.None && Inventory.Equipped(GearSlot.Melee) != null)
+            SelectWeaponSlot(GearSlot.Melee);
+    }
+
+    /// <summary>
+    /// After any inventory change: if the weapon in hand was dropped or moved out of its slot, the hands
+    /// are empty; if the hands are empty and a weapon was just put in a slot, draw it.
+    /// </summary>
+    private void SyncHands()
+    {
+        if (_itemInHands != null && Inventory.Equipped(ActiveSlot) != _itemInHands)
+        {
+            _itemInHands = null;
+            ActiveSlot = GearSlot.None;
+            Weapons.Hold(null);
+        }
+        // Only a weapon that just went into a slot is drawn automatically (not when you rearrange).
+        Item? primary = Inventory.Equipped(GearSlot.Primary);
+        Item? melee = Inventory.Equipped(GearSlot.Melee);
+        if (ActiveSlot == GearSlot.None)
+        {
+            if (primary != null && primary != _lastPrimary)
+                SelectWeaponSlot(GearSlot.Primary);
+            else if (melee != null && melee != _lastMelee)
+                SelectWeaponSlot(GearSlot.Melee);
+        }
+        _lastPrimary = primary;
+        _lastMelee = melee;
+    }
+    private Item? _lastPrimary;
+    private Item? _lastMelee;
 
     // ---------- Inventory ----------
 

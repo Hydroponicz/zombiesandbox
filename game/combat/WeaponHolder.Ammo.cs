@@ -25,9 +25,17 @@ public partial class WeaponHolder
     private const float MagazineInAt = 0.7f;
 
     /// <summary>The magazine inserted in the weapon (null = none).</summary>
-    public MagazineItem? Magazine { get; private set; }
+    public MagazineItem? Magazine
+    {
+        get => Weapon?.LoadedMagazine;
+        private set { if (Weapon != null) Weapon.LoadedMagazine = value; }
+    }
     /// <summary>A round is in the chamber, ready to fire.</summary>
-    public bool Chambered { get; private set; }
+    public bool Chambered
+    {
+        get => Weapon?.Chambered ?? false;
+        private set { if (Weapon != null) Weapon.Chambered = value; }
+    }
     public IMagazineStorage? Pouch { get; private set; }
 
     public ReloadKind Reloading { get; private set; } = ReloadKind.None;

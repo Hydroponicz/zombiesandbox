@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3]
+[gd_scene load_steps=35 format=3]
 
 [ext_resource type="Shader" path="res://assets/materials/dev/dev_grid.gdshader" id="1_grid"]
 [ext_resource type="PackedScene" path="res://game/player/player.tscn" id="2_player"]
@@ -21,6 +21,10 @@
 [ext_resource type="Script" path="res://game/inventory/WorldItem.cs" id="30_worlditem"]
 [ext_resource type="Resource" path="res://game/inventory/items/hoodie.tres" id="40_hoodie"]
 [ext_resource type="Resource" path="res://game/inventory/items/cargo_pants.tres" id="41_cargo"]
+[ext_resource type="Resource" path="res://game/inventory/items/baseball_bat.tres" id="42_baseball_bat"]
+[ext_resource type="Resource" path="res://game/inventory/items/machete.tres" id="43_machete"]
+[ext_resource type="Resource" path="res://game/inventory/items/kitchen_knife.tres" id="44_kitchen_knife"]
+[ext_resource type="Resource" path="res://game/inventory/items/fire_axe.tres" id="45_fire_axe"]
 [ext_resource type="Resource" path="res://game/inventory/items/backpack_daypack.tres" id="31_backpack_daypack"]
 [ext_resource type="Resource" path="res://game/inventory/items/backpack_hiking.tres" id="32_backpack_hiking"]
 [ext_resource type="Resource" path="res://game/inventory/items/car_battery.tres" id="33_car_battery"]
@@ -505,7 +509,7 @@ outline_size = 12
 [node name="LootSign" type="Label3D" parent="Signs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 5)
 billboard = 1
-text = "LOOT: press F to pick up, Tab for the inventory (car battery = 38 lb)"
+text = "LOOT: F picks up / wears, Tab inventory. Melee weapons on the left: 1 = rifle, 3 = melee (gamepad Y)"
 font_size = 48
 outline_size = 10
 
@@ -613,6 +617,26 @@ Data = ExtResource("40_hoodie")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0.3, 4.5)
 script = ExtResource("30_worlditem")
 Data = ExtResource("41_cargo")
+
+[node name="bat" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.3, 1.5)
+script = ExtResource("30_worlditem")
+Data = ExtResource("42_baseball_bat")
+
+[node name="machete" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0.3, 1.0)
+script = ExtResource("30_worlditem")
+Data = ExtResource("43_machete")
+
+[node name="knife" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.3, 0.6)
+script = ExtResource("30_worlditem")
+Data = ExtResource("44_kitchen_knife")
+
+[node name="axe" type="RigidBody3D" parent="Loot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.3, 2.2)
+script = ExtResource("30_worlditem")
+Data = ExtResource("45_fire_axe")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)

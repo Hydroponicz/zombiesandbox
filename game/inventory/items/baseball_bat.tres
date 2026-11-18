@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+[ext_resource type="PackedScene" path="res://game/combat/melee/baseball_bat.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "baseball_bat"
+DisplayName = "Baseball bat"
+ShortName = "Bat"
+Size = Vector2i(1, 4)
+WeightLb = 2.2
+Category = 5
+Color = Color(0.62, 0.45, 0.26, 1)
+Slot = 8
+WeaponScene = ExtResource("2_scene")

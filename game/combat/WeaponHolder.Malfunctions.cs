@@ -34,17 +34,32 @@ public partial class WeaponHolder
         CorrectFix,
     }
 
-    public Malfunction Malfunction { get; private set; } = Malfunction.None;
+    public Malfunction Malfunction
+    {
+        get => Weapon?.Malfunction ?? Malfunction.None;
+        private set { if (Weapon != null) Weapon.Malfunction = value; }
+    }
     /// <summary>The player has inspected the weapon and knows what kind of jam it is.</summary>
-    public bool MalfunctionKnown { get; private set; }
+    public bool MalfunctionKnown
+    {
+        get => Weapon?.MalfunctionKnown ?? false;
+        private set { if (Weapon != null) Weapon.MalfunctionKnown = value; }
+    }
     public bool IsJammed => Malfunction != Malfunction.None;
     /// <summary>Builds up with sustained fire and cools off over time; raises the jam chance.</summary>
-    public float Heat { get; private set; }
+    public float Heat
+    {
+        get => Weapon?.Heat ?? 0f;
+        private set { if (Weapon != null) Weapon.Heat = value; }
+    }
     public bool IsHandlingMalfunction => _malfunctionAction != MalfunctionAction.None;
     public string MalfunctionActionName => _malfunctionAction.ToString();
     public float MalfunctionActionProgress => _actionDuration > 0f ? _actionTime / _actionDuration : 0f;
 
     private MalfunctionAction _malfunctionAction = MalfunctionAction.None;
+
+    /// <summary>Stop clearing / inspecting midway (weapon switched). Nothing changes.</summary>
+    private void CancelMalfunctionHandling() => _malfunctionAction = MalfunctionAction.None;
     private float _actionTime;
     private float _actionDuration;
     private float _inspectPart;

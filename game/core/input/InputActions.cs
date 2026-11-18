@@ -40,6 +40,12 @@ public static class InputActions
     public const string ReleaseMouse = "release_mouse";
     /// <summary>Toggle the body diagram (keyboard). Gamepad: hold View.</summary>
     public const string HealthScreen = "health_screen";
+    /// <summary>Get the primary weapon out (keyboard 1).</summary>
+    public const string WeaponPrimary = "weapon_primary";
+    /// <summary>Get the melee weapon out (keyboard 3).</summary>
+    public const string WeaponMelee = "weapon_melee";
+    /// <summary>Gamepad Y: swap primary ↔ melee.</summary>
+    public const string SwitchWeapon = "switch_weapon";
     /// <summary>Keyboard: toggle the inventory. Gamepad View: tap = inventory, hold = health screen.</summary>
     public const string Inventory = "inventory";
 
@@ -124,6 +130,9 @@ public static class InputActions
         Bind(Shove, 0.5f, KeyEvent(Key.G), Button(JoyButton.RightShoulder));
         Bind(HealthScreen, 0.5f, KeyEvent(Key.H));
         Bind(Inventory, 0.5f, KeyEvent(Key.Tab), Button(JoyButton.Back));
+        Bind(WeaponPrimary, 0.5f, KeyEvent(Key.Key1));
+        Bind(WeaponMelee, 0.5f, KeyEvent(Key.Key3));
+        Bind(SwitchWeapon, 0.5f, Button(JoyButton.Y));
         Bind(InvUp, 0.5f, KeyEvent(Key.Up), Button(JoyButton.DpadUp));
         Bind(InvDown, 0.5f, KeyEvent(Key.Down), Button(JoyButton.DpadDown));
         Bind(InvLeft, 0.5f, KeyEvent(Key.Left), Button(JoyButton.DpadLeft));

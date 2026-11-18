@@ -18,6 +18,13 @@ public sealed class Item
     public MagazineItem? Magazine { get; private set; }
     /// <summary>Storage this item gives when worn (empty for ordinary items).</summary>
     public List<ItemGrid> Grids { get; } = new();
+    private Node3D? _instance;
+
+    /// <summary>
+    /// For weapon items: the live weapon (a gun keeps its magazine, chamber, condition and jams on it).
+    /// Created the first time it's needed; it lives in the hands or, while stowed, outside the scene.
+    /// </summary>
+    public Node3D? Instance => _instance ??= Data.WeaponScene?.Instantiate<Node3D>();
 
     public Item(ItemData data, int count = 1, string? id = null)
     {
@@ -38,6 +45,9 @@ public sealed class Item
             float weight = Data.WeightLb * Count;
             if (Magazine != null)
                 weight += Magazine.Rounds * Data.WeightPerRoundLb;
+            // A gun's loaded magazine counts too.
+            if (_instance is Weapon { LoadedMagazine: { } loaded } gun && gun.Data.MagazineItemData is { } magData)
+                weight += magData.WeightLb + loaded.Rounds * magData.WeightPerRoundLb;
             foreach (ItemGrid grid in Grids)
                 weight += grid.WeightLb;
             return weight;
@@ -75,6 +85,25 @@ public sealed class Item
         };
         if (Magazine != null)
             state["magazine"] = Magazine.SaveState();
+        if (_instance is Weapon gun)
+        {
+            var weapon = new Dictionary
+            {
+                ["condition"] = gun.Condition,
+                ["loaded"] = gun.Loaded,
+                ["chambered"] = gun.Chambered,
+                ["fire_mode"] = (int)gun.FireMode,
+                ["malfunction"] = (int)gun.Malfunction,
+                ["malfunction_known"] = gun.MalfunctionKnown,
+            };
+            if (gun.LoadedMagazine != null)
+                weapon["magazine"] = gun.LoadedMagazine.SaveState();
+            state["weapon"] = weapon;
+        }
+        else if (_instance is MeleeWeapon melee)
+        {
+            state["weapon"] = new Dictionary { ["condition"] = melee.Condition };
+        }
         if (Grids.Count > 0)
         {
             var grids = new Array<Dictionary>();
@@ -95,6 +124,29 @@ public sealed class Item
             var mag = new MagazineItem(1, null!, 0);
             mag.LoadState(magazine.AsGodotDictionary());
             item.Magazine = mag;
+        }
+        if (state.TryGetValue("weapon", out Variant weaponState))
+        {
+            Dictionary w = weaponState.AsGodotDictionary();
+            if (item.Instance is Weapon gun)
+            {
+                gun.Condition = w["condition"].AsSingle();
+                gun.Loaded = w["loaded"].AsBool();
+                gun.Chambered = w["chambered"].AsBool();
+                gun.FireMode = (FireMode)w["fire_mode"].AsInt32();
+                gun.Malfunction = (Malfunction)w["malfunction"].AsInt32();
+                gun.MalfunctionKnown = w["malfunction_known"].AsBool();
+                if (w.TryGetValue("magazine", out Variant mag))
+                {
+                    var loaded = new MagazineItem(1, null!, 0);
+                    loaded.LoadState(mag.AsGodotDictionary());
+                    gun.LoadedMagazine = loaded;
+                }
+            }
+            else if (item.Instance is MeleeWeapon melee)
+            {
+                melee.Condition = w["condition"].AsSingle();
+            }
         }
         if (state.TryGetValue("grids", out Variant grids))
         {

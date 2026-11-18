@@ -435,6 +435,38 @@ Weapon attachments come after survival stats (step 7).
 - Dev notes (test): starting load 14.9 lb (rifle 7.5 lb + rig + 4 full mags); rifle + toolbox + battery
   ≈ 67 lb = heavily overloaded, walking ≈0.56 m/s; ≈97 lb = can't move.
 
+#### Melee weapons (in progress — before piece B)
+Melee is how you fight when ammo is short or gunfire would bring the horde. It plugs into every
+existing system: hits land on the same body-part hitboxes as bullets, zombies stay brain-only, NPCs treat
+a hit as an attack (factions), swings cost stamina and make little noise.
+- **Melee A — weapon slots & switching** *(implemented on preview — in testing)*: weapons become inventory items. Equipment gets a **Primary**
+  slot (the rifle) and a **Melee** slot (a **Sidearm** slot comes with pistols later). Switch with **1**
+  (primary) / **3** (melee) on keyboard, **Y** on gamepad (cycles). Switching takes a moment (lower, swap,
+  raise). Each gun keeps its own state (loaded magazine, chambered round, condition, jams) when holstered
+  or dropped. Weapons can be dropped and picked up like any item (F wears them into a free slot); a weapon
+  put into an empty slot while your hands are empty is drawn automatically. The test range has the four
+  melee weapons on the ground (they can be held but not swung until melee B).
+- **Melee B — melee combat:**
+  - Weapons: **baseball bat** (blunt, staggers well), **machete** (blade, fast), **kitchen knife** (blade,
+    very fast, short, weak against skulls), **fire axe** (blade, slow and heavy, one or two head hits).
+  - Attack with fire: **tap = quick swing**, **hold = charged heavy swing**. Wind-up → fast swing → recovery,
+    so no spamming; a miss carries through and costs time and stamina. **Stomp** a downed zombie by
+    attacking while looking down at it.
+  - Hits use the hitboxes: head hits kill zombies (brain only); body hits stagger, knock back or down, and can
+    break limbs (broken legs → crawler). On NPCs it's damage like any wound (blades cause bleeding).
+  - **Feel:** a tiny hit-stop (~60 ms), camera punch toward the hit, controller rumble, target reactions
+    (stagger, knockback, falls), blood, placeholder impact sounds (real audio later).
+  - **Stamina:** every swing costs stamina (heavier weapons more; Strength lowers it); tired swings are
+    slower and weaker.
+  - **Noise:** quiet (a few metres), the reason to use melee.
+  - **Skills:** two new skills, **Blunt** and **Blade**: faster, harder, more accurate swings and less wear.
+    Level up by hitting things.
+  - **Durability:** every hit wears the weapon; at 0 it breaks (later: a bat snapping in half). Repairs later.
+  - **Stuck blades:** axes and machetes can get **stuck** in a zombie's skull or body; pulling free takes a
+    moment (longer on a skull, quicker with Blade skill). A stuck weapon in a crowd is a real danger.
+  - No blocking for now (the shove makes space).
+- **Melee C — NPCs:** survivors with a melee weapon use it on close zombies instead of only shoving.
+
 #### Piece B: looting & searching
 - Containers (crates, cabinets) and dead NPCs are searched **Tarkov-style**: items appear one at a time,
   unknown ones shown as "?" until revealed (bigger items take longer). A container is only searched once.
@@ -468,6 +500,7 @@ Weapon attachments come after survival stats (step 7).
 - **Reloading** (step 2): reload and magazine-check speed, magazine-check precision.
 - **Aiming** (step 2): hold-breath duration (4 s → 10 s) and less weapon sway. Earns XP from hits (piece 2).
 - **Scavenging** (step 6): faster container/body searching.
+- **Blunt** / **Blade** (melee): swing speed, damage, accuracy and less wear for that kind of weapon.
 - Weapon and other skills are added in the step that introduces them.
 - A developer-only debug key sets skill levels for testing (removed from release builds).
 

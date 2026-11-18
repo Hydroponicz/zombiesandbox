@@ -43,7 +43,6 @@ public partial class InventoryScreen : Control
     private readonly List<Area> _areas = new();
     private readonly List<(string Text, Vector2 Position)> _titles = new();
     private readonly List<Rect2> _panels = new();
-    private Rect2 _weaponRect;
 
     // The ground panel: a virtual grid of what lies around you.
     private readonly ItemGrid _groundGrid = new(GroundWidth, GroundHeight);
@@ -214,9 +213,15 @@ public partial class InventoryScreen : Control
             _titles.Add((SlotName(slots[i]), at - new Vector2(0f, 6f)));
             _areas.Add(new Area { Kind = AreaKind.Slot, Slot = slots[i], Rect = new Rect2(at, new Vector2(slotSize, slotSize)), Panel = 0 });
         }
-        Vector2 weaponAt = cursor + new Vector2(0f, 3f * rowStep + 24f);
-        _titles.Add(("Weapon (in hands)", weaponAt - new Vector2(0f, 6f)));
-        _weaponRect = new Rect2(weaponAt, new Vector2(_cell * 5f, _cell * 1.5f));
+        // Weapon slots: a long gun lies sideways (5×2), the melee weapon 4×1.
+        Vector2 primaryAt = cursor + new Vector2(0f, 3f * rowStep + 18f);
+        _titles.Add((SlotName(GearSlot.Primary), primaryAt - new Vector2(0f, 6f)));
+        _areas.Add(new Area { Kind = AreaKind.Slot, Slot = GearSlot.Primary, Rect = new Rect2(primaryAt, new Vector2(_cell * 5f, _cell * 2f)), Panel = 0 });
+        Vector2 meleeAt = primaryAt + new Vector2(0f, _cell * 2f + gap + 22f);
+        _titles.Add((SlotName(GearSlot.Melee), meleeAt - new Vector2(0f, 6f)));
+        var meleeRect = new Rect2(meleeAt, new Vector2(_cell * 4f, _cell));
+        _areas.Add(new Area { Kind = AreaKind.Slot, Slot = GearSlot.Melee, Rect = meleeRect, Panel = 0 });
+        bool gearFits = meleeRect.End.Y <= gearPanel.End.Y;
 
         // Panel 1: storage (rig, clothing pockets, pockets, backpack).
         var storagePanel = new Rect2(left + panelWidth + gap, top, panelWidth, panelHeight);
@@ -252,7 +257,7 @@ public partial class InventoryScreen : Control
         _titles.Add(("GROUND", groundPanel.Position + new Vector2(gap, gap + 14f)));
         var groundRect = new Rect2(groundPanel.Position + new Vector2(gap, gap * 2f + 24f), new Vector2(GroundWidth, GroundHeight) * _cell);
         _areas.Add(new Area { Kind = AreaKind.Ground, Grid = _ground, Rect = groundRect, Panel = 2 });
-        return fits && groundRect.End.Y <= groundPanel.End.Y;
+        return fits && gearFits && groundRect.End.Y <= groundPanel.End.Y;
     }
 
     private float Section(string title, List<ItemGrid> grids, float x0, float y, float right, float gap)
@@ -289,6 +294,8 @@ public partial class InventoryScreen : Control
         GearSlot.Backpack => "Backpack",
         GearSlot.Top => "Top",
         GearSlot.Bottoms => "Bottoms",
+        GearSlot.Primary => "Primary  [1]",
+        GearSlot.Melee => "Melee  [3]",
         _ => "",
     };
 
@@ -695,14 +702,6 @@ public partial class InventoryScreen : Control
             DrawString(_font, position, text, HorizontalAlignment.Left, -1, 15, new Color(1f, 1f, 1f, 0.75f));
 
         DrawWeight(view);
-        DrawRect(_weaponRect, new Color(1f, 1f, 1f, 0.05f));
-        DrawRect(_weaponRect, new Color(1f, 1f, 1f, 0.3f), filled: false, width: 1.5f);
-        if (_player.Weapons.Weapon is { } weapon)
-        {
-            DrawRect(_weaponRect.Grow(-4f), new Color(0.22f, 0.22f, 0.24f, 0.95f));
-            DrawString(_font, _weaponRect.Position + new Vector2(10f, 22f), weapon.Data.DisplayName, HorizontalAlignment.Left, _weaponRect.Size.X - 14f, 15, Colors.White);
-            DrawString(_font, _weaponRect.Position + new Vector2(10f, 42f), $"{weapon.Data.MassKg * 2.2046f:0.0} lb", HorizontalAlignment.Left, -1, 13, new Color(1f, 1f, 1f, 0.6f));
-        }
         for (int i = 0; i < _areas.Count; i++)
             DrawArea(_areas[i]);
 
@@ -740,7 +739,11 @@ public partial class InventoryScreen : Control
             DrawRect(area.Rect, new Color(1f, 1f, 1f, 0.05f));
             DrawRect(area.Rect, new Color(1f, 1f, 1f, 0.3f), filled: false, width: 1.5f);
             if (_inventory.Equipped(area.Slot) is { } worn)
+            {
                 DrawItemBox(worn, area.Rect.Grow(-4f), 1f);
+                if (area.Slot == _player.ActiveSlot)
+                    DrawString(_font, area.Rect.End - new Vector2(area.Rect.Size.X - 6f, 6f), "IN HANDS", HorizontalAlignment.Right, area.Rect.Size.X - 12f, 12, new Color(1f, 0.85f, 0.3f));
+            }
             else if (_held != null && _held.Data.Slot == area.Slot)
                 DrawRect(area.Rect.Grow(-2f), new Color(0.3f, 0.9f, 0.4f, 0.25f));
             return;

@@ -13,7 +13,7 @@
 
 [ext_resource type="Script" path="res://game/combat/WeaponHolder.cs" id="11_holder"]
 [ext_resource type="Resource" path="res://game/combat/player_handling.tres" id="12_handling"]
-[ext_resource type="PackedScene" path="res://game/combat/weapons/graybox_rifle/graybox_rifle.tscn" id="13_rifle"]
+[ext_resource type="Resource" path="res://game/inventory/items/ar32_rifle.tres" id="13_rifle"]
 [ext_resource type="Script" path="res://game/ui/AimDot.cs" id="14_aimdot"]
 
 [ext_resource type="Script" path="res://game/inventory/CharacterInventory.cs" id="15_inventory"]
@@ -120,12 +120,12 @@ script = ExtResource("23_infection")
 script = ExtResource("15_inventory")
 Carry = ExtResource("24_carry")
 StartingRig = ExtResource("25_rig")
+StartingPrimary = ExtResource("13_rifle")
 
 [node name="WeaponHolder" type="Node3D" parent="."]
 top_level = true
 script = ExtResource("11_holder")
 Config = ExtResource("12_handling")
-StartingWeapon = ExtResource("13_rifle")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 

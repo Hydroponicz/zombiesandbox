@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://game/inventory/ItemData.cs" id="1_script"]
+[ext_resource type="PackedScene" path="res://game/combat/melee/fire_axe.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_script")
+Id = "fire_axe"
+DisplayName = "Fire axe"
+ShortName = "Axe"
+Size = Vector2i(2, 4)
+WeightLb = 6.0
+Category = 5
+Color = Color(0.7, 0.15, 0.12, 1)
+Slot = 8
+WeaponScene = ExtResource("2_scene")
