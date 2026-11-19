@@ -38,6 +38,8 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
     public CameraRig CameraRig { get; private set; } = null!;
     public WeaponHolder Weapons { get; private set; } = null!;
     public CharacterInventory Inventory { get; private set; } = null!;
+    /// <summary>The container or body being searched (shown in the inventory screen), if any.</summary>
+    public LootContainer? OpenedContainer { get; private set; }
     /// <summary>Which weapon slot is in your hands (None = empty hands).</summary>
     public GearSlot ActiveSlot { get; private set; } = GearSlot.None;
     private Item? _itemInHands;
@@ -459,6 +461,10 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
             Skills.SetLevel(SkillId.Blade, Skills.GetLevel(SkillId.Blade) - 1);
         else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugBladeUp))
             Skills.SetLevel(SkillId.Blade, Skills.GetLevel(SkillId.Blade) + 1);
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugScavengingDown))
+            Skills.SetLevel(SkillId.Scavenging, Skills.GetLevel(SkillId.Scavenging) - 1);
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugScavengingUp))
+            Skills.SetLevel(SkillId.Scavenging, Skills.GetLevel(SkillId.Scavenging) + 1);
         else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugAimingUp))
         {
             Skills.SetLevel(SkillId.Aiming, Skills.GetLevel(SkillId.Aiming) + 1);
@@ -483,6 +489,7 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         if (IsDead)
             _grabbedBy.Clear();
         UpdateInteractTarget();
+        UpdateSearching(dt);
         UpdateStance(dt);
 
         Vector2 input = IsDead
@@ -840,8 +847,35 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
             SetInventoryOpen(!InventoryOpen);
     }
 
+    /// <summary>F on a container or body: open the inventory with it beside your gear and start searching.</summary>
+    public void OpenContainer(LootContainer container)
+    {
+        if (IsDead)
+            return;
+        container.Generate();
+        OpenedContainer = container;
+        SetInventoryOpen(true);
+    }
+
+    /// <summary>Searching happens while it's open and you stay close; walking away closes it.</summary>
+    private void UpdateSearching(float dt)
+    {
+        if (OpenedContainer == null)
+            return;
+        if (!InventoryOpen || !GodotObject.IsInstanceValid(OpenedContainer) || OpenedContainer.IsQueuedForDeletion()
+            || OpenedContainer.GlobalPosition.DistanceTo(GlobalPosition) > 2.6f)
+        {
+            OpenedContainer = null;
+            return;
+        }
+        if (OpenedContainer.Search(dt, Skills.GetLevel(SkillId.Scavenging)) != null)
+            Skills.AddXp(SkillId.Scavenging, 1.5f);
+    }
+
     public void SetInventoryOpen(bool open)
     {
+        if (!open)
+            OpenedContainer = null;
         if (open == InventoryOpen || (open && IsDead))
             return;
         InventoryOpen = open;

@@ -4,6 +4,7 @@ using Godot.Collections;
 using ZombieSandbox.Character;
 using ZombieSandbox.Combat;
 using ZombieSandbox.Health;
+using ZombieSandbox.Inventory;
 using ZombieSandbox.Player;
 using ZombieSandbox.World;
 
@@ -1599,23 +1600,37 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         if (GetNodeOrNull<AimAssistTarget>("AimAssistTarget") is { } assist)
             assist.Hostile = false;
 
-        // Spare magazines spill out next to the body.
-        PackedScene? magScene = Weapons.Weapon?.Data.DroppedMagazineScene;
-        if (magScene != null)
-        {
-            int i = 0;
-            while (_pouch.TakeFullest() is { } magazine)
-            {
-                var dropped = magScene.Instantiate<DroppedMagazine>();
-                dropped.Magazine = magazine;
-                GetTree().CurrentScene.AddChild(dropped);
-                dropped.GlobalPosition = GlobalPosition + new Vector3(0.4f * Mathf.Cos(i * 2.1f), 0.3f, 0.4f * Mathf.Sin(i * 2.1f));
-                i++;
-            }
-        }
+        CreateBodyLoot();
 
         if (Infection.IsInfected && ZombieScene != null)
             _riseTimer = _rng.RandfRange(8f, 15f);
+    }
+
+    private LootContainer? _bodyLoot;
+
+    /// <summary>
+    /// The body becomes something to search: their gun (as it was: magazine, condition), their melee
+    /// weapon, their spare magazines, and a few random things from their type's loot table.
+    /// </summary>
+    private void CreateBodyLoot()
+    {
+        var items = new List<Item>();
+        Node3D? gun = _gun ?? Weapons.Weapon;
+        if (Weapons.Held != null)
+            Weapons.Hold(null); // Out of the dead hands.
+        if (gun != null && ItemCatalog.ForWeaponScene(gun.SceneFilePath) is { } gunData)
+            items.Add(Item.FromInstance(gunData, gun));
+        if (_meleeWeapon != null && ItemCatalog.ForWeaponScene(_meleeWeapon.SceneFilePath) is { } meleeData)
+            items.Add(Item.FromInstance(meleeData, _meleeWeapon));
+        ItemData? magData = (gun as Weapon)?.Data.MagazineItemData;
+        while (magData != null && _pouch.TakeFullest() is { } magazine)
+            items.Add(Item.FromMagazine(magData, magazine));
+        if (Type.Loot != null)
+            items.AddRange(Type.Loot.Roll(_rng));
+
+        _bodyLoot = LootContainer.CreateBody(GetTree().CurrentScene, GlobalPosition, $"{Type.DisplayName}'s body", new Vector2I(6, 5));
+        foreach (Item item in items)
+            _bodyLoot.AddHidden(item);
     }
 
     private void UpdateDead(float dt)
@@ -1627,7 +1642,9 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         _riseTimer -= dt;
         if (_riseTimer > 0f)
             return;
-        // The infected dead get back up.
+        // The infected dead get back up (anything still on the body falls to the ground).
+        if (_bodyLoot != null && GodotObject.IsInstanceValid(_bodyLoot))
+            _bodyLoot.SpillAndRemove();
         var zombie = ZombieScene!.Instantiate<Node3D>();
         GetTree().CurrentScene.AddChild(zombie);
         zombie.GlobalPosition = GlobalPosition + Vector3.Up * 0.05f;

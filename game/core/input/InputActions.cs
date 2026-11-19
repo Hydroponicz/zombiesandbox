@@ -97,6 +97,8 @@ public static class InputActions
     public const string DebugBluntUp = "debug_blunt_up";
     public const string DebugBladeDown = "debug_blade_down";
     public const string DebugBladeUp = "debug_blade_up";
+    public const string DebugScavengingDown = "debug_scavenging_down";
+    public const string DebugScavengingUp = "debug_scavenging_up";
 
     /// <summary>InputMap events with this device id match any connected device.</summary>
     private const int AllDevices = -1;
@@ -183,6 +185,8 @@ public static class InputActions
             Bind(DebugBluntUp, 0.5f, CtrlKeyEvent(Key.Period));
             Bind(DebugBladeDown, 0.5f, CtrlKeyEvent(Key.Semicolon));
             Bind(DebugBladeUp, 0.5f, CtrlKeyEvent(Key.Apostrophe));
+            Bind(DebugScavengingDown, 0.5f, CtrlKeyEvent(Key.Bracketleft));
+            Bind(DebugScavengingUp, 0.5f, CtrlKeyEvent(Key.Bracketright));
         }
     }
 

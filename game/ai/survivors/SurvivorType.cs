@@ -20,6 +20,10 @@ public partial class SurvivorType : Resource
     [Export] public int Blunt { get; set; } = 3;
     [Export] public int Blade { get; set; } = 3;
 
+    [ExportGroup("Loot")]
+    /// <summary>Random things found on their body (besides their weapons and magazines).</summary>
+    [Export] public ZombieSandbox.Inventory.LootTable? Loot { get; set; }
+
     [ExportGroup("Melee")]
     /// <summary>
     /// Melee weapons this kind of survivor may carry: each one spawns with one picked at random

@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="SurvivorType" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="SurvivorType" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://game/ai/survivors/SurvivorType.cs" id="1_script"]
+[ext_resource type="Resource" path="res://game/inventory/loot/survivor_body.tres" id="9_loot"]
 [ext_resource type="PackedScene" path="res://game/combat/melee/baseball_bat.tscn" id="2_baseball_bat"]
 [ext_resource type="PackedScene" path="res://game/combat/melee/machete.tscn" id="3_machete"]
 [ext_resource type="PackedScene" path="res://game/combat/melee/kitchen_knife.tscn" id="4_kitchen_knife"]
@@ -10,3 +11,4 @@
 script = ExtResource("1_script")
 MeleeWeapons = Array[PackedScene]([ExtResource("2_baseball_bat"), ExtResource("3_machete"), ExtResource("4_kitchen_knife"), ExtResource("5_fire_axe")])
 Blade = 4
+Loot = ExtResource("9_loot")

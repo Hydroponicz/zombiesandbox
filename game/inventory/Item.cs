@@ -35,6 +35,23 @@ public sealed class Item
             Grids.Add(new ItemGrid(size.X, size.Y));
     }
 
+    /// <summary>
+    /// A new item from its data, ready to use: a magazine gets its rounds (full unless <paramref name="rounds"/>
+    /// says otherwise).
+    /// </summary>
+    public static Item Create(ItemData data, int count = 1, int? rounds = null)
+    {
+        if (data.Category == ItemCategory.Magazine && data.Ammo != null)
+        {
+            var magazine = new MagazineItem(data.Capacity, data.Ammo, rounds ?? data.Capacity);
+            return FromMagazine(data, magazine);
+        }
+        return new Item(data, count);
+    }
+
+    /// <summary>A weapon item for a weapon that already exists (keeps its magazine, condition, ...).</summary>
+    public static Item FromInstance(ItemData data, Node3D weapon) => new(data) { _instance = weapon };
+
     /// <summary>Wraps a magazine as an inventory item (same id as the magazine).</summary>
     public static Item FromMagazine(ItemData data, MagazineItem magazine) => new(data, 1, magazine.Id) { Magazine = magazine };
 

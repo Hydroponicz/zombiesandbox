@@ -64,4 +64,7 @@ public partial class ItemData : Resource
     [ExportGroup("Magazine")]
     /// <summary>Added weight per loaded round (pounds).</summary>
     [Export] public float WeightPerRoundLb { get; set; } = 0.027f;
+    /// <summary>Rounds it holds and what it holds (so a magazine found as loot is a real magazine).</summary>
+    [Export] public int Capacity { get; set; } = 30;
+    [Export] public ZombieSandbox.Combat.AmmoData? Ammo { get; set; }
 }

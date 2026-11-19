@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=3]
+[gd_scene load_steps=40 format=3]
 
 [ext_resource type="Shader" path="res://assets/materials/dev/dev_grid.gdshader" id="1_grid"]
 [ext_resource type="PackedScene" path="res://game/player/player.tscn" id="2_player"]
@@ -19,6 +19,10 @@
 [ext_resource type="Resource" path="res://game/ai/factions/drifters.tres" id="14_drifters"]
 [ext_resource type="Resource" path="res://game/ai/factions/settlers.tres" id="15_settlers"]
 [ext_resource type="Script" path="res://game/inventory/WorldItem.cs" id="30_worlditem"]
+[ext_resource type="PackedScene" path="res://game/inventory/loot/loot_crate.tscn" id="50_crate"]
+[ext_resource type="PackedScene" path="res://game/inventory/loot/loot_locker.tscn" id="51_locker"]
+[ext_resource type="Resource" path="res://game/inventory/loot/supplies.tres" id="52_supplies"]
+[ext_resource type="Resource" path="res://game/inventory/loot/bandit_stash.tres" id="53_stash"]
 [ext_resource type="Resource" path="res://game/inventory/items/hoodie.tres" id="40_hoodie"]
 [ext_resource type="Resource" path="res://game/inventory/items/cargo_pants.tres" id="41_cargo"]
 [ext_resource type="Resource" path="res://game/inventory/items/baseball_bat.tres" id="42_baseball_bat"]
@@ -509,7 +513,7 @@ outline_size = 12
 [node name="LootSign" type="Label3D" parent="Signs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 5)
 billboard = 1
-text = "LOOT: F picks up / wears, Tab inventory. Melee weapons on the left: 1 = rifle, 3 = melee (gamepad Y)"
+text = "LOOT: F picks up / wears / searches crates, Tab inventory. 1 = rifle, 3 = melee (gamepad Y)"
 font_size = 48
 outline_size = 10
 
@@ -637,6 +641,33 @@ Data = ExtResource("44_kitchen_knife")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.3, 2.2)
 script = ExtResource("30_worlditem")
 Data = ExtResource("45_fire_axe")
+
+[node name="Containers" type="Node3D" parent="."]
+
+[node name="SupplyCrate" parent="Containers" instance=ExtResource("50_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, 6)
+ContainerId = "test_supply_crate"
+DisplayName = "Supply crate"
+Loot = ExtResource("52_supplies")
+
+[node name="Locker" parent="Containers" instance=ExtResource("51_locker")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 7.5)
+ContainerId = "test_locker"
+DisplayName = "Locker"
+Loot = ExtResource("52_supplies")
+
+[node name="BanditStash" parent="Containers" instance=ExtResource("50_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33, 0, 43)
+ContainerId = "bandit_stash"
+DisplayName = "Bandit stash"
+Loot = ExtResource("53_stash")
+GridSize = Vector2i(6, 4)
+
+[node name="DrifterCrate" parent="Containers" instance=ExtResource("50_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33.5, 0, 41.5)
+ContainerId = "drifter_crate"
+DisplayName = "Drifter crate"
+Loot = ExtResource("52_supplies")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)

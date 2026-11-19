@@ -31,6 +31,8 @@ public partial class InventoryScreen : Control
         public GearSlot Slot;
         public Rect2 Rect;
         public int Panel;
+        /// <summary>Set when this grid is an opened container or body.</summary>
+        public LootContainer? Container;
         public int Columns => Grid?.Width ?? 1;
         public int Rows => Grid?.Height ?? 1;
     }
@@ -251,9 +253,17 @@ public partial class InventoryScreen : Control
             y = Section(backpack.Data.DisplayName, backpack.Grids, x0, y, right, gap);
         bool fits = y <= storagePanel.End.Y;
 
-        // Panel 2: the ground.
+        // Panel 2: the opened container or body, otherwise the ground.
         var groundPanel = new Rect2(left + (panelWidth + gap) * 2f, top, panelWidth, panelHeight);
         _panels.Add(groundPanel);
+        if (_player.OpenedContainer is { } container)
+        {
+            string status = container.FullySearched ? "" : "   searching...";
+            _titles.Add((container.DisplayName.ToUpperInvariant() + status, groundPanel.Position + new Vector2(gap, gap + 14f)));
+            var gridRect = new Rect2(groundPanel.Position + new Vector2(gap, gap * 2f + 24f), new Vector2(container.Grid.Width, container.Grid.Height) * _cell);
+            _areas.Add(new Area { Kind = AreaKind.Grid, Grid = container.Grid, Rect = gridRect, Panel = 2, Container = container });
+            return fits && gearFits && gridRect.End.Y <= groundPanel.End.Y;
+        }
         _titles.Add(("GROUND", groundPanel.Position + new Vector2(gap, gap + 14f)));
         var groundRect = new Rect2(groundPanel.Position + new Vector2(gap, gap * 2f + 24f), new Vector2(GroundWidth, GroundHeight) * _cell);
         _areas.Add(new Area { Kind = AreaKind.Ground, Grid = _ground, Rect = groundRect, Panel = 2 });
@@ -318,11 +328,14 @@ public partial class InventoryScreen : Control
         return false;
     }
 
-    private Item? ItemIn(Area area, Vector2I cell) => area.Kind switch
+    /// <summary>The item at a cell (null for nothing, or for something not found yet in a container).</summary>
+    private Item? ItemIn(Area area, Vector2I cell)
     {
-        AreaKind.Slot => _inventory.Equipped(area.Slot),
-        _ => area.Grid!.At(cell.X, cell.Y)?.Item,
-    };
+        if (area.Kind == AreaKind.Slot)
+            return _inventory.Equipped(area.Slot);
+        Item? item = area.Grid!.At(cell.X, cell.Y)?.Item;
+        return item != null && area.Container != null && area.Container.IsHidden(item) ? null : item;
+    }
 
     // ---------- Input ----------
 
@@ -451,8 +464,8 @@ public partial class InventoryScreen : Control
         }
 
         ItemGrid.Placement? placement = area.Grid!.At(cell.X, cell.Y);
-        if (placement == null)
-            return false;
+        if (placement == null || (area.Container != null && area.Container.IsHidden(placement.Item)))
+            return false; // Not found yet.
         Hold(placement.Item, area.Kind, placement.Rotated, cursorIsTopLeft ? Vector2I.Zero : cell - new Vector2I(placement.X, placement.Y));
         _originGrid = area.Grid;
         _originCell = new Vector2I(placement.X, placement.Y);
@@ -618,6 +631,39 @@ public partial class InventoryScreen : Control
             {
                 Flash("No room");
             }
+            return;
+        }
+
+        // Container ↔ inventory: out of the container into your bags, or from your bags into the container.
+        LootContainer? opened = _player.OpenedContainer;
+        if (area.Container != null)
+        {
+            if (_inventory.CanEquip(item))
+            {
+                area.Grid!.Remove(item);
+                _inventory.Equip(item);
+            }
+            else if (_inventory.HasRoomFor(item) || item.Data.MaxStack > 1)
+            {
+                area.Grid!.Remove(item);
+                if (!_inventory.TryAddAnywhere(item))
+                    area.Grid.TryAdd(item); // Only part of a stack fit: the rest stays.
+            }
+            else
+            {
+                Flash("No room");
+            }
+            return;
+        }
+        if (opened != null && area.Kind != AreaKind.Slot)
+        {
+            area.Grid!.Remove(item);
+            if (!opened.Grid.TryAdd(item))
+            {
+                area.Grid.TryAdd(item);
+                Flash("No room");
+            }
+            _inventory.NotifyChanged();
             return;
         }
         DropAt(areaIndex, cell);
@@ -791,7 +837,23 @@ public partial class InventoryScreen : Control
         foreach (ItemGrid.Placement p in grid.Items)
         {
             var rect = new Rect2(area.Rect.Position + new Vector2(p.X, p.Y) * _cell, new Vector2(p.Size.X, p.Size.Y) * _cell);
-            DrawItemBox(p.Item, rect.Grow(-2f), 1f);
+            if (area.Container != null && area.Container.IsHidden(p.Item))
+                DrawHiddenBox(area.Container, p.Item, rect.Grow(-2f));
+            else
+                DrawItemBox(p.Item, rect.Grow(-2f), 1f);
+        }
+    }
+
+    /// <summary>Not found yet: a grey "?" box (the one being searched shows its progress).</summary>
+    private void DrawHiddenBox(LootContainer container, Item item, Rect2 rect)
+    {
+        DrawRect(rect, new Color(0.22f, 0.22f, 0.24f, 0.95f));
+        DrawRect(rect, new Color(1f, 1f, 1f, 0.2f), filled: false, width: 1f);
+        DrawString(_font, rect.GetCenter() + new Vector2(-6f, 8f), "?", HorizontalAlignment.Left, -1, (int)Mathf.Clamp(_cell * 0.45f, 14f, 26f), new Color(1f, 1f, 1f, 0.6f));
+        if (container.Searching == item)
+        {
+            var bar = new Rect2(rect.Position + new Vector2(3f, rect.Size.Y - 7f), new Vector2((rect.Size.X - 6f) * container.SearchFraction, 4f));
+            DrawRect(bar, new Color(1f, 0.85f, 0.3f));
         }
     }
 

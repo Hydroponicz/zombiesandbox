@@ -28,7 +28,7 @@ public partial class WorldItem : RigidBody3D, IInteractable
     {
         AddToGroup(Group);
         if (Item == null && Data != null)
-            Item = new Item(Data, Count);
+            Item = Item.Create(Data, Count);
         if (Item == null)
         {
             QueueFree();

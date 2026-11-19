@@ -341,7 +341,7 @@ jams), perception, navigation. Zombies attack them too.
   Shove zombies that get close, shoot zombies in the head. Won't shoot through allies.
 - **Groups (2–4) share what they see:** one spotting you alerts the rest.
 - **Barks:** short callouts ("Contact!", "Reloading!", "I'm hit!") as floating text until real voice audio.
-- **Bodies:** dead NPCs keep their gun; their spare magazines drop as pickups (full looting with inventory).
+- **Bodies:** dead NPCs can be searched (inventory piece B): gun, melee weapon, magazines, random loot.
 - **Infection:** zombie wounds can infect NPCs; an NPC who dies infected **rises as a zombie**.
 - Test range: a bandit camp (3 hostile bandits) with low and full cover.
 - Developer key: Ctrl+M makes NPCs ignore the player (to watch them fight zombies).
@@ -490,11 +490,22 @@ a hit as an attack (factions), swings cost stamina and make little noise.
   - Dev notes (test): four zombies spawned next to two drifters, a bandit and a settler were all killed in
     ≈3 s; everyone was back on their rifle ≈1 s later.
 
-#### Piece B: looting & searching
-- Containers (crates, cabinets) and dead NPCs are searched **Tarkov-style**: items appear one at a time,
-  unknown ones shown as "?" until revealed (bigger items take longer). A container is only searched once.
+#### Piece B: looting & searching (implemented on preview — in testing)
+- Containers (crates, lockers) and dead NPCs are searched **Tarkov-style**: **F** / gamepad **X** opens it in
+  the inventory screen (in place of the ground panel); items appear one at a time, unknown ones shown as
+  grey "?" boxes until revealed (bigger items take longer), with a progress bar on the one being searched.
+  Searching only runs while it's open and you're within reach: walking away closes it, reopening resumes.
+  A container is only searched once; Ctrl+click / gamepad X quick-moves between it and your bags.
+- **Loot tables** (resources: weighted entries with counts, items per roll) fill containers the first time
+  they're opened; found magazines have a random number of rounds. Containers are persistent (contents and
+  what's been found are saved).
+- **Bodies:** a dead NPC's body is searchable instead of dropping magazines: their gun (as it was: loaded
+  magazine, condition), their melee weapon, spare magazines and a few random things from their type's loot
+  table. If the body rises as a zombie, whatever's left on it falls to the ground.
+- Test range: a supply crate and a locker by the spawn, a bandit stash in the camp, a drifter crate.
 - New skill **Scavenging** (0–10): faster searching (≈1.5 s per item at 0 → ≈0.4 s at 10). Levels up
-  by searching.
+  by searching. Dev keys: Ctrl+[ / Ctrl+] Scavenging −/+.
+- Dev notes (test): at Scavenging 3 a 1×1 item takes ≈1.2 s, 2×2 ≈2 s; +1.5 XP per item found.
 
 #### Piece C: ammo & magazines as items
 - Loose rounds stack in the inventory; load/unload magazines by hand (slow at low Reloading); ammo types per calibre.
