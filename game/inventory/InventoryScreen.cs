@@ -482,10 +482,18 @@ public partial class InventoryScreen : Control
         switch (area.Kind)
         {
             case AreaKind.Slot:
-                if (item.Data.Slot != area.Slot || _inventory.Equipped(area.Slot) != null)
+                if (item.Data.Slot != area.Slot)
                     return false;
+                // Occupied: swap. The one in the slot goes where the new one came from.
+                AreaKind originKind = _originKind;
+                ItemGrid? originGrid = _originGrid;
+                Vector2I originCell = _originCell;
+                bool originRotated = _originRotated;
                 FromOrigin(item);
+                Item? previous = _inventory.Unequip(area.Slot);
                 _inventory.Equip(item);
+                if (previous != null)
+                    StowSwapped(previous, originKind, originGrid, originCell, originRotated);
                 return true;
 
             case AreaKind.Ground:
@@ -531,6 +539,27 @@ public partial class InventoryScreen : Control
         if (_originKind == AreaKind.Ground)
             TakeFromWorld(item);
         _held = null;
+    }
+
+    /// <summary>
+    /// The item a swap pushed out of its slot: into the spot the new one came from if it fits there,
+    /// otherwise anywhere in the bags, otherwise on the ground.
+    /// </summary>
+    private void StowSwapped(Item item, AreaKind originKind, ItemGrid? originGrid, Vector2I originCell, bool originRotated)
+    {
+        if (originKind == AreaKind.Ground)
+        {
+            DropInWorld(item); // Swapped for something on the ground: leave this one there instead.
+            return;
+        }
+        bool placed = originKind == AreaKind.Grid && originGrid != null && !item.Grids.Contains(originGrid)
+            && (originGrid.TryPlace(item, originCell.X, originCell.Y, originRotated)
+                || originGrid.TryPlace(item, originCell.X, originCell.Y, !originRotated)
+                || originGrid.TryAdd(item));
+        if (placed)
+            _inventory.NotifyChanged();
+        else if (!_inventory.TryAddAnywhere(item))
+            DropInWorld(item);
     }
 
     /// <summary>Put the held item back exactly where it came from.</summary>
@@ -744,8 +773,8 @@ public partial class InventoryScreen : Control
                 if (area.Slot == _player.ActiveSlot)
                     DrawString(_font, area.Rect.End - new Vector2(area.Rect.Size.X - 6f, 6f), "IN HANDS", HorizontalAlignment.Right, area.Rect.Size.X - 12f, 12, new Color(1f, 0.85f, 0.3f));
             }
-            else if (_held != null && _held.Data.Slot == area.Slot)
-                DrawRect(area.Rect.Grow(-2f), new Color(0.3f, 0.9f, 0.4f, 0.25f));
+            if (_held != null && _held.Data.Slot == area.Slot)
+                DrawRect(area.Rect.Grow(-2f), new Color(0.3f, 0.9f, 0.4f, 0.25f)); // It can go (or swap) here.
             return;
         }
 
@@ -861,7 +890,7 @@ public partial class InventoryScreen : Control
         Area area = _areas[areaIndex];
         return area.Kind switch
         {
-            AreaKind.Slot => _held.Data.Slot == area.Slot && _inventory.Equipped(area.Slot) == null,
+            AreaKind.Slot => _held.Data.Slot == area.Slot, // Empty, or a swap.
             AreaKind.Ground => true,
             _ => !_held.Grids.Contains(area.Grid!)
                  && ((area.Grid!.At(cell.X + _grabOffset.X, cell.Y + _grabOffset.Y) is { } t && t.Item.Data == _held.Data && _held.Data.MaxStack > 1)

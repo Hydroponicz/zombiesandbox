@@ -20,7 +20,7 @@ public partial class WorldItem : RigidBody3D, IInteractable
     public Item? Item { get; set; }
 
     public string InteractPrompt => _wouldWear
-        ? $"Wear {Item?.Data.DisplayName}"
+        ? $"{(Item?.Data.Slot is GearSlot.Primary or GearSlot.Melee ? "Equip" : "Wear")} {Item?.Data.DisplayName}"
         : $"Pick up {Item?.Data.DisplayName}{(Item is { Count: > 1 } ? $" ({Item.Count})" : "")}";
     private bool _wouldWear;
 

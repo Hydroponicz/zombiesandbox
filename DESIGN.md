@@ -444,7 +444,11 @@ a hit as an attack (factions), swings cost stamina and make little noise.
   (primary) / **3** (melee) on keyboard, **Y** on gamepad (cycles). Switching takes a moment (lower, swap,
   raise). Each gun keeps its own state (loaded magazine, chambered round, condition, jams) when holstered
   or dropped. Weapons can be dropped and picked up like any item (F wears them into a free slot); a weapon
-  put into an empty slot while your hands are empty is drawn automatically. The test range has the four
+  put into an empty slot while your hands are empty is drawn automatically. Pickup prompts say **Equip**
+  for weapons and **Wear** for things worn on the body.
+- **Swapping (any slot):** drop an item on an occupied slot of its kind to swap: the old one goes where the
+  new one came from (or anywhere in the bags, or the ground if there's no room). Swapping the weapon in
+  your hands puts the new one in your hands. The test range has the four
   melee weapons on the ground (they can be held but not swung until melee B).
 - **Melee B — melee combat:**
   - Weapons: **baseball bat** (blunt, staggers well), **machete** (blade, fast), **kitchen knife** (blade,
