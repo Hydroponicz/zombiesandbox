@@ -480,7 +480,15 @@ a hit as an attack (factions), swings cost stamina and make little noise.
   - Dev notes (test): machete quick swing to a zombie head 15 dmg (heads have 25), heavy swing kills; bat
     knocks down; 2 stomps kill a downed zombie; axe sticks, pull ≈0.9 s; a hit makes a neutral hostile.
     Dev keys: Ctrl+, / Ctrl+. Blunt −/+, Ctrl+; / Ctrl+' Blade −/+; the overlay shows the melee state.
-- **Melee C — NPCs:** survivors with a melee weapon use it on close zombies instead of only shoving.
+- **Melee C — NPCs** *(implemented on preview — in testing)*: every faction can carry any melee weapon:
+  each NPC spawns with one picked at random from its type's list (all four for now); a survivor placed in
+  a level can be given a specific one. When a zombie gets within ≈2.5 m they switch to it ("Too close!"),
+  swing at its head by the same rules as the player (timing, reach, skills; sometimes a charged heavy
+  swing), step up and stomp downed zombies, pull stuck blades free, and only shove to break a grab. Once
+  it's clear (or a human enemy shows up farther out) they switch back to the gun. A broken weapon is gone
+  ("It broke!"). New per-type Blunt/Blade skills.
+  - Dev notes (test): four zombies spawned next to two drifters, a bandit and a settler were all killed in
+    ≈3 s; everyone was back on their rifle ≈1 s later.
 
 #### Piece B: looting & searching
 - Containers (crates, cabinets) and dead NPCs are searched **Tarkov-style**: items appear one at a time,

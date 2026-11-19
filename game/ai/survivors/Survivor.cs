@@ -41,6 +41,8 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     [Export] public string GroupId { get; set; } = "bandits";
     /// <summary>Its faction: attitude toward the player and who its enemies are.</summary>
     [Export] public FactionData? Faction { get; set; }
+    /// <summary>This one's melee weapon (overrides the random pick from its type's list).</summary>
+    [Export] public PackedScene? MeleeWeaponOverride { get; set; }
     /// <summary>Spawned when an infected survivor dies and turns.</summary>
     [Export] public PackedScene? ZombieScene { get; set; }
 
@@ -50,6 +52,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     Infection? IAttackable.Infection => Infection;
     public Perception Perception { get; private set; } = null!;
     public WeaponHolder Weapons { get; private set; } = null!;
+    public CharacterSkills Skills { get; private set; } = null!;
     public float Suppression { get; private set; }
     public bool IsCrouched { get; private set; }
 
@@ -189,7 +192,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             _debug.Visible = OS.IsDebugBuild();
         _bark.Visible = false;
 
-        var skills = GetNode<CharacterSkills>("Skills");
+        var skills = Skills = GetNode<CharacterSkills>("Skills");
         var stats = GetNode<CharacterStats>("Stats");
         CallDeferred(MethodName.ApplySkills, skills);
         stats.Initialize(skills);
@@ -199,6 +202,16 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         _hitboxes.AddRidsTo(_selfExclude);
         Weapons.Initialize(stats, skills, _pouch, _selfExclude, worldMask: 1, bulletMask: 1 | HitboxRig.HitboxLayer);
         Weapons.GiveSpareMagazines(3);
+        _gun = Weapons.Weapon;
+        PackedScene? meleeScene = MeleeWeaponOverride
+            ?? (Type.MeleeWeapons.Count > 0 ? Type.MeleeWeapons[_rng.RandiRange(0, Type.MeleeWeapons.Count - 1)] : null);
+        _meleeWeapon = meleeScene?.Instantiate<MeleeWeapon>();
+        Weapons.MeleeBroke += _ =>
+        {
+            _meleeWeapon = null;
+            Bark("It broke!");
+            LeaveMelee();
+        };
         if (Weapons.FireMode == FireMode.Auto)
             Weapons.CycleFireMode(); // Semi-auto, aimed shots.
 
@@ -230,6 +243,8 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         skills.SetLevel(SkillId.Reloading, Type.Reloading);
         skills.SetLevel(SkillId.Maintenance, Type.Maintenance);
         skills.SetLevel(SkillId.Fitness, Type.Fitness);
+        skills.SetLevel(SkillId.Blunt, Type.Blunt);
+        skills.SetLevel(SkillId.Blade, Type.Blade);
     }
 
     /// <summary>Developer toggle (Ctrl+M): survivors ignore the player, to watch them fight zombies.</summary>
@@ -270,6 +285,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         UpdateKnowledge();
         Decide(dt);
         UpdateAttitude(dt);
+        UpdateMeleeMode(dt);
         DefendAgainstZombies();
 
         Vector3 desired = Vector3.Zero;
@@ -540,7 +556,14 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         bool zombie = _target!.Team == SenseTeam.Zombie;
         float distance = GlobalPosition.DistanceTo(_target.GroundPosition);
 
-        // Close zombies: stand and shoot (or shove, handled separately); no time to hide.
+        // Close zombies: fight with the melee weapon if it's out; otherwise stand and shoot (or shove).
+        if (zombie && _meleeMode)
+        {
+            ReleaseCover();
+            IsCrouched = false;
+            MeleeFight((Zombie)_target);
+            return;
+        }
         if (zombie && distance < 8f)
         {
             ReleaseCover();
@@ -1174,7 +1197,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
 
     private void HandleWeaponUpkeep()
     {
-        if (Weapons.IsBusy)
+        if (Weapons.IsBusy || Weapons.Weapon == null)
             return;
         if (Weapons.IsJammed)
         {
@@ -1194,7 +1217,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
         Weapons.WantsAim = (fighting && CanSeeTarget && (!IsCrouched || _coverKind != CoverKind.Low))
             || (_coveringFire && !IsCrouched)
             || (_watchingPlayer && _nervousStage >= 2); // Warning: weapon up, finger off the trigger.
-        Weapons.TriggerHeld = false;
+        Weapons.TriggerHeld = _meleeHoldLeft > 0f; // Charging a heavy swing.
         Weapons.Lowered = false;
         Weapons.MoveFraction = Mathf.Clamp(speed / 3.5f, 0f, 1f) * (Velocity.LengthSquared() > 0.1f ? 1f : 0f);
         Weapons.StanceSwayMultiplier = IsCrouched ? 0.7f : 1f;
@@ -1316,13 +1339,16 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
     {
         if (_shoveCooldown > 0f)
             return;
+        // With a melee weapon in hand it only shoves to break a grab.
+        bool armed = _meleeMode && Weapons.Melee != null;
         foreach (Node node in GetTree().GetNodesInGroup(Zombie.Group))
         {
             if (node is not Zombie zombie || !zombie.IsAlive)
                 continue;
             Vector3 to = zombie.GlobalPosition - GlobalPosition;
             to.Y = 0f;
-            if (to.Length() > 1.6f && !(zombie.IsGrabbing && _grabbedBy > 0))
+            bool grabbingMe = zombie.IsGrabbing && _grabbedBy > 0;
+            if ((armed || to.Length() > 1.6f) && !grabbingMe)
                 continue;
             zombie.ApplyShove(to.LengthSquared() > 0.01f ? to : -GlobalBasis.Z, 1f, _rng.Randf() < 0.3f);
             zombie.Health.ApplyDamage(BodyPart.Head, 5f, DamageSource.Shove);
@@ -1330,6 +1356,104 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             Bark("Get off!");
             _shoveCooldown = 1.2f;
             return;
+        }
+    }
+
+    // ---------- Melee ----------
+
+    private Weapon? _gun;
+    private MeleeWeapon? _meleeWeapon;
+    private bool _meleeMode;
+    private float _meleeClearTime;
+    private float _meleeHoldLeft;
+
+    /// <summary>A zombie up close: get the melee weapon out. All clear for a moment: back to the gun.</summary>
+    private void UpdateMeleeMode(float dt)
+    {
+        _meleeHoldLeft -= dt;
+        if (_meleeWeapon == null)
+            return;
+        float nearest = NearestZombieDistance();
+        if (!_meleeMode)
+        {
+            if (nearest < Type.MeleeSwitchRange && !Weapons.IsSwitching && !Weapons.IsBusy)
+            {
+                _meleeMode = true;
+                _meleeClearTime = 0f;
+                Weapons.SwitchTo(_meleeWeapon);
+                Bark("Too close!");
+            }
+            return;
+        }
+        // Keep it out while zombies are near (or a blade is stuck); a human enemy in view also means the gun.
+        bool humanInView = CanSeeTarget && _target!.Team == SenseTeam.Living;
+        _meleeClearTime = nearest > 5f || (humanInView && nearest > Type.MeleeSwitchRange) ? _meleeClearTime + dt : 0f;
+        if (_meleeClearTime > 1.2f && !Weapons.IsMeleeStuck)
+            LeaveMelee();
+    }
+
+    private void LeaveMelee()
+    {
+        _meleeMode = false;
+        _meleeHoldLeft = 0f;
+        if (_gun != null && Weapons.Held != _gun)
+            Weapons.SwitchTo(_gun);
+    }
+
+    private float NearestZombieDistance()
+    {
+        float nearest = float.MaxValue;
+        foreach (Node node in GetTree().GetNodesInGroup(Zombie.Group))
+        {
+            if (node is Zombie { IsAlive: true } zombie)
+                nearest = Mathf.Min(nearest, zombie.GlobalPosition.DistanceTo(GlobalPosition));
+        }
+        return nearest;
+    }
+
+    /// <summary>
+    /// Melee against a zombie, by the same rules as the player: aim at the head, swing when it's in reach
+    /// (sometimes a charged heavy swing), stomp it when it's down, pull a stuck blade free.
+    /// </summary>
+    private void MeleeFight(Zombie zombie)
+    {
+        if (Weapons.Melee is not { } melee)
+        {
+            StopMoving(); // Still getting it out.
+            return;
+        }
+        // The head, plus a little human error that shrinks with skill.
+        int skill = Skills.GetLevel(melee.Data.Kind == MeleeKind.Blade ? SkillId.Blade : SkillId.Blunt);
+        _aimPoint = zombie.HeadPoint;
+        _aimError = _wobble * Mathf.Lerp(0.18f, 0.04f, skill / 10f);
+        _hasAimPoint = true;
+
+        if (Weapons.IsMeleeStuck)
+        {
+            StopMoving();
+            if (Weapons.MeleeState == MeleePhase.Stuck)
+                Weapons.PullTrigger(); // Start pulling it free.
+            return;
+        }
+
+        Vector3 eye = GlobalPosition + Vector3.Up * (_height - 0.15f);
+        float reach = zombie.HeadPoint.DistanceTo(eye);
+        bool down = zombie.IsKnockedDown || zombie.IsCrawler;
+        // A downed zombie: step up to its head and stomp (or swing down at it).
+        if (down && reach > 1.3f)
+            MoveTo(zombie.HeadPoint);
+        else
+            StopMoving();
+
+        if (Weapons.MeleeState != MeleePhase.Ready || _meleeHoldLeft > 0f)
+            return;
+        if (reach <= melee.Data.Reach - 0.15f)
+        {
+            if (!down && _rng.Randf() < Type.HeavySwingChance)
+                _meleeHoldLeft = melee.Data.WindupTime + melee.Data.ChargeTime * _rng.RandfRange(0.4f, 1f);
+            else
+                Weapons.PullTrigger();
+            RerollWobble();
         }
     }
 
@@ -1517,7 +1641,7 @@ public partial class Survivor : CharacterBody3D, ISenseTarget, IAttackable
             return;
         string target = _target == null ? "-" : _target.Team == SenseTeam.Zombie ? "zombie" : "player/npc";
         _debug.Text = $"{State} {(_cover != null ? _coverKind + " cover" : "no cover")}{(IsCrouched ? " crouched" : "")}\n"
-            + $"target {target}  seen {(CanSeeTarget ? "yes" : "no")}  aim {_aimSettle:0.0}  supp {Suppression:0.0}\n"
+            + $"target {target}  seen {(CanSeeTarget ? "yes" : "no")}  aim {_aimSettle:0.0}  supp {Suppression:0.0}{(_meleeMode ? $"  MELEE {Weapons.MeleeState}" : "")}\n"
             + $"{Faction?.DisplayName ?? "-"}: {AttitudeToPlayer}{(Nervousness > 0.01f ? $"  nervous {Nervousness:0.00}" : "")}\n"
             + $"mag {Weapons.Magazine?.Rounds ?? 0}{(Weapons.IsBusy ? " BUSY" : "")}  head {Mathf.Ceil(Health.Hp(BodyPart.Head))} chest {Mathf.Ceil(Health.Hp(BodyPart.Chest))}";
     }

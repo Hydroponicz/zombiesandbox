@@ -17,6 +17,19 @@ public partial class SurvivorType : Resource
     [Export] public int Reloading { get; set; } = 4;
     [Export] public int Maintenance { get; set; } = 3;
     [Export] public int Fitness { get; set; } = 4;
+    [Export] public int Blunt { get; set; } = 3;
+    [Export] public int Blade { get; set; } = 3;
+
+    [ExportGroup("Melee")]
+    /// <summary>
+    /// Melee weapons this kind of survivor may carry: each one spawns with one picked at random
+    /// (empty = none, shove only). A survivor placed in a level can override it.
+    /// </summary>
+    [Export] public Godot.Collections.Array<PackedScene> MeleeWeapons { get; set; } = new();
+    /// <summary>A zombie this close: switch to the melee weapon (m).</summary>
+    [Export] public float MeleeSwitchRange { get; set; } = 2.5f;
+    /// <summary>Chance a swing is a charged heavy one.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float HeavySwingChance { get; set; } = 0.35f;
 
     [ExportGroup("Senses")]
     [Export] public float SightRangeDay { get; set; } = 60f;
