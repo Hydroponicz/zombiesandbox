@@ -206,6 +206,17 @@ public partial class CameraRig : Node3D
         return fromLocal.Lerp(wantedLocal, safe);
     }
 
+    /// <summary>
+    /// A melee impact: a jolt that kicks toward the side the swing was travelling.
+    /// Uses the same (settings-scaled) shake as shots.
+    /// </summary>
+    public void AddImpact(float strength, Vector3 direction)
+    {
+        Vector3 local = GlobalBasis.Inverse() * direction;
+        _shake = Mathf.Min(_shake + strength * 1.3f, 2.2f);
+        _shakeDirection = new Vector3(_shakeRng.RandfRange(0.5f, 1f), -Mathf.Sign(local.X) * _shakeRng.RandfRange(0.6f, 1f), _shakeRng.RandfRange(-0.6f, 0.6f));
+    }
+
     /// <summary>A quick, decaying jolt per shot. Scaled (or disabled) by the Camera Shake setting.</summary>
     private void UpdateCameraShake(float dt)
     {

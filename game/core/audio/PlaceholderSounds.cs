@@ -93,6 +93,25 @@ public static class PlaceholderSounds
     public static AudioStreamWav ShoveThud => _shoveThud ??= Generate(0.2f, seed: 12, (t, noise) =>
         MathF.Sin(2f * MathF.PI * 70f * t) * MathF.Exp(-t * 25f) + noise * MathF.Exp(-t * 60f) * 0.5f);
 
+    /// <summary>A melee swing cutting the air.</summary>
+    public static AudioStreamWav MeleeWhoosh => _meleeWhoosh ??= Generate(0.22f, seed: 13, (t, noise) =>
+        noise * MathF.Sin(MathF.PI * MathF.Min(t / 0.22f, 1f)) * 0.35f);
+
+    /// <summary>Something hard hitting a body (bat, axe back, stomp).</summary>
+    public static AudioStreamWav MeleeBlunt => _meleeBlunt ??= Generate(0.25f, seed: 14, (t, noise) =>
+        MathF.Sin(2f * MathF.PI * 55f * t) * MathF.Exp(-t * 18f) + noise * MathF.Exp(-t * 45f) * 0.7f);
+
+    /// <summary>A blade biting into a body.</summary>
+    public static AudioStreamWav MeleeBlade => _meleeBlade ??= Generate(0.22f, seed: 15, (t, noise) =>
+        MathF.Sin(2f * MathF.PI * 80f * t) * MathF.Exp(-t * 30f) * 0.7f + noise * MathF.Exp(-t * 14f) * 0.45f);
+
+    /// <summary>A weapon hitting a wall or floor.</summary>
+    public static AudioStreamWav MeleeWall => _meleeWall ??= Generate(0.3f, seed: 16, (t, noise) =>
+        (MathF.Sin(2f * MathF.PI * 620f * t) * 0.4f + MathF.Sin(2f * MathF.PI * 1310f * t) * 0.25f) * MathF.Exp(-t * 16f)
+        + noise * MathF.Exp(-t * 60f) * 0.6f);
+
+    private static AudioStreamWav? _meleeWhoosh, _meleeBlunt, _meleeBlade, _meleeWall;
+
     private static AudioStreamWav Generate(float seconds, int seed, Func<float, float, float> sample)
     {
         int count = (int)(seconds * MixRate);

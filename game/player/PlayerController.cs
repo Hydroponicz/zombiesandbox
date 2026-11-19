@@ -178,6 +178,9 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         _lastMelee = Inventory.Equipped(GearSlot.Melee);
         Inventory.MagazineData = Weapons.Weapon?.Data.MagazineItemData;
         Weapons.GiveSpareMagazines(StartingSpareMagazines);
+        Weapons.MeleeStamina = Stamina;
+        Weapons.MeleeHit += OnMeleeHit;
+        Weapons.MeleeBroke += OnMeleeBroke;
         Inventory.Changed += SyncHands;
         WorldItem.NoRoom += user =>
         {
@@ -448,6 +451,14 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         {
             Skills.SetLevel(SkillId.Reloading, Skills.GetLevel(SkillId.Reloading) - 1);
         }
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugBluntDown))
+            Skills.SetLevel(SkillId.Blunt, Skills.GetLevel(SkillId.Blunt) - 1);
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugBluntUp))
+            Skills.SetLevel(SkillId.Blunt, Skills.GetLevel(SkillId.Blunt) + 1);
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugBladeDown))
+            Skills.SetLevel(SkillId.Blade, Skills.GetLevel(SkillId.Blade) - 1);
+        else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugBladeUp))
+            Skills.SetLevel(SkillId.Blade, Skills.GetLevel(SkillId.Blade) + 1);
         else if (OS.IsDebugBuild() && e.IsActionPressed(InputActions.DebugAimingUp))
         {
             Skills.SetLevel(SkillId.Aiming, Skills.GetLevel(SkillId.Aiming) + 1);
@@ -728,6 +739,11 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
     {
         if (IsDead || slot == ActiveSlot || Inventory.Equipped(slot) is not { } item || item.Instance == null)
             return;
+        if (Weapons.IsMeleeStuck)
+        {
+            Message?.Invoke("It's stuck: attack to pull it free");
+            return;
+        }
         ActiveSlot = slot;
         _itemInHands = item;
         _sprintToggled = false;
@@ -773,6 +789,33 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
     }
     private Item? _lastPrimary;
     private Item? _lastMelee;
+
+    // ---------- Melee feedback ----------
+
+    /// <summary>Make a melee hit feel heavy: a split-second freeze, a camera jolt, controller rumble.</summary>
+    private void OnMeleeHit(MeleeHitInfo hit)
+    {
+        float freeze = hit.Wall ? 0.035f : hit.Killed ? 0.09f : 0.045f + 0.03f * Mathf.Max(hit.Strength - 0.6f, 0f);
+        HitStop.Freeze(this, freeze);
+        CameraRig.AddImpact(hit.Wall ? 0.5f : hit.Strength, hit.Direction);
+        if (GameInput.Instance.LastDevice == InputDevice.Gamepad)
+        {
+            float strong = hit.Wall ? 0.35f : Mathf.Clamp(0.35f + 0.35f * hit.Strength, 0f, 1f);
+            Input.StartJoyVibration(0, 0.4f, strong, hit.Killed ? 0.22f : 0.14f);
+        }
+        if (hit.Stuck)
+            Message?.Invoke(Weapons.StuckInHead ? "Stuck in its skull! Attack to pull it free" : "Stuck! Attack to pull it free");
+    }
+
+    /// <summary>A melee weapon wore out: it's gone.</summary>
+    private void OnMeleeBroke(MeleeWeapon weapon)
+    {
+        if (Inventory.Equipped(GearSlot.Melee) is { } item && item.Instance == weapon)
+        {
+            Inventory.Unequip(GearSlot.Melee);
+            Message?.Invoke($"Your {item.Data.DisplayName.ToLowerInvariant()} broke!");
+        }
+    }
 
     // ---------- Inventory ----------
 
@@ -1011,13 +1054,15 @@ public partial class PlayerController : CharacterBody3D, IPersistent, ISenseTarg
         }
 
         // You can only walk while leaning or aiming.
-        // Walking only: leaning, aiming, in the inventory, or heavily overloaded.
-        if (Mathf.Abs(Lean) > 0.1f || WantsAim || InventoryOpen || Inventory.IsHeavilyOverloaded)
+        // Walking only: leaning, aiming, in the inventory, heavily overloaded, charging a heavy swing or tugging at a stuck blade.
+        if (Mathf.Abs(Lean) > 0.1f || WantsAim || InventoryOpen || Inventory.IsHeavilyOverloaded
+            || Weapons.IsChargingMelee || Weapons.IsMeleeStuck)
             speedFraction = Mathf.Min(speedFraction, walkFraction);
 
         // Held by a zombie: barely able to move (≈0.7 m/s), less with more of them. Shove them off.
         float grabbed = _grabbedBy.Count == 0 ? 1f : Mathf.Max(0.08f, 0.2f - 0.06f * (_grabbedBy.Count - 1));
-        return stanceSpeed * speedFraction * Health.SpeedMultiplier * grabbed * Inventory.SpeedMultiplier;
+        float stuck = Weapons.IsMeleeStuck ? 0.5f : 1f; // Still holding the handle.
+        return stanceSpeed * speedFraction * Health.SpeedMultiplier * grabbed * Inventory.SpeedMultiplier * stuck;
     }
 
     // ---------- Lean ----------

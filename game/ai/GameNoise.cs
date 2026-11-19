@@ -11,6 +11,8 @@ public enum NoiseKind
     Impact,
     Handling, // Reloading, dry fire, dropped magazines.
     Voice,
+    /// <summary>A melee hit or a swing hitting a wall.</summary>
+    Melee,
 }
 
 /// <summary>A sound in the world. Anything within <see cref="Radius"/> can hear it.</summary>
@@ -36,6 +38,8 @@ public static class GameNoise
     public const float Reload = 4f;
     public const float DryFire = 3f;
     public const float MagazineDrop = 5f;
+    public const float MeleeHit = 4f;
+    public const float MeleeWallHit = 7f;
 
     public static void Emit(Vector3 position, float radius, NoiseKind kind, Node? source = null) =>
         Emitted?.Invoke(new NoiseEvent(position, radius, kind, source));

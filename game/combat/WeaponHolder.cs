@@ -152,6 +152,7 @@ public partial class WeaponHolder : Node3D
         CancelReload();
         CancelMagazineCheck();
         CancelMalfunctionHandling();
+        ResetMelee();
         if (Held is { } previous && previous.GetParent() == this)
             RemoveChild(previous);
         Weapon = item as Weapon;
@@ -174,8 +175,8 @@ public partial class WeaponHolder : Node3D
     /// <summary>Lower what's in hand, swap, and raise the new one (takes a moment).</summary>
     public void SwitchTo(Node3D? item)
     {
-        if (item == Held && !IsSwitching)
-            return;
+        if ((item == Held && !IsSwitching) || IsMeleeStuck)
+            return; // (A stuck blade has to be pulled free first.)
         CancelReload();
         CancelMagazineCheck();
         CancelMalfunctionHandling();
@@ -258,6 +259,7 @@ public partial class WeaponHolder : Node3D
             IsAiming = false;
             AdsBlend = 0f;
             CanFire = false;
+            UpdateMelee(dt);
             if (Melee != null)
                 PoseMelee(Melee.Data);
             return;
@@ -318,15 +320,6 @@ public partial class WeaponHolder : Node3D
         CanFire = raised && _lowerBlend <= 0f && wallBlock <= 0f && !IsBusy && _busyBlend <= 0f && _shoveTime < 0f;
 
         UpdateTrigger(dt, data);
-    }
-
-    /// <summary>Melee piece A: carry it at the ready (lowered while sprinting or switching).</summary>
-    private void PoseMelee(MeleeData data)
-    {
-        Transform3D ready = WeaponData.Pose(data.HoldPosition, data.HoldRotationDegrees);
-        Transform3D low = WeaponData.Pose(data.LoweredPosition, data.LoweredRotationDegrees);
-        Transform3D local = ready.InterpolateWith(low, Mathf.SmoothStep(0f, 1f, _lowerBlend));
-        GlobalTransform = AimPivot * local;
     }
 
     private void UpdateTrigger(float dt, WeaponData data)

@@ -28,6 +28,7 @@ public enum DamageSource
     ZombieAttack,
     Shove,
     Debug,
+    Melee,
 }
 
 public static class BodyParts

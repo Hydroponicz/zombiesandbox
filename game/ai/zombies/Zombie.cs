@@ -66,7 +66,10 @@ public partial class Zombie : CharacterBody3D, ISenseTarget
     // ---------- Seen by survivors ----------
     public Vector3 SightPoint => GlobalPosition + Vector3.Up * (IsCrawler ? 0.3f : 1.5f);
     /// <summary>Where to aim for a kill: the head.</summary>
-    public Vector3 HeadPoint => GlobalPosition + Vector3.Up * (IsCrawler || IsKnockedDown ? 0.25f : 1.62f);
+    /// <summary>Where its head actually is (follows the body when it's down or crawling).</summary>
+    public Vector3 HeadPoint => IsCrawler || IsKnockedDown || State == ZombieState.Dead
+        ? _visual.ToGlobal(new Vector3(0f, 1.62f, 0f))
+        : GlobalPosition + Vector3.Up * 1.62f;
     public Vector3 GroundPosition => GlobalPosition;
     public float Visibility => 1f;
     public Godot.Collections.Array<Rid> SightExclude => Perception.SelfExclude;

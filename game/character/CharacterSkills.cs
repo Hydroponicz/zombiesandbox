@@ -13,6 +13,8 @@ public enum SkillId
     Reloading, // Reload and magazine-check speed, magazine-check precision.
     Maintenance, // Jam clearing and inspection speed, slower weapon wear; repairs later.
     Medical, // Health estimates on the body diagram; healing with medical items later.
+    Blunt, // Bats, clubs: swing speed, damage, less wear. Levels up by hitting things.
+    Blade, // Knives, machetes, axes: swing speed, damage, less wear, less getting stuck.
 }
 
 /// <summary>

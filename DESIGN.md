@@ -450,7 +450,7 @@ a hit as an attack (factions), swings cost stamina and make little noise.
   new one came from (or anywhere in the bags, or the ground if there's no room). Swapping the weapon in
   your hands puts the new one in your hands. The test range has the four
   melee weapons on the ground (they can be held but not swung until melee B).
-- **Melee B — melee combat:**
+- **Melee B — melee combat** *(implemented on preview — in testing)*:
   - Weapons: **baseball bat** (blunt, staggers well), **machete** (blade, fast), **kitchen knife** (blade,
     very fast, short, weak against skulls), **fire axe** (blade, slow and heavy, one or two head hits).
   - Attack with fire: **tap = quick swing**, **hold = charged heavy swing**. Wind-up → fast swing → recovery,
@@ -469,6 +469,17 @@ a hit as an attack (factions), swings cost stamina and make little noise.
   - **Stuck blades:** axes and machetes can get **stuck** in a zombie's skull or body; pulling free takes a
     moment (longer on a skull, quicker with Blade skill). A stuck weapon in a crowd is a real danger.
   - No blocking for now (the shove makes space).
+  - **Aim decides where:** the swing arc decides whether you connect with someone; the body part is the one
+    under your aim (aim at the head to hit the head). Stomps land on the body part nearest the spot you look
+    at on the ground, heads first. Swings never hit the invisible movement colliders, only hit zones and walls.
+  - Walls: a swing into a wall bounces off (dust, a clang, extra wear, louder noise).
+  - Movement: walk only while charging a heavy swing or tugging at a stuck blade (stuck = half speed);
+    you can't switch weapons with a blade stuck. Walking away (>2.6 m) wrenches it free with extra wear.
+  - Numbers per weapon live in its `*_data.tres` (damage, head multiplier, reach, timings, stamina,
+    knockback/knockdown, bleeding, fractures, wear, stick chances).
+  - Dev notes (test): machete quick swing to a zombie head 15 dmg (heads have 25), heavy swing kills; bat
+    knocks down; 2 stomps kill a downed zombie; axe sticks, pull ≈0.9 s; a hit makes a neutral hostile.
+    Dev keys: Ctrl+, / Ctrl+. Blunt −/+, Ctrl+; / Ctrl+' Blade −/+; the overlay shows the melee state.
 - **Melee C — NPCs:** survivors with a melee weapon use it on close zombies instead of only shoving.
 
 #### Piece B: looting & searching

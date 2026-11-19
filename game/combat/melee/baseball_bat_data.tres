@@ -6,3 +6,17 @@
 script = ExtResource("1_script")
 DisplayName = "Baseball bat"
 Kind = 0
+Damage = 14
+HeadMultiplier = 1.0
+HeavyMultiplier = 1.8
+FractureChance = 0.35
+Reach = 1.95
+WindupTime = 0.28
+StrikeTime = 0.12
+RecoveryTime = 0.35
+MissPenalty = 0.25
+StaminaCost = 10
+Knockback = 1.0
+KnockdownChance = 0.12
+HeavyKnockdownChance = 0.5
+WearPerHit = 1.2

@@ -922,6 +922,8 @@ public partial class InventoryScreen : Control
             text += $"\nStorage: {item.Grids.Count} {(item.Grids.Count == 1 ? "compartment" : "compartments")}";
         if (item.Data.Slot != GearSlot.None)
             text += $"\nWorn as: {SlotName(item.Data.Slot)}";
+        if (item.Data.WeaponScene != null && item.Instance is MeleeWeapon melee)
+            text += $"\nCondition: {melee.Condition:0}%";
         string[] lines = text.Split('\n');
         var box = new Rect2(at, new Vector2(230f, lines.Length * 18f + 10f));
         Vector2 view = GetViewportRect().Size;

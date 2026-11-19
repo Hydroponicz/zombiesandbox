@@ -57,7 +57,9 @@ public partial class DebugHud : CanvasLayer
         Line(skills.IsMaxLevel(SkillId.Fitness)
             ? $"Fitness: Lv {skills.GetLevel(SkillId.Fitness)} (max)"
             : $"Fitness: Lv {skills.GetLevel(SkillId.Fitness)}   XP {skills.GetXp(SkillId.Fitness):0.0} / {skills.XpForNextLevel(SkillId.Fitness):0}");
-        Line($"Aiming: Lv {skills.GetLevel(SkillId.Aiming)}    Strength: Lv {skills.GetLevel(SkillId.Strength)}    Reloading: Lv {skills.GetLevel(SkillId.Reloading)}    Maintenance: Lv {skills.GetLevel(SkillId.Maintenance)}");
+        Line($"Aiming: Lv {skills.GetLevel(SkillId.Aiming)}    Strength: Lv {skills.GetLevel(SkillId.Strength)}    Reloading: Lv {skills.GetLevel(SkillId.Reloading)}    Maintenance: Lv {skills.GetLevel(SkillId.Maintenance)}    Blunt: Lv {skills.GetLevel(SkillId.Blunt)} ({skills.GetXp(SkillId.Blunt):0}/{skills.XpForNextLevel(SkillId.Blunt):0})    Blade: Lv {skills.GetLevel(SkillId.Blade)} ({skills.GetXp(SkillId.Blade):0}/{skills.XpForNextLevel(SkillId.Blade):0})");
+        if (_player.Weapons.Melee is { } melee)
+            Line($"Melee (dev only): {melee.Data.DisplayName} {melee.Condition:0}%    {_player.Weapons.MeleeState}{(_player.Weapons.IsChargingMelee ? $" {_player.Weapons.MeleeCharge:P0}" : "")}{(_player.Weapons.IsMeleeStuck ? $" ({(_player.Weapons.StuckInHead ? "skull" : "body")}) pull {_player.Weapons.PullProgress:P0}" : "")}");
         Combat.WeaponHolder w = _player.Weapons;
         string breath = w.IsGasping ? "GASPING" : (w.IsHoldingBreath ? "HOLDING" : "normal");
         Line($"Weapon: ADS {w.AdsBlend:0.00}{(w.IsAiming ? " (aiming)" : "")}    Can fire: {(w.CanFire ? "yes" : "NO")}    Sway: {w.SwayDegrees:0.00}°    Breath: {breath} {w.BreathFraction:P0}    Wall: {w.WallPullBack:0.00} m{(_player.IsPeeking ? "    PEEKING" : "")}");
@@ -101,7 +103,7 @@ public partial class DebugHud : CanvasLayer
             factions.Append(name).Append(": ").Append(attitude == ZombieSandbox.AI.Attitude.Hostile ? "HOSTILE" : attitude.ToString().ToLowerInvariant()).Append("   ");
         Line($"Factions (dev only): {factions}");
         Line("");
-        Line("[DEV] Skills -/+:  Ctrl+1/2 Fitness   Ctrl+3/4 Aiming   Ctrl+5/6 Strength   Ctrl+7/8 Reloading   Ctrl+9/0 Maintenance   Ctrl+-/= Medical");
+        Line("[DEV] Skills -/+:  Ctrl+1/2 Fitness   Ctrl+3/4 Aiming   Ctrl+5/6 Strength   Ctrl+7/8 Reloading   Ctrl+9/0 Maintenance   Ctrl+-/= Medical   Ctrl+,/. Blunt   Ctrl+;/' Blade");
         Line("[DEV] Weapon:  Ctrl+R refill ammo   Ctrl+K condition   Ctrl+J jam next shot   Ctrl+T bullet trails");
         Line($"[DEV] Health:  Ctrl+H hurt self   Ctrl+N break leg   Ctrl+U infect self   Ctrl+G heal (+cure)      World:  Ctrl+Z spawn zombie   Ctrl+L remove zombies   Ctrl+P time speed   Ctrl+O +3 h   Ctrl+M NPCs ignore you   Ctrl+Y reset factions{(ZombieSandbox.AI.Survivor.DebugIgnorePlayer ? " (ON)" : "")}");
         Line("[DEV] Ctrl+I hide this overlay      G shove   H health screen   Tab inventory   Esc release mouse (click to recapture)");

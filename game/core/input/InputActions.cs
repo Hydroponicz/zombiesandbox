@@ -93,6 +93,10 @@ public static class InputActions
     public const string DebugMedicalDown = "debug_medical_down";
     public const string DebugReloadingUp = "debug_reloading_up";
     public const string DebugReloadingDown = "debug_reloading_down";
+    public const string DebugBluntDown = "debug_blunt_down";
+    public const string DebugBluntUp = "debug_blunt_up";
+    public const string DebugBladeDown = "debug_blade_down";
+    public const string DebugBladeUp = "debug_blade_up";
 
     /// <summary>InputMap events with this device id match any connected device.</summary>
     private const int AllDevices = -1;
@@ -175,6 +179,10 @@ public static class InputActions
             Bind(DebugBreakLeg, 0.5f, CtrlKeyEvent(Key.N));
             Bind(DebugMedicalDown, 0.5f, CtrlKeyEvent(Key.Minus));
             Bind(DebugMedicalUp, 0.5f, CtrlKeyEvent(Key.Equal));
+            Bind(DebugBluntDown, 0.5f, CtrlKeyEvent(Key.Comma));
+            Bind(DebugBluntUp, 0.5f, CtrlKeyEvent(Key.Period));
+            Bind(DebugBladeDown, 0.5f, CtrlKeyEvent(Key.Semicolon));
+            Bind(DebugBladeUp, 0.5f, CtrlKeyEvent(Key.Apostrophe));
         }
     }
 
